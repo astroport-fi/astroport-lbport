@@ -11,7 +11,7 @@ use cosmwasm_std::{
     StdError, Uint128, WasmMsg,
 };
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
-use terraswap::asset::{Asset, AssetInfo, PairInfo};
+use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
 use terraswap::pair::{
     Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
@@ -24,11 +24,19 @@ fn proper_initialization() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
@@ -36,6 +44,8 @@ fn proper_initialization() {
             contract_addr: HumanAddr::from("factory0000"),
             msg: to_binary(&Uint128(1000000u128)).unwrap(),
         }),
+        start_time: 100,
+        end_time: 1000,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -88,12 +98,20 @@ fn proper_initialization() {
     assert_eq!(
         pair_info.asset_infos,
         [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+             WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000")
-            }
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
+            },
         ]
     );
 }
@@ -115,15 +133,25 @@ fn provide_liquidity() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time:100,
+        end_time: 1000,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -506,15 +534,25 @@ fn withdraw_liquidity() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+           WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time: 100,
+        end_time: 1000,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -620,15 +658,25 @@ fn try_native_to_token() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time: 0,
+        end_time: 1000,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -689,6 +737,7 @@ fn try_native_to_token() {
             },
             amount: offer_amount,
         },
+        100,
     )
     .unwrap();
     assert_eq!(expected_return_amount, simulation_res.return_amount);
@@ -704,6 +753,7 @@ fn try_native_to_token() {
             },
             amount: expected_return_amount,
         },
+        100
     )
     .unwrap();
     assert_eq!(
@@ -790,15 +840,25 @@ fn try_token_to_native() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time: 0,
+        end_time: 1000,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -880,6 +940,7 @@ fn try_token_to_native() {
                 contract_addr: HumanAddr::from("asset0000"),
             },
         },
+        100
     )
     .unwrap();
     assert_eq!(expected_return_amount, simulation_res.return_amount);
@@ -895,6 +956,7 @@ fn try_token_to_native() {
                 denom: "uusd".to_string(),
             },
         },
+        100
     )
     .unwrap();
     assert_eq!(
@@ -1058,15 +1120,25 @@ fn test_query_pool() {
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAssetInfo{
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
+            WeightedAssetInfo{
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             },
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time: 0,
+        end_time: 1000,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -1083,17 +1155,21 @@ fn test_query_pool() {
     assert_eq!(
         res.assets,
         [
-            Asset {
+            WeightedAsset {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
-                amount: asset_0_amount
+                amount: asset_0_amount,
+                start_weight: Uint128(30),
+                end_weight: Uint128(20),
             },
-            Asset {
+            WeightedAsset {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
-                amount: asset_1_amount
+                amount: asset_1_amount,
+                start_weight: Uint128(20),
+                end_weight: Uint128(30),
             }
         ]
     );

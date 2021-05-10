@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use crate::querier::query_liquidity_token;
 use crate::state::{read_config, read_pair, read_pairs, store_config, store_pair, Config};
 
-use terraswap::asset::{AssetInfo, PairInfo, PairInfoRaw};
+use terraswap::asset::{AssetInfo, PairInfo, PairInfoRaw, WeightedAsset};
 use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, MigrateMsg, PairsResponse, QueryMsg};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
@@ -53,8 +53,10 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         } => try_update_config(deps, env, owner, token_code_id, pair_code_id),
         HandleMsg::CreatePair {
             asset_infos,
+            start_time,
+            end_time,
             init_hook,
-        } => try_create_pair(deps, env, asset_infos, init_hook),
+        } => try_create_pair(deps, env, asset_infos, start_time, end_time, init_hook),
         HandleMsg::Register { asset_infos } => try_register(deps, env, asset_infos),
     }
 }
@@ -100,7 +102,9 @@ pub fn try_update_config<S: Storage, A: Api, Q: Querier>(
 pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    asset_infos: [AssetInfo; 2],
+    asset_infos: [WeightedAsset; 2],
+    start_time: u64,
+    end_time: u64,
     init_hook: Option<InitHook>,
 ) -> HandleResult {
     let config: Config = read_config(&deps.storage)?;
@@ -115,6 +119,8 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             liquidity_token: CanonicalAddr::default(),
             contract_addr: CanonicalAddr::default(),
             asset_infos: raw_infos,
+            start_time,
+            end_time
         },
     )?;
 
@@ -131,6 +137,8 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
                     asset_infos: asset_infos.clone(),
                 })?,
             }),
+            start_time,
+            end_time,
         })?,
     })];
 
@@ -156,7 +164,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
 pub fn try_register<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    asset_infos: [AssetInfo; 2],
+    asset_infos: [WeightedAsset; 2],
 ) -> HandleResult {
     let raw_infos = [asset_infos[0].to_raw(&deps)?, asset_infos[1].to_raw(&deps)?];
     let pair_info: PairInfoRaw = read_pair(&deps.storage, &raw_infos)?;

@@ -10,7 +10,7 @@ use cosmwasm_std::{
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
 use integer_sqrt::IntegerSquareRoot;
 use std::str::FromStr;
-use terraswap::asset::{Asset, AssetInfo, PairInfo, PairInfoRaw};
+use terraswap::asset::{Asset, AssetInfo, PairInfo, PairInfoRaw, WeightedAsset};
 use terraswap::hook::InitHook;
 use terraswap::pair::{
     Cw20HookMsg, HandleMsg, InitMsg, MigrateMsg, PoolResponse, QueryMsg, ReverseSimulationResponse,
@@ -18,6 +18,7 @@ use terraswap::pair::{
 };
 use terraswap::querier::query_supply;
 use terraswap::token::InitMsg as TokenInitMsg;
+use std::ops::{Mul, Sub};
 
 /// Commission rate == 0.3%
 const COMMISSION_RATE: &str = "0.003";
@@ -26,6 +27,29 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    // Check LBP parameters
+    if msg.start_time < env.block.time {
+        return Err(StdError::generic_err("start_time is less then current time"));
+    }
+
+    if msg.end_time <= msg.start_time {
+        return Err(StdError::generic_err("end_time is less then or same as start_time"));
+    }
+
+    for asset in msg.asset_infos.iter() {
+        if asset.start_weight.is_zero() {
+           return Err(StdError::generic_err("start_weight can not be 0"));
+        }
+
+         if asset.end_weight.is_zero() {
+           return Err(StdError::generic_err("end_weight can not be 0"));
+        }
+
+        if asset.end_weight == asset.start_weight {
+           return Err(StdError::generic_err("start_weight cannot be eq to end_weight"));
+        }
+    }
+
     let pair_info: &PairInfoRaw = &PairInfoRaw {
         contract_addr: deps.api.canonical_address(&env.contract.address)?,
         liquidity_token: CanonicalAddr::default(),
@@ -33,6 +57,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             msg.asset_infos[0].to_raw(&deps)?,
             msg.asset_infos[1].to_raw(&deps)?,
         ],
+        start_time: msg.start_time,
+        end_time: msg.end_time,
     };
 
     store_pair_info(&mut deps.storage, &pair_info)?;
@@ -123,7 +149,7 @@ pub fn receive_cw20<S: Storage, A: Api, Q: Querier>(
                 // only asset contract can execute this message
                 let mut authorized: bool = false;
                 let config: PairInfoRaw = read_pair_info(&deps.storage)?;
-                let pools: [Asset; 2] = config.query_pools(deps, &env.contract.address)?;
+                let pools: [WeightedAsset; 2] = config.query_pools(deps, &env.contract.address)?;
                 for pool in pools.iter() {
                     if let AssetInfo::Token { contract_addr, .. } = &pool.info {
                         if contract_addr == &env.message.sender {
@@ -202,7 +228,7 @@ pub fn try_provide_liquidity<S: Storage, A: Api, Q: Querier>(
     }
 
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
-    let mut pools: [Asset; 2] = pair_info.query_pools(deps, &env.contract.address)?;
+    let mut pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &env.contract.address)?;
     let deposits: [Uint128; 2] = [
         assets
             .iter()
@@ -288,7 +314,7 @@ pub fn try_withdraw_liquidity<S: Storage, A: Api, Q: Querier>(
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
     let liquidity_addr: HumanAddr = deps.api.human_address(&pair_info.liquidity_token)?;
 
-    let pools: [Asset; 2] = pair_info.query_pools(&deps, &env.contract.address)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(&deps, &env.contract.address)?;
     let total_share: Uint128 = query_supply(&deps, &liquidity_addr)?;
 
     let share_ratio: Decimal = Decimal::from_ratio(amount, total_share);
@@ -331,6 +357,47 @@ pub fn try_withdraw_liquidity<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+/// Uses start_time and end_time parameters, start_weight and end_weight for both assets
+/// and current timestamp to calculate the weight for assets
+fn get_current_weight(
+    start_weight: Uint128,
+    end_weight: Uint128,
+    start_time: u64,
+    end_time: u64,
+    block_time: u64,
+) -> StdResult<Uint128> {
+    if block_time < start_time {
+        return Err(StdError::generic_err("Sale has not started yet"));
+    }
+
+    if block_time > end_time {
+        return Err(StdError::generic_err("Sale has already finished"));
+    }
+
+
+    let seconds_from_start = Uint128::from(block_time - start_time);
+
+    if end_weight > start_weight {
+        let ratio = Decimal::from_ratio(end_weight.sub(start_weight)?, end_time - start_time);
+        return Ok(start_weight + ratio.mul(seconds_from_start));
+    } else {
+        let ratio = Decimal::from_ratio(start_weight.sub(end_weight)?, end_time - start_time);
+        return start_weight - ratio.mul(seconds_from_start);
+    }
+}
+
+
+mod test {
+    use super::get_current_weight;
+    use cosmwasm_std::Uint128;
+
+    #[test]
+    fn test_get_current_weight() {
+        let w  = get_current_weight(Uint128(10), Uint128(1), 0, 10, 0).unwrap();
+        println!("{} -- --- ", w)
+    }
+}
+
 // CONTRACT - a user must do token approval
 pub fn try_swap<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -345,32 +412,39 @@ pub fn try_swap<S: Storage, A: Api, Q: Querier>(
 
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
 
-    let pools: [Asset; 2] = pair_info.query_pools(&deps, &env.contract.address)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(&deps, &env.contract.address)?;
 
-    let offer_pool: Asset;
-    let ask_pool: Asset;
+    let offer_pool: WeightedAsset;
+    let ask_pool: WeightedAsset;
 
     // If the asset balance is already increased
     // To calculated properly we should subtract user deposit from the pool
     if offer_asset.info.equal(&pools[0].info) {
-        offer_pool = Asset {
+        offer_pool = WeightedAsset {
             amount: (pools[0].amount - offer_asset.amount)?,
             info: pools[0].info.clone(),
+            start_weight: pools[0].start_weight,
+            end_weight: pools[0].end_weight,
         };
         ask_pool = pools[1].clone();
     } else if offer_asset.info.equal(&pools[1].info) {
-        offer_pool = Asset {
+        offer_pool = WeightedAsset {
             amount: (pools[1].amount - offer_asset.amount)?,
             info: pools[1].info.clone(),
+            start_weight: pools[1].start_weight,
+            end_weight: pools[1].end_weight,
         };
         ask_pool = pools[0].clone();
     } else {
         return Err(StdError::generic_err("Wrong asset info is given"));
     }
 
+    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, env.block.time)?;
+    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, env.block.time)?;
+
     let offer_amount = offer_asset.amount;
     let (return_amount, spread_amount, commission_amount) =
-        compute_swap(offer_pool.amount, ask_pool.amount, offer_amount)?;
+        compute_swap(offer_pool.amount, ask_pool.amount, ask_weight, offer_amount, offer_weight)?;
 
     // check max spread limit if exist
     assert_max_spread(
@@ -418,9 +492,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::Pair {} => to_binary(&query_pair_info(&deps)?),
         QueryMsg::Pool {} => to_binary(&query_pool(&deps)?),
-        QueryMsg::Simulation { offer_asset } => to_binary(&query_simulation(&deps, offer_asset)?),
-        QueryMsg::ReverseSimulation { ask_asset } => {
-            to_binary(&query_reverse_simulation(&deps, ask_asset)?)
+        QueryMsg::Simulation { offer_asset, block_time } => to_binary(&query_simulation(&deps, offer_asset, block_time)?),
+        QueryMsg::ReverseSimulation { ask_asset, block_time } => {
+            to_binary(&query_reverse_simulation(&deps, ask_asset, block_time)?)
         }
     }
 }
@@ -437,7 +511,7 @@ pub fn query_pool<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<PoolResponse> {
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
     let contract_addr = deps.api.human_address(&pair_info.contract_addr)?;
-    let assets: [Asset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
+    let assets: [WeightedAsset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
     let total_share: Uint128 =
         query_supply(&deps, &deps.api.human_address(&pair_info.liquidity_token)?)?;
 
@@ -452,14 +526,15 @@ pub fn query_pool<S: Storage, A: Api, Q: Querier>(
 pub fn query_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     offer_asset: Asset,
+    block_time: u64,
 ) -> StdResult<SimulationResponse> {
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
 
     let contract_addr = deps.api.human_address(&pair_info.contract_addr)?;
-    let pools: [Asset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
 
-    let offer_pool: Asset;
-    let ask_pool: Asset;
+    let offer_pool: WeightedAsset;
+    let ask_pool: WeightedAsset;
     if offer_asset.info.equal(&pools[0].info) {
         offer_pool = pools[0].clone();
         ask_pool = pools[1].clone();
@@ -472,8 +547,12 @@ pub fn query_simulation<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
+    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+
+
     let (return_amount, spread_amount, commission_amount) =
-        compute_swap(offer_pool.amount, ask_pool.amount, offer_asset.amount)?;
+        compute_swap(offer_pool.amount, ask_pool.amount, ask_weight, offer_asset.amount, offer_weight)?;
 
     Ok(SimulationResponse {
         return_amount,
@@ -485,14 +564,15 @@ pub fn query_simulation<S: Storage, A: Api, Q: Querier>(
 pub fn query_reverse_simulation<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     ask_asset: Asset,
+    block_time: u64,
 ) -> StdResult<ReverseSimulationResponse> {
     let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
 
     let contract_addr = deps.api.human_address(&pair_info.contract_addr)?;
-    let pools: [Asset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(&deps, &contract_addr)?;
 
-    let offer_pool: Asset;
-    let ask_pool: Asset;
+    let offer_pool: WeightedAsset;
+    let ask_pool: WeightedAsset;
     if ask_asset.info.equal(&pools[0].info) {
         ask_pool = pools[0].clone();
         offer_pool = pools[1].clone();
@@ -505,8 +585,12 @@ pub fn query_reverse_simulation<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
+let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+
+
     let (offer_amount, spread_amount, commission_amount) =
-        compute_offer_amount(offer_pool.amount, ask_pool.amount, ask_asset.amount)?;
+        compute_offer_amount(offer_pool.amount, ask_pool.amount, ask_weight, ask_asset.amount, offer_weight)?;
 
     Ok(ReverseSimulationResponse {
         offer_amount,
@@ -525,15 +609,19 @@ pub fn amount_of(coins: &[Coin], denom: String) -> Uint128 {
 fn compute_swap(
     offer_pool: Uint128,
     ask_pool: Uint128,
+    ask_weight: Uint128,
     offer_amount: Uint128,
+    offer_weight: Uint128,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // offer => ask
-    // ask_amount = (ask_pool - cp / (offer_pool + offer_amount)) * (1 - commission_rate)
-    let cp = Uint128(offer_pool.u128() * ask_pool.u128());
-    let return_amount = (ask_pool - cp.multiply_ratio(1u128, offer_pool + offer_amount))?;
+    // ask_amount = (ask_pool - (cp / ((offer_pool + offer_amount)*offer_weight)) / ask_weight) * (1 - commission_rate)
+
+    let cp = Uint128(offer_pool.u128() * offer_weight.u128() * ask_pool.u128() * ask_weight.u128());
+
+    let return_amount = (ask_pool - cp.multiply_ratio(1u128, (offer_pool + offer_amount).u128() * offer_weight.u128()).multiply_ratio(1u128, ask_weight))?;
 
     // calculate spread & commission
-    let spread_amount: Uint128 = (offer_amount * Decimal::from_ratio(ask_pool, offer_pool)
+    let spread_amount: Uint128 = (offer_amount * Decimal::from_ratio(ask_pool.u128() * ask_weight.u128(), offer_pool.u128() * offer_weight.u128())
         - return_amount)
         .unwrap_or_else(|_| Uint128::zero());
     let commission_amount: Uint128 = return_amount * Decimal::from_str(&COMMISSION_RATE).unwrap();
@@ -547,21 +635,25 @@ fn compute_swap(
 fn compute_offer_amount(
     offer_pool: Uint128,
     ask_pool: Uint128,
+    ask_weight: Uint128,
     ask_amount: Uint128,
+    offer_weight: Uint128,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // ask => offer
-    // offer_amount = cp / (ask_pool - ask_amount / (1 - commission_rate)) - offer_pool
-    let cp = Uint128(offer_pool.u128() * ask_pool.u128());
+    // offer_amount = cp / ((ask_pool * ask_weight) - (ask_amount * ask_weight / (1 - commission_rate))) - offer_pool
+
+    let cp = Uint128(offer_pool.u128() * offer_weight.u128() * ask_pool.u128() * ask_weight.u128());
+
     let one_minus_commission =
         decimal_subtraction(Decimal::one(), Decimal::from_str(&COMMISSION_RATE).unwrap())?;
 
     let offer_amount: Uint128 = (cp.multiply_ratio(
         1u128,
-        (ask_pool - ask_amount * reverse_decimal(one_minus_commission))?,
+        (Uint128(ask_pool.u128() * ask_weight.u128()) - Uint128(ask_amount.u128() * ask_weight.u128()) * reverse_decimal(one_minus_commission))?,
     ) - offer_pool)?;
 
     let before_commission_deduction = ask_amount * reverse_decimal(one_minus_commission);
-    let spread_amount = (offer_amount * Decimal::from_ratio(ask_pool, offer_pool)
+    let spread_amount = (offer_amount * Decimal::from_ratio(ask_pool.u128() * ask_weight.u128(), offer_pool.u128() * offer_weight.u128())
         - before_commission_deduction)
         .unwrap_or_else(|_| Uint128::zero());
     let commission_amount =
@@ -600,7 +692,7 @@ pub fn assert_max_spread(
 fn assert_slippage_tolerance(
     slippage_tolerance: &Option<Decimal>,
     deposits: &[Uint128; 2],
-    pools: &[Asset; 2],
+    pools: &[WeightedAsset; 2],
 ) -> StdResult<()> {
     if let Some(slippage_tolerance) = *slippage_tolerance {
         let one_minus_slippage_tolerance = decimal_subtraction(Decimal::one(), slippage_tolerance)?;

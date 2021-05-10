@@ -93,11 +93,13 @@ pub fn simulate<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pair_contract: &HumanAddr,
     offer_asset: &Asset,
+    block_time: u64,
 ) -> StdResult<SimulationResponse> {
     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: pair_contract.clone(),
         msg: to_binary(&PairQueryMsg::Simulation {
             offer_asset: offer_asset.clone(),
+            block_time,
         })?,
     }))
 }
@@ -106,11 +108,13 @@ pub fn reverse_simulate<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     pair_contract: &HumanAddr,
     ask_asset: &Asset,
+    block_time: u64,
 ) -> StdResult<ReverseSimulationResponse> {
     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: pair_contract.clone(),
         msg: to_binary(&PairQueryMsg::ReverseSimulation {
             ask_asset: ask_asset.clone(),
+            block_time,
         })?,
     }))
 }
