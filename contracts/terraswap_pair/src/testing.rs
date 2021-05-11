@@ -19,6 +19,9 @@ use terraswap::pair::{
 use terraswap::token::InitMsg as TokenInitMsg;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+const COMISSION_AMOUNT: u128 = 15;
+const COMISSION_RATIO: u128 = 10000;
+
 #[test]
 fn proper_initialization() {
     let mut deps = mock_dependencies(20, &[]);
@@ -728,7 +731,7 @@ fn try_native_to_token() {
     // 952.380953 = 20000 - 20000 * 30000 / (30000 + 1500)
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
-    let expected_commission_amount = expected_ret_amount.multiply_ratio(3u128, 1000u128); // 0.3%
+    let expected_commission_amount = expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = Uint128::zero(); // no tax for token
 
@@ -925,7 +928,7 @@ fn try_token_to_native() {
     // 952.380953 = 20000 - 20000 * 30000 / (30000 + 1500)
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
-    let expected_commission_amount = expected_ret_amount.multiply_ratio(3u128, 1000u128); // 0.3%
+    let expected_commission_amount = expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = std::cmp::min(
         Uint128(1000000u128),

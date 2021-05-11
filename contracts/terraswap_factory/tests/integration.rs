@@ -192,7 +192,10 @@ fn create_pair() {
                         asset_infos: asset_infos.clone()
                     })
                     .unwrap(),
-                })
+                }),
+
+                start_time,
+                end_time
             })
             .unwrap(),
             code_id: 321u64,

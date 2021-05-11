@@ -48,18 +48,32 @@ pub fn mock_instance(
 #[test]
 fn proper_initialization() {
     let mut deps = mock_instance(WASM, &[]);
+    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let end_time = start_time + 1000;
 
     let msg = InitMsg {
         asset_infos: [
-            AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+            WeightedAsset {
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                amount: asset_0_amount,
+                start_weight: Uint128(1),
+                end_weight: Uint128(1),
             },
-            AssetInfo::Token {
-                contract_addr: HumanAddr::from("asset0000"),
-            },
+            WeightedAsset {
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                amount: asset_1_amount,
+                start_weight: Uint128(1),
+                end_weight: Uint128(1),
+            }
         ],
         token_code_id: 10u64,
         init_hook: None,
+        start_time,
+        end_time
     };
 
     let env = mock_env("addr0000", &[]);

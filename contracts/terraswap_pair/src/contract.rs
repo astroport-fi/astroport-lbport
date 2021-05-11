@@ -20,8 +20,8 @@ use terraswap::querier::query_supply;
 use terraswap::token::InitMsg as TokenInitMsg;
 use std::ops::{Mul, Sub};
 
-/// Commission rate == 0.3%
-const COMMISSION_RATE: &str = "0.003";
+/// Commission rate == 0.15%
+const COMMISSION_RATE: &str = "0.0015";
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -384,13 +384,13 @@ fn get_current_weight(
 
 
 mod test {
-    use super::get_current_weight;
     use cosmwasm_std::Uint128;
+    use crate::contract::compute_swap;
 
     #[test]
-    fn test_get_current_weight() {
-        let w  = get_current_weight(Uint128(10), Uint128(1), 0, 10, 0).unwrap();
-        println!("{} -- --- ", w)
+    fn test_compute_swap() {
+        let w  = compute_swap(Uint128(250_000), Uint128(50_000_000), Uint128(1), Uint128(1), Uint128(1)).unwrap();
+        println!("return_amount: {} spread_amount: {} commission_amount: {}", w.0, w.1, w.2)
     }
 }
 
@@ -581,7 +581,7 @@ pub fn query_reverse_simulation<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
     let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
 
 
