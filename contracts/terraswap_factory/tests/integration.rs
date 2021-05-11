@@ -31,6 +31,7 @@ use terraswap::asset::AssetInfo;
 use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, QueryMsg};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // This line will test the output of cargo wasm
 static WASM: &[u8] =
@@ -140,6 +141,8 @@ fn update_config() {
 
 #[test]
 fn create_pair() {
+    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let end_time = start_time + 1000;
     let mut deps = mock_instance(WASM, &[]);
 
     let msg = InitMsg {
@@ -163,6 +166,8 @@ fn create_pair() {
     ];
     let msg = HandleMsg::CreatePair {
         asset_infos: asset_infos.clone(),
+        start_time,
+        end_time,
         init_hook: None,
     };
 

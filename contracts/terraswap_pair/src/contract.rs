@@ -44,10 +44,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
          if asset.end_weight.is_zero() {
            return Err(StdError::generic_err("end_weight can not be 0"));
         }
-
-        if asset.end_weight == asset.start_weight {
-           return Err(StdError::generic_err("start_weight cannot be eq to end_weight"));
-        }
     }
 
     let pair_info: &PairInfoRaw = &PairInfoRaw {

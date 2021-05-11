@@ -18,6 +18,7 @@ use terraswap::router::{
     ConfigResponse, Cw20HookMsg, HandleMsg, InitMsg, MigrateMsg, QueryMsg,
     SimulateSwapOperationsResponse, SwapOperation,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -257,6 +258,8 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                     _ => {}
                 }
 
+                let block_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
                 let mut res: SimulationResponse =
                     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
                         contract_addr: HumanAddr::from(pair_info.contract_addr),
@@ -265,6 +268,7 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                                 info: offer_asset_info,
                                 amount: offer_amount,
                             },
+                            block_time,
                         })?,
                     }))?;
 

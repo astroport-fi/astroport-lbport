@@ -50,14 +50,7 @@ impl WeightedAssetInfo {
         deps: &Extern<S, A, Q>,
     ) -> StdResult<WeightedAssetInfoRaw> {
         Ok(WeightedAssetInfoRaw {
-            info: match &self.info {
-                AssetInfo::NativeToken { denom } => AssetInfoRaw::NativeToken {
-                    denom: denom.to_string(),
-                },
-                AssetInfo::Token { contract_addr } => AssetInfoRaw::Token {
-                    contract_addr: deps.api.canonical_address(&contract_addr)?,
-                },
-            },
+            info: self.info.to_raw(deps)?,
             start_weight: self.start_weight,
             end_weight: self.end_weight,
         })
