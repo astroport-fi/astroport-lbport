@@ -10,6 +10,7 @@ use crate::state::{read_config, store_config, Config};
 
 use cw20::Cw20ReceiveMsg;
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
 use terraswap::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
@@ -18,7 +19,6 @@ use terraswap::router::{
     ConfigResponse, Cw20HookMsg, HandleMsg, InitMsg, MigrateMsg, QueryMsg,
     SimulateSwapOperationsResponse, SwapOperation,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -258,7 +258,10 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                     _ => {}
                 }
 
-                let block_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                let block_time = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
 
                 let mut res: SimulationResponse =
                     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {

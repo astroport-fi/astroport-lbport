@@ -109,7 +109,10 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
 ) -> HandleResult {
     let config: Config = read_config(&deps.storage)?;
 
-    let raw_infos = [asset_infos[0].info.to_raw(&deps)?, asset_infos[1].info.to_raw(&deps)?];
+    let raw_infos = [
+        asset_infos[0].info.to_raw(&deps)?,
+        asset_infos[1].info.to_raw(&deps)?,
+    ];
     if read_pair(&deps.storage, &raw_infos).is_ok() {
         return Err(StdError::generic_err("Pair already exists"));
     }
@@ -123,7 +126,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             contract_addr: CanonicalAddr::default(),
             asset_infos: raw_asset_infos,
             start_time,
-            end_time
+            end_time,
         },
     )?;
 
@@ -169,7 +172,10 @@ pub fn try_register<S: Storage, A: Api, Q: Querier>(
     env: Env,
     asset_infos: [WeightedAssetInfo; 2],
 ) -> HandleResult {
-    let raw_infos = [asset_infos[0].info.to_raw(&deps)?, asset_infos[1].info.to_raw(&deps)?];
+    let raw_infos = [
+        asset_infos[0].info.to_raw(&deps)?,
+        asset_infos[1].info.to_raw(&deps)?,
+    ];
     let pair_info: PairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
     if pair_info.contract_addr != CanonicalAddr::default() {
         return Err(StdError::generic_err("Pair was already registered"));

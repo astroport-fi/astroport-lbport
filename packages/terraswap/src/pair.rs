@@ -38,7 +38,7 @@ pub enum HandleMsg {
         belief_price: Option<Decimal>,
         max_spread: Option<Decimal>,
         to: Option<HumanAddr>,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -58,14 +58,8 @@ pub enum Cw20HookMsg {
 pub enum QueryMsg {
     Pair {},
     Pool {},
-    Simulation {
-        offer_asset: Asset,
-        block_time: u64,
-    },
-    ReverseSimulation {
-        ask_asset: Asset,
-        block_time: u64,
-    },
+    Simulation { offer_asset: Asset, block_time: u64 },
+    ReverseSimulation { ask_asset: Asset, block_time: u64 },
 }
 
 // We define a custom struct for each query response

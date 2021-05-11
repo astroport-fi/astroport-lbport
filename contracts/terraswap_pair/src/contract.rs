@@ -9,6 +9,7 @@ use cosmwasm_std::{
 
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
 use integer_sqrt::IntegerSquareRoot;
+use std::ops::{Mul, Sub};
 use std::str::FromStr;
 use terraswap::asset::{Asset, AssetInfo, PairInfo, PairInfoRaw, WeightedAsset};
 use terraswap::hook::InitHook;
@@ -18,7 +19,6 @@ use terraswap::pair::{
 };
 use terraswap::querier::query_supply;
 use terraswap::token::InitMsg as TokenInitMsg;
-use std::ops::{Mul, Sub};
 
 /// Commission rate == 0.15%
 const COMMISSION_RATE: &str = "0.0015";
@@ -29,20 +29,24 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<InitResponse> {
     // Check LBP parameters
     if msg.start_time < env.block.time {
-        return Err(StdError::generic_err("start_time is less then current time"));
+        return Err(StdError::generic_err(
+            "start_time is less then current time",
+        ));
     }
 
     if msg.end_time <= msg.start_time {
-        return Err(StdError::generic_err("end_time is less then or same as start_time"));
+        return Err(StdError::generic_err(
+            "end_time is less then or same as start_time",
+        ));
     }
 
     for asset in msg.asset_infos.iter() {
         if asset.start_weight.is_zero() {
-           return Err(StdError::generic_err("start_weight can not be 0"));
+            return Err(StdError::generic_err("start_weight can not be 0"));
         }
 
-         if asset.end_weight.is_zero() {
-           return Err(StdError::generic_err("end_weight can not be 0"));
+        if asset.end_weight.is_zero() {
+            return Err(StdError::generic_err("end_weight can not be 0"));
         }
     }
 
@@ -370,7 +374,6 @@ fn get_current_weight(
         return Err(StdError::generic_err("Sale has already finished"));
     }
 
-
     let seconds_from_start = Uint128::from(block_time - start_time);
 
     if end_weight > start_weight {
@@ -382,15 +385,24 @@ fn get_current_weight(
     }
 }
 
-
 mod test {
-    use cosmwasm_std::Uint128;
     use crate::contract::compute_swap;
+    use cosmwasm_std::Uint128;
 
     #[test]
     fn test_compute_swap() {
-        let w  = compute_swap(Uint128(250_000), Uint128(50_000_000), Uint128(1), Uint128(1), Uint128(1)).unwrap();
-        println!("return_amount: {} spread_amount: {} commission_amount: {}", w.0, w.1, w.2)
+        let w = compute_swap(
+            Uint128(250_000),
+            Uint128(50_000_000),
+            Uint128(1),
+            Uint128(1),
+            Uint128(1),
+        )
+        .unwrap();
+        println!(
+            "return_amount: {} spread_amount: {} commission_amount: {}",
+            w.0, w.1, w.2
+        )
     }
 }
 
@@ -435,12 +447,29 @@ pub fn try_swap<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Wrong asset info is given"));
     }
 
-    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, env.block.time)?;
-    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, env.block.time)?;
+    let ask_weight = get_current_weight(
+        ask_pool.start_weight,
+        ask_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        env.block.time,
+    )?;
+    let offer_weight = get_current_weight(
+        offer_pool.start_weight,
+        offer_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        env.block.time,
+    )?;
 
     let offer_amount = offer_asset.amount;
-    let (return_amount, spread_amount, commission_amount) =
-        compute_swap(offer_pool.amount, ask_pool.amount, ask_weight, offer_amount, offer_weight)?;
+    let (return_amount, spread_amount, commission_amount) = compute_swap(
+        offer_pool.amount,
+        ask_pool.amount,
+        ask_weight,
+        offer_amount,
+        offer_weight,
+    )?;
 
     // check max spread limit if exist
     assert_max_spread(
@@ -488,10 +517,14 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::Pair {} => to_binary(&query_pair_info(&deps)?),
         QueryMsg::Pool {} => to_binary(&query_pool(&deps)?),
-        QueryMsg::Simulation { offer_asset, block_time } => to_binary(&query_simulation(&deps, offer_asset, block_time)?),
-        QueryMsg::ReverseSimulation { ask_asset, block_time } => {
-            to_binary(&query_reverse_simulation(&deps, ask_asset, block_time)?)
-        }
+        QueryMsg::Simulation {
+            offer_asset,
+            block_time,
+        } => to_binary(&query_simulation(&deps, offer_asset, block_time)?),
+        QueryMsg::ReverseSimulation {
+            ask_asset,
+            block_time,
+        } => to_binary(&query_reverse_simulation(&deps, ask_asset, block_time)?),
     }
 }
 
@@ -543,12 +576,28 @@ pub fn query_simulation<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
-    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+    let ask_weight = get_current_weight(
+        ask_pool.start_weight,
+        ask_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        block_time,
+    )?;
+    let offer_weight = get_current_weight(
+        offer_pool.start_weight,
+        offer_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        block_time,
+    )?;
 
-
-    let (return_amount, spread_amount, commission_amount) =
-        compute_swap(offer_pool.amount, ask_pool.amount, ask_weight, offer_asset.amount, offer_weight)?;
+    let (return_amount, spread_amount, commission_amount) = compute_swap(
+        offer_pool.amount,
+        ask_pool.amount,
+        ask_weight,
+        offer_asset.amount,
+        offer_weight,
+    )?;
 
     Ok(SimulationResponse {
         return_amount,
@@ -581,12 +630,28 @@ pub fn query_reverse_simulation<S: Storage, A: Api, Q: Querier>(
         ));
     }
 
-    let ask_weight = get_current_weight(ask_pool.start_weight, ask_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
-    let offer_weight = get_current_weight(offer_pool.start_weight, offer_pool.end_weight, pair_info.start_time, pair_info.end_time, block_time)?;
+    let ask_weight = get_current_weight(
+        ask_pool.start_weight,
+        ask_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        block_time,
+    )?;
+    let offer_weight = get_current_weight(
+        offer_pool.start_weight,
+        offer_pool.end_weight,
+        pair_info.start_time,
+        pair_info.end_time,
+        block_time,
+    )?;
 
-
-    let (offer_amount, spread_amount, commission_amount) =
-        compute_offer_amount(offer_pool.amount, ask_pool.amount, ask_weight, ask_asset.amount, offer_weight)?;
+    let (offer_amount, spread_amount, commission_amount) = compute_offer_amount(
+        offer_pool.amount,
+        ask_pool.amount,
+        ask_weight,
+        ask_asset.amount,
+        offer_weight,
+    )?;
 
     Ok(ReverseSimulationResponse {
         offer_amount,
@@ -614,10 +679,19 @@ fn compute_swap(
 
     let cp = Uint128(offer_pool.u128() * offer_weight.u128() * ask_pool.u128() * ask_weight.u128());
 
-    let return_amount = (ask_pool - cp.multiply_ratio(1u128, (offer_pool + offer_amount).u128() * offer_weight.u128()).multiply_ratio(1u128, ask_weight))?;
+    let return_amount = (ask_pool
+        - cp.multiply_ratio(
+            1u128,
+            (offer_pool + offer_amount).u128() * offer_weight.u128(),
+        )
+        .multiply_ratio(1u128, ask_weight))?;
 
     // calculate spread & commission
-    let spread_amount: Uint128 = (offer_amount * Decimal::from_ratio(ask_pool.u128() * ask_weight.u128(), offer_pool.u128() * offer_weight.u128())
+    let spread_amount: Uint128 = (offer_amount
+        * Decimal::from_ratio(
+            ask_pool.u128() * ask_weight.u128(),
+            offer_pool.u128() * offer_weight.u128(),
+        )
         - return_amount)
         .unwrap_or_else(|_| Uint128::zero());
     let commission_amount: Uint128 = return_amount * Decimal::from_str(&COMMISSION_RATE).unwrap();
@@ -645,11 +719,17 @@ fn compute_offer_amount(
 
     let offer_amount: Uint128 = (cp.multiply_ratio(
         1u128,
-        (Uint128(ask_pool.u128() * ask_weight.u128()) - Uint128(ask_amount.u128() * ask_weight.u128()) * reverse_decimal(one_minus_commission))?,
+        (Uint128(ask_pool.u128() * ask_weight.u128())
+            - Uint128(ask_amount.u128() * ask_weight.u128())
+                * reverse_decimal(one_minus_commission))?,
     ) - offer_pool)?;
 
     let before_commission_deduction = ask_amount * reverse_decimal(one_minus_commission);
-    let spread_amount = (offer_amount * Decimal::from_ratio(ask_pool.u128() * ask_weight.u128(), offer_pool.u128() * offer_weight.u128())
+    let spread_amount = (offer_amount
+        * Decimal::from_ratio(
+            ask_pool.u128() * ask_weight.u128(),
+            offer_pool.u128() * offer_weight.u128(),
+        )
         - before_commission_deduction)
         .unwrap_or_else(|_| Uint128::zero());
     let commission_amount =

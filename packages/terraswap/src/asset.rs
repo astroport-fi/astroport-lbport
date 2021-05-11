@@ -43,7 +43,6 @@ impl fmt::Display for WeightedAssetInfo {
     }
 }
 
-
 impl WeightedAssetInfo {
     pub fn to_raw<S: Storage, A: Api, Q: Querier>(
         &self,

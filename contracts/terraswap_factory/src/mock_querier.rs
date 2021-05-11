@@ -98,23 +98,23 @@ impl WasmMockQuerier {
                                 .unwrap(),
                             start_time: 0,
                             asset_infos: [
-                                WeightedAssetInfoRaw{
+                                WeightedAssetInfoRaw {
                                     info: AssetInfoRaw::NativeToken {
                                         denom: "uusd".to_string(),
                                     },
                                     start_weight: Default::default(),
-                                    end_weight: Default::default()
+                                    end_weight: Default::default(),
                                 },
-                                WeightedAssetInfoRaw{
+                                WeightedAssetInfoRaw {
                                     info: AssetInfoRaw::NativeToken {
                                         denom: "uusd".to_string(),
                                     },
                                     start_weight: Default::default(),
-                                    end_weight: Default::default()
-                                }
+                                    end_weight: Default::default(),
+                                },
                             ],
 
-                            end_time: 0
+                            end_time: 0,
                         })
                         .unwrap(),
                     ))

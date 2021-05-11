@@ -30,7 +30,11 @@ pub fn store_pair<S: Storage>(storage: &mut S, data: &PairInfoRaw) -> StdResult<
 
     let mut pair_bucket: Bucket<S, PairInfoRaw> = Bucket::new(PREFIX_PAIR_INFO, storage);
     pair_bucket.save(
-        &[asset_infos[0].info.as_bytes(), asset_infos[1].info.as_bytes()].concat(),
+        &[
+            asset_infos[0].info.as_bytes(),
+            asset_infos[1].info.as_bytes(),
+        ]
+        .concat(),
         &data,
     )
 }

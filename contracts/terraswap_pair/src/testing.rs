@@ -11,13 +11,13 @@ use cosmwasm_std::{
     StdError, Uint128, WasmMsg,
 };
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
+use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
 use terraswap::pair::{
     Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
 };
 use terraswap::token::InitMsg as TokenInitMsg;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const COMISSION_AMOUNT: u128 = 15;
 const COMISSION_RATIO: u128 = 10000;
@@ -26,19 +26,22 @@ const COMISSION_RATIO: u128 = 10000;
 fn proper_initialization() {
     let mut deps = mock_dependencies(20, &[]);
 
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
 
     let msg = InitMsg {
         asset_infos: [
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -105,14 +108,14 @@ fn proper_initialization() {
     assert_eq!(
         pair_info.asset_infos,
         [
-             WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -125,7 +128,10 @@ fn proper_initialization() {
 
 #[test]
 fn provide_liquidity() {
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
 
     let mut deps = mock_dependencies(
@@ -143,14 +149,14 @@ fn provide_liquidity() {
 
     let msg = InitMsg {
         asset_infos: [
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -519,7 +525,10 @@ fn provide_liquidity() {
 
 #[test]
 fn withdraw_liquidity() {
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
 
     let mut deps = mock_dependencies(
@@ -547,14 +556,14 @@ fn withdraw_liquidity() {
 
     let msg = InitMsg {
         asset_infos: [
-           WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -638,7 +647,10 @@ fn withdraw_liquidity() {
 
 #[test]
 fn try_native_to_token() {
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
     let total_share = Uint128(30000000000u128);
     let asset_pool_amount = Uint128(20000000000u128);
@@ -673,14 +685,14 @@ fn try_native_to_token() {
 
     let msg = InitMsg {
         asset_infos: [
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -731,7 +743,8 @@ fn try_native_to_token() {
     // 952.380953 = 20000 - 20000 * 30000 / (30000 + 1500)
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
-    let expected_commission_amount = expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
+    let expected_commission_amount =
+        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = Uint128::zero(); // no tax for token
 
@@ -768,7 +781,7 @@ fn try_native_to_token() {
             },
             amount: expected_return_amount,
         },
-        start_time
+        start_time,
     )
     .unwrap();
     assert_eq!(
@@ -821,7 +834,10 @@ fn try_native_to_token() {
 
 #[test]
 fn try_token_to_native() {
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
     let total_share = Uint128(20000000000u128);
     let asset_pool_amount = Uint128(30000000000u128);
@@ -857,14 +873,14 @@ fn try_token_to_native() {
 
     let msg = InitMsg {
         asset_infos: [
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
@@ -928,7 +944,8 @@ fn try_token_to_native() {
     // 952.380953 = 20000 - 20000 * 30000 / (30000 + 1500)
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
-    let expected_commission_amount = expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
+    let expected_commission_amount =
+        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = std::cmp::min(
         Uint128(1000000u128),
@@ -957,7 +974,7 @@ fn try_token_to_native() {
                 contract_addr: HumanAddr::from("asset0000"),
             },
         },
-        start_time
+        start_time,
     )
     .unwrap();
     assert_eq!(expected_return_amount, simulation_res.return_amount);
@@ -973,7 +990,7 @@ fn try_token_to_native() {
                 denom: "uusd".to_string(),
             },
         },
-        start_time
+        start_time,
     )
     .unwrap();
     assert_eq!(
@@ -1113,7 +1130,10 @@ fn test_deduct() {
 
 #[test]
 fn test_query_pool() {
-    let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     let end_time = start_time + 1000;
     let total_share_amount = Uint128::from(111u128);
     let asset_0_amount = Uint128::from(222u128);
@@ -1139,14 +1159,14 @@ fn test_query_pool() {
 
     let msg = InitMsg {
         asset_infos: [
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 start_weight: Uint128(1),
                 end_weight: Uint128(1),
             },
-            WeightedAssetInfo{
+            WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: HumanAddr::from("asset0000"),
                 },
