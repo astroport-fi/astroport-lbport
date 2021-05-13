@@ -26,11 +26,15 @@ pub fn read_config<S: Storage>(storage: &S) -> StdResult<Config> {
 
 pub fn store_pair<S: Storage>(storage: &mut S, data: &PairInfoRaw) -> StdResult<()> {
     let mut asset_infos = data.asset_infos.clone().to_vec();
-    asset_infos.sort_by(|a, b| a.as_bytes().cmp(&b.as_bytes()));
+    asset_infos.sort_by(|a, b| a.info.as_bytes().cmp(&b.info.as_bytes()));
 
     let mut pair_bucket: Bucket<S, PairInfoRaw> = Bucket::new(PREFIX_PAIR_INFO, storage);
     pair_bucket.save(
-        &[asset_infos[0].as_bytes(), asset_infos[1].as_bytes()].concat(),
+        &[
+            asset_infos[0].info.as_bytes(),
+            asset_infos[1].info.as_bytes(),
+        ]
+        .concat(),
         &data,
     )
 }

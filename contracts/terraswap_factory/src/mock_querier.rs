@@ -5,7 +5,7 @@ use cosmwasm_std::{
 };
 use cosmwasm_storage::to_length_prefixed;
 use std::collections::HashMap;
-use terraswap::asset::{AssetInfoRaw, PairInfo, PairInfoRaw};
+use terraswap::asset::{AssetInfoRaw, PairInfo, PairInfoRaw, WeightedAssetInfoRaw};
 
 /// mock_dependencies is a drop-in replacement for cosmwasm_std::testing::mock_dependencies
 /// this uses our CustomQuerier.
@@ -96,14 +96,25 @@ impl WasmMockQuerier {
                             liquidity_token: api
                                 .canonical_address(&pair_info.liquidity_token)
                                 .unwrap(),
+                            start_time: 0,
                             asset_infos: [
-                                AssetInfoRaw::NativeToken {
-                                    denom: "uusd".to_string(),
+                                WeightedAssetInfoRaw {
+                                    info: AssetInfoRaw::NativeToken {
+                                        denom: "uusd".to_string(),
+                                    },
+                                    start_weight: Default::default(),
+                                    end_weight: Default::default(),
                                 },
-                                AssetInfoRaw::NativeToken {
-                                    denom: "uusd".to_string(),
+                                WeightedAssetInfoRaw {
+                                    info: AssetInfoRaw::NativeToken {
+                                        denom: "uusd".to_string(),
+                                    },
+                                    start_weight: Default::default(),
+                                    end_weight: Default::default(),
                                 },
                             ],
+
+                            end_time: 0,
                         })
                         .unwrap(),
                     ))

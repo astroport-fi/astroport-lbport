@@ -10,6 +10,7 @@ use crate::state::{read_config, store_config, Config};
 
 use cw20::Cw20ReceiveMsg;
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
 use terraswap::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
@@ -257,6 +258,11 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                     _ => {}
                 }
 
+                let block_time = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+
                 let mut res: SimulationResponse =
                     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
                         contract_addr: HumanAddr::from(pair_info.contract_addr),
@@ -265,6 +271,7 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                                 info: offer_asset_info,
                                 amount: offer_amount,
                             },
+                            block_time,
                         })?,
                     }))?;
 

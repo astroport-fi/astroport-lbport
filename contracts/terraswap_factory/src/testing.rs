@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, WasmMsg,
+    from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, Uint128, WasmMsg,
 };
 
 use crate::contract::{handle, init, query};
@@ -8,7 +8,8 @@ use crate::mock_querier::mock_dependencies;
 use crate::state::read_pair;
 
 use cosmwasm_std::testing::{mock_env, MOCK_CONTRACT_ADDR};
-use terraswap::asset::{AssetInfo, PairInfo};
+use std::time::{SystemTime, UNIX_EPOCH};
+use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, PairsResponse, QueryMsg};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
@@ -103,6 +104,12 @@ fn update_config() {
 
 #[test]
 fn create_pair() {
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+
     let mut deps = mock_dependencies(20, &[]);
 
     let msg = InitMsg {
@@ -117,16 +124,26 @@ fn create_pair() {
     let _res = init(&mut deps, env, msg).unwrap();
 
     let asset_infos = [
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0000"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0000"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0001"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0001"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
     ];
 
     let msg = HandleMsg::CreatePair {
         asset_infos: asset_infos.clone(),
+        start_time,
+        end_time,
         init_hook: None,
     };
 
@@ -151,7 +168,9 @@ fn create_pair() {
                         asset_infos: asset_infos.clone()
                     })
                     .unwrap(),
-                })
+                }),
+                start_time,
+                end_time
             })
             .unwrap(),
             code_id: 321u64,
@@ -161,16 +180,30 @@ fn create_pair() {
     );
 
     let raw_infos = [
-        asset_infos[0].to_raw(&deps).unwrap(),
-        asset_infos[1].to_raw(&deps).unwrap(),
+        asset_infos[0].info.to_raw(&deps).unwrap(),
+        asset_infos[1].info.to_raw(&deps).unwrap(),
     ];
-    let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
 
-    assert_eq!(pair_info.contract_addr, CanonicalAddr::default(),);
+    let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
+    assert_eq!(pair_info.contract_addr, CanonicalAddr::default());
+    assert_eq!(pair_info.start_time, start_time);
+    assert_eq!(pair_info.end_time, end_time);
+    assert_eq!(pair_info.asset_infos[0].info.to_normal(&deps).unwrap(), asset_infos[0].info);
+    assert_eq!(pair_info.asset_infos[0].start_weight, asset_infos[0].start_weight);
+    assert_eq!(pair_info.asset_infos[0].end_weight, asset_infos[0].end_weight);
+    assert_eq!(pair_info.asset_infos[1].info.to_normal(&deps).unwrap(), asset_infos[1].info);
+    assert_eq!(pair_info.asset_infos[1].start_weight, asset_infos[1].start_weight);
+    assert_eq!(pair_info.asset_infos[1].end_weight, asset_infos[1].end_weight);
 }
 
 #[test]
 fn register() {
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+
     let mut deps = mock_dependencies(20, &[]);
 
     let msg = InitMsg {
@@ -183,17 +216,27 @@ fn register() {
     let _res = init(&mut deps, env, msg).unwrap();
 
     let asset_infos = [
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0000"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0000"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0001"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0001"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
     ];
 
     let msg = HandleMsg::CreatePair {
         asset_infos: asset_infos.clone(),
         init_hook: None,
+        start_time,
+        end_time,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -204,15 +247,25 @@ fn register() {
         &HumanAddr::from("pair0000"),
         &PairInfo {
             asset_infos: [
-                AssetInfo::NativeToken {
-                    denom: "uusd".to_string(),
+                WeightedAssetInfo {
+                    info: AssetInfo::NativeToken {
+                        denom: "uusd".to_string(),
+                    },
+                    start_weight: Uint128(30),
+                    end_weight: Uint128(20),
                 },
-                AssetInfo::NativeToken {
-                    denom: "uusd".to_string(),
+                WeightedAssetInfo {
+                    info: AssetInfo::NativeToken {
+                        denom: "uusd".to_string(),
+                    },
+                    start_weight: Uint128(30),
+                    end_weight: Uint128(20),
                 },
             ],
             contract_addr: HumanAddr::from("pair0000"),
             liquidity_token: HumanAddr::from("liquidity0000"),
+            start_time,
+            end_time,
         },
     )]);
 
@@ -226,7 +279,7 @@ fn register() {
     let query_res = query(
         &deps,
         QueryMsg::Pair {
-            asset_infos: asset_infos.clone(),
+            asset_infos: [asset_infos[0].info.clone(), asset_infos[1].info.clone()],
         },
     )
     .unwrap();
@@ -238,6 +291,8 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
+            start_time,
+            end_time
         }
     );
 
@@ -254,17 +309,27 @@ fn register() {
 
     // Store one more item to test query pairs
     let asset_infos_2 = [
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0000"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0000"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
-        AssetInfo::Token {
-            contract_addr: HumanAddr::from("asset0002"),
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0002"),
+            },
+            start_weight: Uint128(30),
+            end_weight: Uint128(20),
         },
     ];
 
     let msg = HandleMsg::CreatePair {
         asset_infos: asset_infos_2.clone(),
         init_hook: None,
+        start_time,
+        end_time,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -275,15 +340,25 @@ fn register() {
         &HumanAddr::from("pair0001"),
         &PairInfo {
             asset_infos: [
-                AssetInfo::NativeToken {
-                    denom: "uusd".to_string(),
+                WeightedAssetInfo {
+                    info: AssetInfo::NativeToken {
+                        denom: "uusd".to_string(),
+                    },
+                    start_weight: Uint128(30),
+                    end_weight: Uint128(20),
                 },
-                AssetInfo::NativeToken {
-                    denom: "uusd".to_string(),
+                WeightedAssetInfo {
+                    info: AssetInfo::NativeToken {
+                        denom: "uusd".to_string(),
+                    },
+                    start_weight: Uint128(30),
+                    end_weight: Uint128(20),
                 },
             ],
             contract_addr: HumanAddr::from("pair0001"),
             liquidity_token: HumanAddr::from("liquidity0001"),
+            start_time,
+            end_time,
         },
     )]);
 
@@ -308,11 +383,15 @@ fn register() {
                 liquidity_token: HumanAddr::from("liquidity0000"),
                 contract_addr: HumanAddr::from("pair0000"),
                 asset_infos: asset_infos.clone(),
+                start_time,
+                end_time
             },
             PairInfo {
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),
+                start_time,
+                end_time
             }
         ]
     );
@@ -330,11 +409,13 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
+            start_time,
+            end_time
         }]
     );
 
     let query_msg = QueryMsg::Pairs {
-        start_after: Some(asset_infos.clone()),
+        start_after: Some([asset_infos[0].info.clone(), asset_infos[1].info.clone()]),
         limit: None,
     };
 
@@ -346,6 +427,8 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0001"),
             contract_addr: HumanAddr::from("pair0001"),
             asset_infos: asset_infos_2.clone(),
+            start_time,
+            end_time
         }]
     );
 }

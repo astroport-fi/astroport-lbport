@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use terra_cosmwasm::{
     SwapResponse, TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute,
 };
-use terraswap::asset::{Asset, AssetInfo, PairInfo};
+use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::pair::SimulationResponse;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -196,14 +196,24 @@ impl WasmMockQuerier {
                         Some(v) => Ok(to_binary(&PairInfo {
                             contract_addr: v.clone(),
                             liquidity_token: HumanAddr::from("liquidity"),
+                            start_time: 0,
                             asset_infos: [
-                                AssetInfo::NativeToken {
-                                    denom: "uusd".to_string(),
+                                WeightedAssetInfo {
+                                    info: AssetInfo::NativeToken {
+                                        denom: "uusd".to_string(),
+                                    },
+                                    start_weight: Default::default(),
+                                    end_weight: Default::default(),
                                 },
-                                AssetInfo::NativeToken {
-                                    denom: "uusd".to_string(),
+                                WeightedAssetInfo {
+                                    info: AssetInfo::NativeToken {
+                                        denom: "uusd".to_string(),
+                                    },
+                                    start_weight: Default::default(),
+                                    end_weight: Default::default(),
                                 },
                             ],
+                            end_time: 0,
                         })),
                         None => Err(SystemError::InvalidRequest {
                             error: "No pair info exists".to_string(),
@@ -214,7 +224,9 @@ impl WasmMockQuerier {
                 QueryMsg::Simulation { offer_asset } => Ok(to_binary(&SimulationResponse {
                     return_amount: offer_asset.amount,
                     commission_amount: Uint128::zero(),
+                    ask_weight: "".to_string(),
                     spread_amount: Uint128::zero(),
+                    offer_weight: "".to_string()
                 })),
             },
             QueryRequest::Wasm(WasmQuery::Raw { contract_addr, key }) => {

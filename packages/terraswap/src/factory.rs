@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetInfo, PairInfo};
+use crate::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use crate::hook::InitHook;
 use cosmwasm_std::HumanAddr;
 
@@ -25,12 +25,14 @@ pub enum HandleMsg {
     /// CreatePair instantiates pair contract
     CreatePair {
         /// Asset infos
-        asset_infos: [AssetInfo; 2],
+        asset_infos: [WeightedAssetInfo; 2],
+        start_time: u64,
+        end_time: u64,
         /// Init hook for after works
         init_hook: Option<InitHook>,
     },
     /// Register is invoked from created pair contract after initialzation
-    Register { asset_infos: [AssetInfo; 2] },
+    Register { asset_infos: [WeightedAssetInfo; 2] },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
