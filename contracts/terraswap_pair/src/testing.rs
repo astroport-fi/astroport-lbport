@@ -1312,14 +1312,14 @@ fn test_weight_calculations() {
     test_cases.push(TestCase{
         expected_error: false,
         start_time: start_time + 50,
-        expected_ask_weight: String::from("34.5000"),
-        expected_offer_weight: String::from("15.4999"),
+        expected_ask_weight: String::from("34.5"),
+        expected_offer_weight: String::from("15.5"),
     });
     test_cases.push(TestCase{
         expected_error: false,
         start_time: start_time + 100,
-        expected_ask_weight: String::from("20.0000"),
-        expected_offer_weight: String::from("29.9999"),
+        expected_ask_weight: String::from("20"),
+        expected_offer_weight: String::from("30"),
     });
 
     for t in &test_cases{
@@ -1349,8 +1349,8 @@ fn test_weight_calculations() {
         });
 
         if !t.expected_error {
-            assert_eq!(simulation_res.ask_weight.as_str().starts_with(&t.expected_ask_weight), true);
-            assert_eq!(simulation_res.offer_weight.as_str().starts_with(&t.expected_offer_weight), true);
+            assert_eq!(simulation_res.ask_weight.as_str(), &t.expected_ask_weight);
+            assert_eq!(simulation_res.offer_weight.as_str(), &t.expected_offer_weight);
         }
     }
 }

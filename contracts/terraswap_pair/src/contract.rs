@@ -623,7 +623,7 @@ pub fn amount_of(coins: &[Coin], denom: String) -> Uint128 {
     }
 }
 
-fn get_spot_price(
+fn get_ask_by_spot_price(
     offer_pool: Uint128,
     offer_weight: FixedFloat,
     ask_pool: Uint128,
@@ -651,7 +651,7 @@ fn compute_swap(
     let return_amount = calc_out_given_in(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount);
 
     // calculate spread & commission
-    let spot_price = get_spot_price(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount);
+    let spot_price = get_ask_by_spot_price(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount);
 
     let spread_amount: Uint128 = (spot_price - return_amount).unwrap_or_else(|_| Uint128::zero());
 
@@ -678,7 +678,7 @@ fn compute_offer_amount(
 
     let offer_amount = calc_in_given_out(offer_pool, offer_weight, ask_pool, ask_weight, before_commission_deduction);
 
-    let spot_price = get_spot_price(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount);
+    let spot_price = get_ask_by_spot_price(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount);
 
     let spread_amount = (spot_price - before_commission_deduction).unwrap_or_else(|_| Uint128::zero());
 
@@ -760,22 +760,16 @@ fn get_current_weight(
     }
 
     let start_weight_fixed = FixedFloat::from_num(start_weight.u128());
-    let end_weight_fixed = FixedFloat::from_num(end_weight.u128());
-    let seconds_from_start = FixedFloat::from_num(block_time - start_time);
     let time_diff = FixedFloat::from_num(end_time - start_time);
 
     if end_weight > start_weight {
-        let ratio = end_weight_fixed
-            .sub(&start_weight_fixed)
-            .div(&time_diff)
-            .mul(&seconds_from_start);
+        let ratio = FixedFloat::from_num((end_weight.u128() - start_weight.u128()) * (block_time - start_time) as u128)
+            .div(&time_diff);
 
         Ok(start_weight_fixed.add(ratio))
     } else {
-        let ratio = start_weight_fixed
-            .sub(&end_weight_fixed)
-            .div(&time_diff)
-            .mul(&seconds_from_start);
+        let ratio = FixedFloat::from_num((start_weight.u128() - end_weight.u128()) * (block_time - start_time) as u128)
+            .div(&time_diff);
 
         Ok(start_weight_fixed.sub(ratio))
     }
