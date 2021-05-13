@@ -75,6 +75,8 @@ pub struct SimulationResponse {
     pub return_amount: Uint128,
     pub spread_amount: Uint128,
     pub commission_amount: Uint128,
+    pub ask_weight: String,
+    pub offer_weight: String,
 }
 
 /// ReverseSimulationResponse returns reverse swap simulation response
@@ -83,6 +85,8 @@ pub struct ReverseSimulationResponse {
     pub offer_amount: Uint128,
     pub spread_amount: Uint128,
     pub commission_amount: Uint128,
+    pub ask_weight: String,
+    pub offer_weight: String,
 }
 
 /// We currently take no arguments for migrations

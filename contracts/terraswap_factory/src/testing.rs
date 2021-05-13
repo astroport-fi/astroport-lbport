@@ -183,9 +183,17 @@ fn create_pair() {
         asset_infos[0].info.to_raw(&deps).unwrap(),
         asset_infos[1].info.to_raw(&deps).unwrap(),
     ];
-    let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
 
-    assert_eq!(pair_info.contract_addr, CanonicalAddr::default(),);
+    let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
+    assert_eq!(pair_info.contract_addr, CanonicalAddr::default());
+    assert_eq!(pair_info.start_time, start_time);
+    assert_eq!(pair_info.end_time, end_time);
+    assert_eq!(pair_info.asset_infos[0].info.to_normal(&deps).unwrap(), asset_infos[0].info);
+    assert_eq!(pair_info.asset_infos[0].start_weight, asset_infos[0].start_weight);
+    assert_eq!(pair_info.asset_infos[0].end_weight, asset_infos[0].end_weight);
+    assert_eq!(pair_info.asset_infos[1].info.to_normal(&deps).unwrap(), asset_infos[1].info);
+    assert_eq!(pair_info.asset_infos[1].start_weight, asset_infos[1].start_weight);
+    assert_eq!(pair_info.asset_infos[1].end_weight, asset_infos[1].end_weight);
 }
 
 #[test]
