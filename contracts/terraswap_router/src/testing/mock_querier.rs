@@ -224,7 +224,9 @@ impl WasmMockQuerier {
                 QueryMsg::Simulation { offer_asset } => Ok(to_binary(&SimulationResponse {
                     return_amount: offer_asset.amount,
                     commission_amount: Uint128::zero(),
+                    ask_weight: "".to_string(),
                     spread_amount: Uint128::zero(),
+                    offer_weight: "".to_string()
                 })),
             },
             QueryRequest::Wasm(WasmQuery::Raw { contract_addr, key }) => {
