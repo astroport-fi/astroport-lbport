@@ -5,39 +5,33 @@
     {
       "type": "object",
       "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "pair"
       ],
       "properties": {
         "pair": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "pool"
-      ],
-      "properties": {
-        "pool": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "simulation"
-      ],
-      "properties": {
-        "simulation": {
           "type": "object",
           "required": [
-            "offer_asset"
+            "asset_infos"
           ],
           "properties": {
-            "offer_asset": {
-              "$ref": "#/definitions/Asset"
+            "asset_infos": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetInfo"
+              },
+              "maxItems": 2,
+              "minItems": 2
             }
           }
         }
@@ -46,17 +40,30 @@
     {
       "type": "object",
       "required": [
-        "reverse_simulation"
+        "pairs"
       ],
       "properties": {
-        "reverse_simulation": {
+        "pairs": {
           "type": "object",
-          "required": [
-            "ask_asset"
-          ],
           "properties": {
-            "ask_asset": {
-              "$ref": "#/definitions/Asset"
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/AssetInfo"
+              },
+              "maxItems": 2,
+              "minItems": 2
             }
           }
         }
@@ -64,21 +71,6 @@
     }
   ],
   "definitions": {
-    "Asset": {
-      "type": "object",
-      "required": [
-        "amount",
-        "info"
-      ],
-      "properties": {
-        "amount": {
-          "$ref": "#/definitions/Uint128"
-        },
-        "info": {
-          "$ref": "#/definitions/AssetInfo"
-        }
-      }
-    },
     "AssetInfo": {
       "anyOf": [
         {
@@ -122,9 +114,6 @@
       ]
     },
     "HumanAddr": {
-      "type": "string"
-    },
-    "Uint128": {
       "type": "string"
     }
   }

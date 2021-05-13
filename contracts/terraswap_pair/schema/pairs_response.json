@@ -1,38 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "PairInfo",
+  "title": "PairsResponse",
   "type": "object",
   "required": [
-    "asset_infos",
-    "contract_addr",
-    "end_time",
-    "liquidity_token",
-    "start_time"
+    "pairs"
   ],
   "properties": {
-    "asset_infos": {
+    "pairs": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/WeightedAssetInfo"
-      },
-      "maxItems": 2,
-      "minItems": 2
-    },
-    "contract_addr": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "end_time": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
-    },
-    "liquidity_token": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "start_time": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
+        "$ref": "#/definitions/PairInfo"
+      }
     }
   },
   "definitions": {
@@ -80,6 +58,42 @@
     },
     "HumanAddr": {
       "type": "string"
+    },
+    "PairInfo": {
+      "type": "object",
+      "required": [
+        "asset_infos",
+        "contract_addr",
+        "end_time",
+        "liquidity_token",
+        "start_time"
+      ],
+      "properties": {
+        "asset_infos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WeightedAssetInfo"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "contract_addr": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "end_time": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "liquidity_token": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "start_time": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "Uint128": {
       "type": "string"

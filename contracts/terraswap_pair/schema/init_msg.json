@@ -3,21 +3,11 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
-    "asset_infos",
+    "pair_code_id",
     "token_code_id"
   ],
   "properties": {
-    "asset_infos": {
-      "description": "Asset infos",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/AssetInfo"
-      },
-      "maxItems": 2,
-      "minItems": 2
-    },
     "init_hook": {
-      "description": "Hook for post initalization",
       "anyOf": [
         {
           "$ref": "#/definitions/InitHook"
@@ -27,56 +17,19 @@
         }
       ]
     },
+    "pair_code_id": {
+      "description": "Pair contract code ID, which is used to",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
     "token_code_id": {
-      "description": "Token contract code id for initialization",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     }
   },
   "definitions": {
-    "AssetInfo": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "token"
-          ],
-          "properties": {
-            "token": {
-              "type": "object",
-              "required": [
-                "contract_addr"
-              ],
-              "properties": {
-                "contract_addr": {
-                  "$ref": "#/definitions/HumanAddr"
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "native_token"
-          ],
-          "properties": {
-            "native_token": {
-              "type": "object",
-              "required": [
-                "denom"
-              ],
-              "properties": {
-                "denom": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"

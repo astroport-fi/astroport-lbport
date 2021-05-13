@@ -744,7 +744,7 @@ fn try_native_to_token() {
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
     let expected_commission_amount =
-        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
+        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.15%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = Uint128::zero(); // no tax for token
 
@@ -768,9 +768,19 @@ fn try_native_to_token() {
         start_time,
     )
     .unwrap();
-    assert_eq!(expected_return_amount, simulation_res.return_amount);
-    assert_eq!(expected_commission_amount, simulation_res.commission_amount);
-    assert_eq!(expected_spread_amount, simulation_res.spread_amount);
+
+    let amount_diff = (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128 - simulation_res.commission_amount.u128() as i128).abs();
+    let spread_diff = (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
+
+    let diff_tolerance = 10i128;
+
+    assert_eq!(amount_diff < diff_tolerance, true);
+    assert_eq!(commission_diff < diff_tolerance, true);
+    assert_eq!(spread_diff < diff_tolerance, true);
+
+    assert_eq!(String::from("1"), simulation_res.ask_weight);
+    assert_eq!(String::from("1"), simulation_res.offer_weight);
 
     // check reverse simulation res
     let reverse_simulation_res: ReverseSimulationResponse = query_reverse_simulation(
@@ -784,25 +794,17 @@ fn try_native_to_token() {
         start_time,
     )
     .unwrap();
-    assert_eq!(
-        (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs()
-            < 5i128,
-        true
-    );
-    assert_eq!(
-        (expected_commission_amount.u128() as i128
-            - reverse_simulation_res.commission_amount.u128() as i128)
-            .abs()
-            < 5i128,
-        true
-    );
-    assert_eq!(
-        (expected_spread_amount.u128() as i128
-            - reverse_simulation_res.spread_amount.u128() as i128)
-            .abs()
-            < 5i128,
-        true
-    );
+
+    let offer_diff = (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128 - reverse_simulation_res.commission_amount.u128() as i128).abs();
+    let spread_diff = (expected_spread_amount.u128() as i128 - reverse_simulation_res.spread_amount.u128() as i128).abs();
+
+    assert_eq!(offer_diff < diff_tolerance, true);
+    assert_eq!(commission_diff < diff_tolerance, true);
+    assert_eq!(spread_diff < diff_tolerance, true);
+
+    assert_eq!(String::from("1"), reverse_simulation_res.ask_weight);
+    assert_eq!(String::from("1"), reverse_simulation_res.offer_weight);
 
     assert_eq!(
         res.log,
@@ -811,10 +813,10 @@ fn try_native_to_token() {
             log("offer_asset", "uusd"),
             log("ask_asset", "asset0000"),
             log("offer_amount", offer_amount.to_string()),
-            log("return_amount", expected_return_amount.to_string()),
+            log("return_amount", simulation_res.return_amount.to_string()),
             log("tax_amount", expected_tax_amount.to_string()),
-            log("spread_amount", expected_spread_amount.to_string()),
-            log("commission_amount", expected_commission_amount.to_string()),
+            log("spread_amount", simulation_res.spread_amount.to_string()),
+            log("commission_amount", simulation_res.commission_amount.to_string()),
         ]
     );
 
@@ -823,7 +825,7 @@ fn try_native_to_token() {
             contract_addr: HumanAddr::from("asset0000"),
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: HumanAddr::from("addr0000"),
-                amount: Uint128::from(expected_return_amount),
+                amount: Uint128::from(simulation_res.return_amount),
             })
             .unwrap(),
             send: vec![],
@@ -945,7 +947,7 @@ fn try_token_to_native() {
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
     let expected_commission_amount =
-        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.3%
+        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.15%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = std::cmp::min(
         Uint128(1000000u128),
@@ -977,9 +979,17 @@ fn try_token_to_native() {
         start_time,
     )
     .unwrap();
-    assert_eq!(expected_return_amount, simulation_res.return_amount);
-    assert_eq!(expected_commission_amount, simulation_res.commission_amount);
-    assert_eq!(expected_spread_amount, simulation_res.spread_amount);
+
+
+    let ret_diff = (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128 - simulation_res.commission_amount.u128() as i128).abs();
+    let spread_diff = (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
+
+    let diff_tolerance = 10i128;
+
+    assert_eq!(ret_diff < diff_tolerance, true);
+    assert_eq!(commission_diff < diff_tolerance, true);
+    assert_eq!(spread_diff < diff_tolerance, true);
 
     // check reverse simulation res
     let reverse_simulation_res: ReverseSimulationResponse = query_reverse_simulation(
@@ -993,25 +1003,16 @@ fn try_token_to_native() {
         start_time,
     )
     .unwrap();
-    assert_eq!(
-        (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs()
-            < 5i128,
-        true
-    );
-    assert_eq!(
-        (expected_commission_amount.u128() as i128
-            - reverse_simulation_res.commission_amount.u128() as i128)
-            .abs()
-            < 5i128,
-        true
-    );
-    assert_eq!(
-        (expected_spread_amount.u128() as i128
-            - reverse_simulation_res.spread_amount.u128() as i128)
-            .abs()
-            < 5i128,
-        true
-    );
+
+    let offer_diff = (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128 - reverse_simulation_res.commission_amount.u128() as i128).abs();
+    let spread_diff = (expected_spread_amount.u128() as i128 - reverse_simulation_res.spread_amount.u128() as i128).abs();
+
+    let diff_tolerance = 5i128;
+
+    assert_eq!(offer_diff < diff_tolerance, true);
+    assert_eq!(commission_diff < diff_tolerance, true);
+    assert_eq!(spread_diff < diff_tolerance, true);
 
     assert_eq!(
         res.log,
@@ -1020,9 +1021,9 @@ fn try_token_to_native() {
             log("offer_asset", "asset0000"),
             log("ask_asset", "uusd"),
             log("offer_amount", offer_amount.to_string()),
-            log("return_amount", expected_return_amount.to_string()),
+            log("return_amount", simulation_res.return_amount.to_string()),
             log("tax_amount", expected_tax_amount.to_string()),
-            log("spread_amount", expected_spread_amount.to_string()),
+            log("spread_amount", simulation_res.spread_amount.to_string()),
             log("commission_amount", expected_commission_amount.to_string()),
         ]
     );
@@ -1033,7 +1034,7 @@ fn try_token_to_native() {
             to_address: HumanAddr::from("addr0000"),
             amount: vec![Coin {
                 denom: "uusd".to_string(),
-                amount: (expected_return_amount - expected_tax_amount).unwrap(),
+                amount: (simulation_res.return_amount - expected_tax_amount).unwrap(),
             }],
         }),
         msg_transfer,
@@ -1213,6 +1214,145 @@ fn test_query_pool() {
         ]
     );
     assert_eq!(res.total_share, total_share_amount);
+}
+
+#[test]
+fn test_weight_calculations() {
+   let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 100;
+    let total_share = Uint128(50_000_000_____000_000_000);
+    let asset_pool_amount = Uint128(250_000_____000_000_000);
+    let collateral_pool_amount = total_share.clone();
+
+    let offer_amount = Uint128(1_000____000_000_000);
+
+    let mut deps = mock_dependencies(
+        20,
+        &[Coin {
+            denom: "uusd".to_string(),
+            amount: collateral_pool_amount + offer_amount, /* user deposit must be pre-applied */
+        }],
+    );
+
+    deps.querier.with_tax(
+        Decimal::zero(),
+        &[(&"uusd".to_string(), &Uint128::from(1000000u128))],
+    );
+
+    deps.querier.with_token_balances(&[
+        (
+            &HumanAddr::from("liquidity0000"),
+            &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &total_share)],
+        ),
+        (
+            &HumanAddr::from("asset0000"),
+            &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &asset_pool_amount)],
+        ),
+    ]);
+
+    let msg = InitMsg {
+        asset_infos: [
+            WeightedAssetInfo {
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128(1),
+                end_weight: Uint128(30),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(49),
+                end_weight: Uint128(20),
+            },
+        ],
+        token_code_id: 10u64,
+        init_hook: None,
+        start_time,
+        end_time,
+    };
+
+    let env = mock_env("addr0000", &[]);
+    // we can just call .unwrap() to assert this was a success
+    let _res = init(&mut deps, env, msg).unwrap();
+
+    // check simulation res
+    struct TestCase {
+        expected_error: bool,
+        start_time: u64,
+        expected_ask_weight: String,
+        expected_offer_weight: String,
+    }
+
+    let mut test_cases: Vec<TestCase> = Vec::new();
+    test_cases.push(TestCase{
+        expected_error: true,
+        start_time: start_time -1,
+        expected_ask_weight: Default::default(),
+        expected_offer_weight: Default::default(),
+    });
+
+    test_cases.push(TestCase{
+        expected_error: true,
+        start_time: end_time + 1,
+        expected_ask_weight: Default::default(),
+        expected_offer_weight: Default::default(),
+    });
+
+    test_cases.push(TestCase{
+        expected_error: false,
+        start_time: start_time,
+        expected_ask_weight: String::from("49"),
+        expected_offer_weight: String::from("1"),
+    });
+    test_cases.push(TestCase{
+        expected_error: false,
+        start_time: start_time + 50,
+        expected_ask_weight: String::from("34.5000"),
+        expected_offer_weight: String::from("15.4999"),
+    });
+    test_cases.push(TestCase{
+        expected_error: false,
+        start_time: start_time + 100,
+        expected_ask_weight: String::from("20.0000"),
+        expected_offer_weight: String::from("29.9999"),
+    });
+
+    for t in &test_cases{
+        let simulation_res = query_simulation(
+        &deps,
+        Asset {
+            info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                amount: offer_amount,
+            },
+            t.start_time,
+        );
+
+        let simulation_res = simulation_res.unwrap_or_else(|e| {
+            if !t.expected_error {
+                panic!("{:?}", e);
+            }
+
+            SimulationResponse{
+                return_amount: Default::default(),
+                spread_amount: Default::default(),
+                commission_amount: Default::default(),
+                ask_weight: Default::default(),
+                offer_weight: Default::default()
+            }
+        });
+
+        if !t.expected_error {
+            assert_eq!(simulation_res.ask_weight.as_str().starts_with(&t.expected_ask_weight), true);
+            assert_eq!(simulation_res.offer_weight.as_str().starts_with(&t.expected_offer_weight), true);
+        }
+    }
 }
 
 fn mock_env_with_block_time<U: Into<HumanAddr>>(sender: U, sent: &[Coin], time: u64) -> Env {
