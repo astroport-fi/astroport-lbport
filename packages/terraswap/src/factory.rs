@@ -28,6 +28,7 @@ pub enum HandleMsg {
         asset_infos: [WeightedAssetInfo; 2],
         start_time: u64,
         end_time: u64,
+        description: Option<String>,
         /// Init hook for after works
         init_hook: Option<InitHook>,
     },

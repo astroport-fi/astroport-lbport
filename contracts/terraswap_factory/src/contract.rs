@@ -55,8 +55,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             asset_infos,
             start_time,
             end_time,
+            description,
             init_hook,
-        } => try_create_pair(deps, env, asset_infos, start_time, end_time, init_hook),
+        } => try_create_pair(deps, env, asset_infos, start_time, end_time, description, init_hook),
         HandleMsg::Register { asset_infos } => try_register(deps, env, asset_infos),
     }
 }
@@ -105,6 +106,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
     asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
+    description: Option<String>,
     init_hook: Option<InitHook>,
 ) -> HandleResult {
     let config: Config = read_config(&deps.storage)?;
@@ -127,6 +129,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             asset_infos: raw_asset_infos,
             start_time,
             end_time,
+            description: description.clone(),
         },
     )?;
 
@@ -145,6 +148,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             }),
             start_time,
             end_time,
+            description,
         })?,
     })];
 

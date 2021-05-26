@@ -145,6 +145,7 @@ fn create_pair() {
         start_time,
         end_time,
         init_hook: None,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -170,7 +171,8 @@ fn create_pair() {
                     .unwrap(),
                 }),
                 start_time,
-                end_time
+                end_time,
+                description: Some(String::from("description")),
             })
             .unwrap(),
             code_id: 321u64,
@@ -237,6 +239,7 @@ fn register() {
         init_hook: None,
         start_time,
         end_time,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -266,6 +269,7 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0000"),
             start_time,
             end_time,
+            description: Some(String::from("description")),
         },
     )]);
 
@@ -292,7 +296,8 @@ fn register() {
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
-            end_time
+            end_time,
+            description: Some(String::from("description")),
         }
     );
 
@@ -330,6 +335,7 @@ fn register() {
         init_hook: None,
         start_time,
         end_time,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -359,6 +365,7 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0001"),
             start_time,
             end_time,
+            description: Some(String::from("description")),
         },
     )]);
 
@@ -384,14 +391,16 @@ fn register() {
                 contract_addr: HumanAddr::from("pair0000"),
                 asset_infos: asset_infos.clone(),
                 start_time,
-                end_time
+                end_time,
+                description: Some(String::from("description")),
             },
             PairInfo {
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),
                 start_time,
-                end_time
+                end_time,
+                description: Some(String::from("description")),
             }
         ]
     );
@@ -410,7 +419,8 @@ fn register() {
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
-            end_time
+            end_time,
+            description: Some(String::from("description")),
         }]
     );
 
@@ -428,7 +438,8 @@ fn register() {
             contract_addr: HumanAddr::from("pair0001"),
             asset_infos: asset_infos_2.clone(),
             start_time,
-            end_time
+            end_time,
+            description: Some(String::from("description")),
         }]
     );
 }

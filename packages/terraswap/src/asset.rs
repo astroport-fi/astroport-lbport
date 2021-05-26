@@ -307,6 +307,7 @@ pub struct PairInfo {
     pub liquidity_token: HumanAddr,
     pub start_time: u64,
     pub end_time: u64,
+    pub description: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -316,6 +317,7 @@ pub struct PairInfoRaw {
     pub liquidity_token: CanonicalAddr,
     pub start_time: u64,
     pub end_time: u64,
+    pub description: Option<String>,
 }
 
 impl PairInfoRaw {
@@ -333,6 +335,7 @@ impl PairInfoRaw {
             ],
 
             end_time: self.end_time,
+            description: self.description.clone(),
         })
     }
 

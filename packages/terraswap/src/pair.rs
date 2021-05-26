@@ -19,6 +19,8 @@ pub struct InitMsg {
     pub start_time: u64,
     // LBP end time
     pub end_time: u64,
+    // Pair description
+    pub description: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

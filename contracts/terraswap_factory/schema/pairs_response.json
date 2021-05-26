@@ -80,6 +80,12 @@
         "contract_addr": {
           "$ref": "#/definitions/HumanAddr"
         },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "end_time": {
           "type": "integer",
           "format": "uint64",
