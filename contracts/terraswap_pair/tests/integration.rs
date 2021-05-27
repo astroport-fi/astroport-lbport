@@ -77,6 +77,7 @@ fn proper_initialization() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None,
     };
 
     let env = mock_env("addr0000", &[]);
@@ -115,4 +116,5 @@ fn proper_initialization() {
 
     assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!("description", pair_info.description.unwrap());
+    assert_eq!(HumanAddr::from("addr0000"), pair_info.creator);
 }

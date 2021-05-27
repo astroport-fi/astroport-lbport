@@ -19,6 +19,7 @@ use terraswap::pair::{
 };
 use terraswap::querier::query_supply;
 use terraswap::token::InitMsg as TokenInitMsg;
+use terraswap::factory::HandleMsg as FactoryHandleMsg;
 
 /// Commission rate == 0.15%
 const COMMISSION_RATE: &str = "0.0015";
@@ -50,6 +51,9 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         }
     }
 
+    // Get proper creator
+    let creator = msg.creator.unwrap_or(env.message.sender);
+
     let pair_info: &PairInfoRaw = &PairInfoRaw {
         contract_addr: deps.api.canonical_address(&env.contract.address)?,
         liquidity_token: CanonicalAddr::default(),
@@ -60,6 +64,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         start_time: msg.start_time,
         end_time: msg.end_time,
         description: msg.description,
+        creator: deps.api.canonical_address(&creator)?
     };
 
     store_pair_info(&mut deps.storage, &pair_info)?;
@@ -131,6 +136,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
                 to,
             )
         }
+        HandleMsg::Unregister {factory_addr} => try_unregister(deps, env, factory_addr),
     }
 }
 
@@ -354,6 +360,37 @@ pub fn try_withdraw_liquidity<S: Storage, A: Api, Q: Querier>(
                 format!("{}, {}", refund_assets[0], refund_assets[1]),
             ),
         ],
+        data: None,
+    })
+}
+
+pub fn try_unregister<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    factory_addr: HumanAddr,
+) -> HandleResult {
+    let pair_info: PairInfoRaw = read_pair_info(&deps.storage)?;
+
+    if deps.api.canonical_address(&env.message.sender)? != pair_info.creator{
+        return Err(StdError::unauthorized());
+    }
+
+    // update pool info
+    Ok(HandleResponse {
+        messages: vec![
+           // Unregister from factory
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: factory_addr,
+                msg: to_binary(&FactoryHandleMsg::Unregister {
+                     asset_infos: [
+                        pair_info.asset_infos[0].info.to_normal(&deps)?,
+                        pair_info.asset_infos[1].info.to_normal(&deps)?,
+                    ],
+                })?,
+                send: vec![],
+            }),
+        ],
+        log: vec![],
         data: None,
     })
 }

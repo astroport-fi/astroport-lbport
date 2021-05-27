@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Api, CanonicalAddr, Extern, Order, Querier, StdError, StdResult, Storage};
 
 use cosmwasm_storage::{Bucket, ReadonlyBucket, ReadonlySingleton, Singleton};
-use terraswap::asset::{AssetInfoRaw, PairInfo, PairInfoRaw};
+use terraswap::asset::{AssetInfoRaw};
+use terraswap::factory::{FactoryPairInfoRaw, FactoryPairInfo};
 
 static KEY_CONFIG: &[u8] = b"config";
 static PREFIX_PAIR_INFO: &[u8] = b"pair_info";
@@ -24,11 +25,11 @@ pub fn read_config<S: Storage>(storage: &S) -> StdResult<Config> {
     ReadonlySingleton::new(storage, KEY_CONFIG).load()
 }
 
-pub fn store_pair<S: Storage>(storage: &mut S, data: &PairInfoRaw) -> StdResult<()> {
+pub fn store_pair<S: Storage>(storage: &mut S, data: &FactoryPairInfoRaw) -> StdResult<()> {
     let mut asset_infos = data.asset_infos.clone().to_vec();
     asset_infos.sort_by(|a, b| a.info.as_bytes().cmp(&b.info.as_bytes()));
 
-    let mut pair_bucket: Bucket<S, PairInfoRaw> = Bucket::new(PREFIX_PAIR_INFO, storage);
+    let mut pair_bucket: Bucket<S, FactoryPairInfoRaw> = Bucket::new(PREFIX_PAIR_INFO, storage);
     pair_bucket.save(
         &[
             asset_infos[0].info.as_bytes(),
@@ -39,14 +40,28 @@ pub fn store_pair<S: Storage>(storage: &mut S, data: &PairInfoRaw) -> StdResult<
     )
 }
 
+pub fn remove_pair<S: Storage>(storage: &mut S, data: &FactoryPairInfoRaw) -> () {
+    let mut asset_infos = data.asset_infos.clone().to_vec();
+    asset_infos.sort_by(|a, b| a.info.as_bytes().cmp(&b.info.as_bytes()));
+
+    let mut pair_bucket: Bucket<S, FactoryPairInfoRaw> = Bucket::new(PREFIX_PAIR_INFO, storage);
+    pair_bucket.remove(
+        &[
+            asset_infos[0].info.as_bytes(),
+            asset_infos[1].info.as_bytes(),
+        ]
+        .concat()
+    )
+}
+
 pub fn read_pair<S: Storage>(
     storage: &S,
     asset_infos: &[AssetInfoRaw; 2],
-) -> StdResult<PairInfoRaw> {
+) -> StdResult<FactoryPairInfoRaw> {
     let mut asset_infos = asset_infos.clone().to_vec();
     asset_infos.sort_by(|a, b| a.as_bytes().cmp(&b.as_bytes()));
 
-    let pair_bucket: ReadonlyBucket<S, PairInfoRaw> =
+    let pair_bucket: ReadonlyBucket<S, FactoryPairInfoRaw> =
         ReadonlyBucket::new(PREFIX_PAIR_INFO, storage);
     match pair_bucket.load(&[asset_infos[0].as_bytes(), asset_infos[1].as_bytes()].concat()) {
         Ok(v) => Ok(v),
@@ -61,8 +76,8 @@ pub fn read_pairs<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     start_after: Option<[AssetInfoRaw; 2]>,
     limit: Option<u32>,
-) -> StdResult<Vec<PairInfo>> {
-    let pair_bucket: ReadonlyBucket<S, PairInfoRaw> =
+) -> StdResult<Vec<FactoryPairInfo>> {
+    let pair_bucket: ReadonlyBucket<S, FactoryPairInfoRaw> =
         ReadonlyBucket::new(PREFIX_PAIR_INFO, &deps.storage);
 
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;

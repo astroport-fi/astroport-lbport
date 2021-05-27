@@ -9,8 +9,8 @@ use crate::state::read_pair;
 
 use cosmwasm_std::testing::{mock_env, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
-use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, PairsResponse, QueryMsg};
+use terraswap::asset::{AssetInfo, WeightedAssetInfo, PairInfo};
+use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, PairsResponse, QueryMsg, FactoryPairInfo};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
 
@@ -173,6 +173,7 @@ fn create_pair() {
                 start_time,
                 end_time,
                 description: Some(String::from("description")),
+                creator: Some(HumanAddr::from("addr0000"))
             })
             .unwrap(),
             code_id: 321u64,
@@ -270,6 +271,7 @@ fn register() {
             start_time,
             end_time,
             description: Some(String::from("description")),
+            creator: HumanAddr::from("creator0000"),
         },
     )]);
 
@@ -288,16 +290,15 @@ fn register() {
     )
     .unwrap();
 
-    let pair_res: PairInfo = from_binary(&query_res).unwrap();
+    let pair_res: FactoryPairInfo = from_binary(&query_res).unwrap();
     assert_eq!(
         pair_res,
-        PairInfo {
+        FactoryPairInfo {
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
             end_time,
-            description: Some(String::from("description")),
         }
     );
 
@@ -366,6 +367,7 @@ fn register() {
             start_time,
             end_time,
             description: Some(String::from("description")),
+            creator: Default::default()
         },
     )]);
 
@@ -386,21 +388,19 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![
-            PairInfo {
+            FactoryPairInfo {
                 liquidity_token: HumanAddr::from("liquidity0000"),
                 contract_addr: HumanAddr::from("pair0000"),
                 asset_infos: asset_infos.clone(),
                 start_time,
                 end_time,
-                description: Some(String::from("description")),
             },
-            PairInfo {
+            FactoryPairInfo {
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),
                 start_time,
                 end_time,
-                description: Some(String::from("description")),
             }
         ]
     );
@@ -414,13 +414,12 @@ fn register() {
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(
         pairs_res.pairs,
-        vec![PairInfo {
+        vec![FactoryPairInfo {
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
             end_time,
-            description: Some(String::from("description")),
         }]
     );
 
@@ -433,13 +432,12 @@ fn register() {
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(
         pairs_res.pairs,
-        vec![PairInfo {
+        vec![FactoryPairInfo {
             liquidity_token: HumanAddr::from("liquidity0001"),
             contract_addr: HumanAddr::from("pair0001"),
             asset_infos: asset_infos_2.clone(),
             start_time,
             end_time,
-            description: Some(String::from("description")),
         }]
     );
 }

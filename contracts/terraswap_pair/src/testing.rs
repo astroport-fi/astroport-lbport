@@ -57,6 +57,7 @@ fn proper_initialization() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -126,6 +127,7 @@ fn proper_initialization() {
         ]
     );
     assert_eq!("description", pair_info.description.unwrap());
+    assert_eq!(HumanAddr::from("addr0000"), pair_info.creator);
 }
 
 #[test]
@@ -171,6 +173,7 @@ fn provide_liquidity() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     let env = mock_env("addr0000", &[]);
@@ -579,6 +582,7 @@ fn withdraw_liquidity() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     let env = mock_env("addr0000", &[]);
@@ -709,6 +713,7 @@ fn try_native_to_token() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     let env = mock_env("addr0000", &[]);
@@ -900,6 +905,7 @@ fn try_token_to_native() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     let env = mock_env("addr0000", &[]);
@@ -1186,6 +1192,7 @@ fn test_query_pool() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None
     };
 
     let env = mock_env("addr0000", &[]);
@@ -1282,6 +1289,7 @@ fn test_weight_calculations() {
         start_time,
         end_time,
         description: Some(String::from("description")),
+        creator: None,
     };
 
     let env = mock_env("addr0000", &[]);

@@ -5,10 +5,10 @@ use cosmwasm_std::{
 };
 
 use crate::querier::query_liquidity_token;
-use crate::state::{read_config, read_pair, read_pairs, store_config, store_pair, Config};
+use crate::state::{read_config, read_pair, read_pairs, store_config, store_pair, Config, remove_pair};
 
-use terraswap::asset::{AssetInfo, PairInfo, PairInfoRaw, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, MigrateMsg, PairsResponse, QueryMsg};
+use terraswap::asset::{AssetInfo, WeightedAssetInfo};
+use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, MigrateMsg, PairsResponse, QueryMsg, FactoryPairInfo, FactoryPairInfoRaw};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
 
@@ -59,6 +59,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             init_hook,
         } => try_create_pair(deps, env, asset_infos, start_time, end_time, description, init_hook),
         HandleMsg::Register { asset_infos } => try_register(deps, env, asset_infos),
+        HandleMsg::Unregister { asset_infos } => try_unregister(deps, env, asset_infos),
     }
 }
 
@@ -123,13 +124,12 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
 
     store_pair(
         &mut deps.storage,
-        &PairInfoRaw {
+        &FactoryPairInfoRaw {
             liquidity_token: CanonicalAddr::default(),
             contract_addr: CanonicalAddr::default(),
             asset_infos: raw_asset_infos,
             start_time,
             end_time,
-            description: description.clone(),
         },
     )?;
 
@@ -149,6 +149,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             start_time,
             end_time,
             description,
+            creator: Some(env.message.sender),
         })?,
     })];
 
@@ -180,7 +181,7 @@ pub fn try_register<S: Storage, A: Api, Q: Querier>(
         asset_infos[0].info.to_raw(&deps)?,
         asset_infos[1].info.to_raw(&deps)?,
     ];
-    let pair_info: PairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
+    let pair_info: FactoryPairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
     if pair_info.contract_addr != CanonicalAddr::default() {
         return Err(StdError::generic_err("Pair was already registered"));
     }
@@ -189,7 +190,7 @@ pub fn try_register<S: Storage, A: Api, Q: Querier>(
     let liquidity_token = query_liquidity_token(&deps, &pair_contract)?;
     store_pair(
         &mut deps.storage,
-        &PairInfoRaw {
+        &FactoryPairInfoRaw {
             contract_addr: deps.api.canonical_address(&pair_contract)?,
             liquidity_token: deps.api.canonical_address(&liquidity_token)?,
             ..pair_info
@@ -201,6 +202,36 @@ pub fn try_register<S: Storage, A: Api, Q: Querier>(
         log: vec![
             log("action", "register"),
             log("pair_contract_addr", pair_contract),
+        ],
+        data: None,
+    })
+}
+
+/// remove from list of pairs
+pub fn try_unregister<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    asset_infos: [AssetInfo; 2],
+) -> HandleResult {
+    let raw_infos = [
+        asset_infos[0].to_raw(&deps)?,
+        asset_infos[1].to_raw(&deps)?,
+    ];
+
+    let pair_info: FactoryPairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
+
+    // Permission check
+    if pair_info.contract_addr != deps.api.canonical_address(&env.message.sender)? {
+        return Err(StdError::unauthorized());
+    }
+
+    remove_pair(&mut deps.storage, &pair_info);
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![
+            log("action", "unregister"),
+            log("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),
         ],
         data: None,
     })
@@ -235,9 +266,9 @@ pub fn query_config<S: Storage, A: Api, Q: Querier>(
 pub fn query_pair<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     asset_infos: [AssetInfo; 2],
-) -> StdResult<PairInfo> {
+) -> StdResult<FactoryPairInfo> {
     let raw_infos = [asset_infos[0].to_raw(&deps)?, asset_infos[1].to_raw(&deps)?];
-    let pair_info: PairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
+    let pair_info: FactoryPairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
     pair_info.to_normal(&deps)
 }
 
@@ -252,7 +283,7 @@ pub fn query_pairs<S: Storage, A: Api, Q: Querier>(
         None
     };
 
-    let pairs: Vec<PairInfo> = read_pairs(&deps, start_after, limit)?;
+    let pairs: Vec<FactoryPairInfo> = read_pairs(&deps, start_after, limit)?;
     let resp = PairsResponse { pairs };
 
     Ok(resp)

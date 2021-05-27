@@ -21,6 +21,8 @@ pub struct InitMsg {
     pub end_time: u64,
     // Pair description
     pub description: Option<String>,
+    // Pair creator
+    pub creator: Option<HumanAddr>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -41,6 +43,10 @@ pub enum HandleMsg {
         max_spread: Option<Decimal>,
         to: Option<HumanAddr>,
     },
+    // Unregister
+    Unregister {
+        factory_addr: HumanAddr,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -308,6 +308,7 @@ pub struct PairInfo {
     pub start_time: u64,
     pub end_time: u64,
     pub description: Option<String>,
+    pub creator: HumanAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -318,6 +319,7 @@ pub struct PairInfoRaw {
     pub start_time: u64,
     pub end_time: u64,
     pub description: Option<String>,
+    pub creator: CanonicalAddr,
 }
 
 impl PairInfoRaw {
@@ -336,6 +338,7 @@ impl PairInfoRaw {
 
             end_time: self.end_time,
             description: self.description.clone(),
+            creator: deps.api.human_address(&self.creator)?,
         })
     }
 
