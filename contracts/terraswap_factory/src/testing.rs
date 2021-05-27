@@ -440,4 +440,58 @@ fn register() {
             end_time,
         }]
     );
+
+    // try unregister
+    let msg = HandleMsg::Unregister {
+        asset_infos: [
+            AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0000"),
+            },
+            AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0001"),
+            },
+        ]
+    };
+
+    // check unauthorized
+    let env = mock_env("pair0001", &[]);
+    let res = handle(&mut deps, env, msg.clone());
+
+    match res {
+        Err(StdError::Unauthorized { .. }) => {}
+        _ => panic!("Must return unauthorized error"),
+    }
+
+    let env = mock_env("pair0000", &[]);
+    let res = handle(&mut deps, env, msg).unwrap();
+
+    assert_eq!(
+        res.log,
+        vec![
+            log("action", "unregister"),
+            log("pair", "asset0000-asset0001")
+        ]
+    );
+
+    // query pairs to check that the pair has been unregistered
+    let query_msg = QueryMsg::Pairs {
+        start_after: None,
+        limit: None
+    };
+
+    let res = query(&mut deps, query_msg).unwrap();
+    let pairs_res: PairsResponse = from_binary(&res).unwrap();
+
+    assert_eq!(
+        pairs_res.pairs,
+        vec![
+            FactoryPairInfo {
+                liquidity_token: HumanAddr::from("liquidity0001"),
+                contract_addr: HumanAddr::from("pair0001"),
+                asset_infos: asset_infos_2.clone(),
+                start_time,
+                end_time,
+            }
+        ]
+    );
 }

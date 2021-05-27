@@ -221,7 +221,8 @@ pub fn try_unregister<S: Storage, A: Api, Q: Querier>(
     let pair_info: FactoryPairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
 
     // Permission check
-    if pair_info.contract_addr != deps.api.canonical_address(&env.message.sender)? {
+    let pair_contract = deps.api.canonical_address(&env.message.sender)?;
+    if pair_info.contract_addr != pair_contract {
         return Err(StdError::unauthorized());
     }
 

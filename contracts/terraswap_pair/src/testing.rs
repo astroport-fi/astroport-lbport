@@ -18,6 +18,7 @@ use terraswap::pair::{
     Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
 };
 use terraswap::token::InitMsg as TokenInitMsg;
+use terraswap::factory::HandleMsg::Unregister;
 
 const COMISSION_AMOUNT: u128 = 15;
 const COMISSION_RATIO: u128 = 10000;
@@ -128,6 +129,88 @@ fn proper_initialization() {
     );
     assert_eq!("description", pair_info.description.unwrap());
     assert_eq!(HumanAddr::from("addr0000"), pair_info.creator);
+}
+
+#[test]
+fn test_unregister() {
+    let mut deps = mock_dependencies(20, &[]);
+
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+
+    let msg = InitMsg {
+        asset_infos: [
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0000"),
+                },
+                start_weight: Uint128(1),
+                end_weight: Uint128(1),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0001"),
+                },
+                start_weight: Uint128(1),
+                end_weight: Uint128(1),
+            },
+        ],
+        token_code_id: 10u64,
+        init_hook: Some(InitHook {
+            contract_addr: HumanAddr::from("factory0000"),
+            msg: to_binary(&Uint128(1000000u128)).unwrap(),
+        }),
+        start_time,
+        end_time,
+        description: Some(String::from("description")),
+        creator: None
+    };
+
+    let env = mock_env("addr0000", &[]);
+    // Init pair
+    let _res = init(&mut deps, env, msg).unwrap();
+
+    // try unregister
+    let msg = HandleMsg::Unregister {
+        factory_addr: HumanAddr::from("factory0000")
+    };
+
+    // use wrong sender
+    let env = mock_env("addr0001", &[]);
+    let res = handle(&mut deps, env, msg.clone());
+
+    match res {
+        Err(StdError::Unauthorized { .. }) => {}
+        _ => panic!("Must return unauthorized error"),
+    }
+
+    // Use proper sender, contract should call factory
+    let env = mock_env("addr0000", &[]);
+    let res = handle(&mut deps, env, msg.clone()).unwrap();
+
+    assert_eq!(
+        res.messages,
+        vec![
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: HumanAddr::from("factory0000"),
+                msg: to_binary(&Unregister {
+                    asset_infos: [
+                        AssetInfo::Token {
+                            contract_addr: HumanAddr::from("asset0000"),
+                        },
+                        AssetInfo::Token {
+                            contract_addr: HumanAddr::from("asset0001"),
+                        },
+                    ]
+                })
+                .unwrap(),
+                send: vec![],
+            })
+        ]
+    );
 }
 
 #[test]
