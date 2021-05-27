@@ -109,6 +109,25 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "unregister"
+      ],
+      "properties": {
+        "unregister": {
+          "type": "object",
+          "required": [
+            "factory_addr"
+          ],
+          "properties": {
+            "factory_addr": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {

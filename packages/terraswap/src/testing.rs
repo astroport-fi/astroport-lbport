@@ -283,6 +283,8 @@ fn query_terraswap_pair_contract() {
             liquidity_token: HumanAddr::from("liquidity0000"),
             start_time,
             end_time,
+            description: None,
+            creator: Default::default()
         },
     )]);
 

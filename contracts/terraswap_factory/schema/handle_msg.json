@@ -121,6 +121,30 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "unregister"
+      ],
+      "properties": {
+        "unregister": {
+          "type": "object",
+          "required": [
+            "asset_infos"
+          ],
+          "properties": {
+            "asset_infos": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetInfo"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {

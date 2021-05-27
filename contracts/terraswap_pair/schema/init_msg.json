@@ -18,6 +18,16 @@
       "maxItems": 2,
       "minItems": 2
     },
+    "creator": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "description": {
       "type": [
         "string",

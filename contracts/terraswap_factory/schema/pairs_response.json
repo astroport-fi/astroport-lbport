@@ -9,7 +9,7 @@
     "pairs": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/PairInfo"
+        "$ref": "#/definitions/FactoryPairInfo"
       }
     }
   },
@@ -56,10 +56,7 @@
         }
       ]
     },
-    "HumanAddr": {
-      "type": "string"
-    },
-    "PairInfo": {
+    "FactoryPairInfo": {
       "type": "object",
       "required": [
         "asset_infos",
@@ -80,12 +77,6 @@
         "contract_addr": {
           "$ref": "#/definitions/HumanAddr"
         },
-        "description": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "end_time": {
           "type": "integer",
           "format": "uint64",
@@ -100,6 +91,9 @@
           "minimum": 0.0
         }
       }
+    },
+    "HumanAddr": {
+      "type": "string"
     },
     "Uint128": {
       "type": "string"
