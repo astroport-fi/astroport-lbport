@@ -116,7 +116,6 @@ impl WasmMockQuerier {
 
                             end_time: 0,
                             description: Default::default(),
-                            creator: Default::default()
                         })
                         .unwrap(),
                     ))

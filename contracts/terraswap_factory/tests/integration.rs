@@ -210,7 +210,6 @@ fn create_pair() {
                 start_time,
                 end_time,
                 description: Some(String::from("description")),
-                creator: Some(HumanAddr::from("addr0000")),
             })
             .unwrap(),
             code_id: 321u64,

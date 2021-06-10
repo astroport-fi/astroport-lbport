@@ -125,6 +125,7 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
     store_pair(
         &mut deps.storage,
         &FactoryPairInfoRaw {
+            owner: deps.api.canonical_address(&env.message.sender)?,
             liquidity_token: CanonicalAddr::default(),
             contract_addr: CanonicalAddr::default(),
             asset_infos: raw_asset_infos,
@@ -149,7 +150,6 @@ pub fn try_create_pair<S: Storage, A: Api, Q: Querier>(
             start_time,
             end_time,
             description,
-            creator: Some(env.message.sender),
         })?,
     })];
 
@@ -221,8 +221,7 @@ pub fn try_unregister<S: Storage, A: Api, Q: Querier>(
     let pair_info: FactoryPairInfoRaw = read_pair(&deps.storage, &raw_infos)?;
 
     // Permission check
-    let pair_contract = deps.api.canonical_address(&env.message.sender)?;
-    if pair_info.contract_addr != pair_contract {
+    if pair_info.owner != deps.api.canonical_address(&env.message.sender)? {
         return Err(StdError::unauthorized());
     }
 

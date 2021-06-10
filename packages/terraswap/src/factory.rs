@@ -75,6 +75,7 @@ pub struct PairsResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FactoryPairInfo {
     pub asset_infos: [WeightedAssetInfo; 2],
+    pub owner: HumanAddr,
     pub contract_addr: HumanAddr,
     pub liquidity_token: HumanAddr,
     pub start_time: u64,
@@ -84,6 +85,7 @@ pub struct FactoryPairInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FactoryPairInfoRaw {
     pub asset_infos: [WeightedAssetInfoRaw; 2],
+    pub owner: CanonicalAddr,
     pub contract_addr: CanonicalAddr,
     pub liquidity_token: CanonicalAddr,
     pub start_time: u64,
@@ -96,6 +98,7 @@ impl FactoryPairInfoRaw {
         deps: &Extern<S, A, Q>,
     ) -> StdResult<FactoryPairInfo> {
         Ok(FactoryPairInfo {
+            owner: deps.api.human_address(&self.owner)?,
             liquidity_token: deps.api.human_address(&self.liquidity_token)?,
             start_time: self.start_time,
             contract_addr: deps.api.human_address(&self.contract_addr)?,

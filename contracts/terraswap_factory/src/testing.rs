@@ -1,6 +1,4 @@
-use cosmwasm_std::{
-    from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, Uint128, WasmMsg,
-};
+use cosmwasm_std::{from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, Uint128, WasmMsg, Api};
 
 use crate::contract::{handle, init, query};
 use crate::mock_querier::mock_dependencies;
@@ -173,7 +171,6 @@ fn create_pair() {
                 start_time,
                 end_time,
                 description: Some(String::from("description")),
-                creator: Some(HumanAddr::from("addr0000"))
             })
             .unwrap(),
             code_id: 321u64,
@@ -188,6 +185,7 @@ fn create_pair() {
     ];
 
     let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
+    assert_eq!(pair_info.owner, deps.api.canonical_address(&HumanAddr::from("addr0000")).unwrap());
     assert_eq!(pair_info.contract_addr, CanonicalAddr::default());
     assert_eq!(pair_info.start_time, start_time);
     assert_eq!(pair_info.end_time, end_time);
@@ -271,7 +269,6 @@ fn register() {
             start_time,
             end_time,
             description: Some(String::from("description")),
-            creator: HumanAddr::from("creator0000"),
         },
     )]);
 
@@ -294,6 +291,7 @@ fn register() {
     assert_eq!(
         pair_res,
         FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
@@ -367,7 +365,6 @@ fn register() {
             start_time,
             end_time,
             description: Some(String::from("description")),
-            creator: Default::default()
         },
     )]);
 
@@ -389,6 +386,7 @@ fn register() {
         pairs_res.pairs,
         vec![
             FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
                 liquidity_token: HumanAddr::from("liquidity0000"),
                 contract_addr: HumanAddr::from("pair0000"),
                 asset_infos: asset_infos.clone(),
@@ -396,6 +394,7 @@ fn register() {
                 end_time,
             },
             FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),
@@ -415,6 +414,7 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
@@ -433,6 +433,7 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0001"),
             contract_addr: HumanAddr::from("pair0001"),
             asset_infos: asset_infos_2.clone(),
@@ -454,7 +455,7 @@ fn register() {
     };
 
     // check unauthorized
-    let env = mock_env("pair0001", &[]);
+    let env = mock_env("addr0001", &[]);
     let res = handle(&mut deps, env, msg.clone());
 
     match res {
@@ -462,7 +463,7 @@ fn register() {
         _ => panic!("Must return unauthorized error"),
     }
 
-    let env = mock_env("pair0000", &[]);
+    let env = mock_env("addr0000", &[]);
     let res = handle(&mut deps, env, msg).unwrap();
 
     assert_eq!(
@@ -486,6 +487,7 @@ fn register() {
         pairs_res.pairs,
         vec![
             FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),

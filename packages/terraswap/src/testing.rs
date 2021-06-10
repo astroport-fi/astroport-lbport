@@ -284,7 +284,6 @@ fn query_terraswap_pair_contract() {
             start_time,
             end_time,
             description: None,
-            creator: Default::default()
         },
     )]);
 
