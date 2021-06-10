@@ -59,6 +59,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         ],
         start_time: msg.start_time,
         end_time: msg.end_time,
+        description: msg.description,
     };
 
     store_pair_info(&mut deps.storage, &pair_info)?;

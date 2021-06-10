@@ -214,6 +214,7 @@ impl WasmMockQuerier {
                                 },
                             ],
                             end_time: 0,
+                            description: None,
                         })),
                         None => Err(SystemError::InvalidRequest {
                             error: "No pair info exists".to_string(),

@@ -66,6 +66,12 @@
               "maxItems": 2,
               "minItems": 2
             },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "end_time": {
               "type": "integer",
               "format": "uint64",
@@ -108,6 +114,30 @@
               "type": "array",
               "items": {
                 "$ref": "#/definitions/WeightedAssetInfo"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "unregister"
+      ],
+      "properties": {
+        "unregister": {
+          "type": "object",
+          "required": [
+            "asset_infos"
+          ],
+          "properties": {
+            "asset_infos": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetInfo"
               },
               "maxItems": 2,
               "minItems": 2

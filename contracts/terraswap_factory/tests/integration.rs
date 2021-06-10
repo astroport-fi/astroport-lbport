@@ -181,6 +181,7 @@ fn create_pair() {
         start_time,
         end_time,
         init_hook: None,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -207,7 +208,8 @@ fn create_pair() {
                 }),
 
                 start_time,
-                end_time
+                end_time,
+                description: Some(String::from("description")),
             })
             .unwrap(),
             code_id: 321u64,

@@ -19,6 +19,8 @@ pub struct InitMsg {
     pub start_time: u64,
     // LBP end time
     pub end_time: u64,
+    // Pair description
+    pub description: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -38,7 +40,7 @@ pub enum HandleMsg {
         belief_price: Option<Decimal>,
         max_spread: Option<Decimal>,
         to: Option<HumanAddr>,
-    },
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

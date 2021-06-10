@@ -1,6 +1,4 @@
-use cosmwasm_std::{
-    from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, Uint128, WasmMsg,
-};
+use cosmwasm_std::{from_binary, log, to_binary, CanonicalAddr, CosmosMsg, HumanAddr, StdError, Uint128, WasmMsg, Api};
 
 use crate::contract::{handle, init, query};
 use crate::mock_querier::mock_dependencies;
@@ -9,8 +7,8 @@ use crate::state::read_pair;
 
 use cosmwasm_std::testing::{mock_env, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
-use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, PairsResponse, QueryMsg};
+use terraswap::asset::{AssetInfo, WeightedAssetInfo, PairInfo};
+use terraswap::factory::{ConfigResponse, HandleMsg, InitMsg, PairsResponse, QueryMsg, FactoryPairInfo};
 use terraswap::hook::InitHook;
 use terraswap::pair::InitMsg as PairInitMsg;
 
@@ -145,6 +143,7 @@ fn create_pair() {
         start_time,
         end_time,
         init_hook: None,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -170,7 +169,8 @@ fn create_pair() {
                     .unwrap(),
                 }),
                 start_time,
-                end_time
+                end_time,
+                description: Some(String::from("description")),
             })
             .unwrap(),
             code_id: 321u64,
@@ -185,6 +185,7 @@ fn create_pair() {
     ];
 
     let pair_info = read_pair(&deps.storage, &raw_infos).unwrap();
+    assert_eq!(pair_info.owner, deps.api.canonical_address(&HumanAddr::from("addr0000")).unwrap());
     assert_eq!(pair_info.contract_addr, CanonicalAddr::default());
     assert_eq!(pair_info.start_time, start_time);
     assert_eq!(pair_info.end_time, end_time);
@@ -237,6 +238,7 @@ fn register() {
         init_hook: None,
         start_time,
         end_time,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -266,6 +268,7 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0000"),
             start_time,
             end_time,
+            description: Some(String::from("description")),
         },
     )]);
 
@@ -284,15 +287,16 @@ fn register() {
     )
     .unwrap();
 
-    let pair_res: PairInfo = from_binary(&query_res).unwrap();
+    let pair_res: FactoryPairInfo = from_binary(&query_res).unwrap();
     assert_eq!(
         pair_res,
-        PairInfo {
+        FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
-            end_time
+            end_time,
         }
     );
 
@@ -330,6 +334,7 @@ fn register() {
         init_hook: None,
         start_time,
         end_time,
+        description: Some(String::from("description")),
     };
 
     let env = mock_env("addr0000", &[]);
@@ -359,6 +364,7 @@ fn register() {
             liquidity_token: HumanAddr::from("liquidity0001"),
             start_time,
             end_time,
+            description: Some(String::from("description")),
         },
     )]);
 
@@ -379,19 +385,21 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![
-            PairInfo {
+            FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
                 liquidity_token: HumanAddr::from("liquidity0000"),
                 contract_addr: HumanAddr::from("pair0000"),
                 asset_infos: asset_infos.clone(),
                 start_time,
-                end_time
+                end_time,
             },
-            PairInfo {
+            FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
                 liquidity_token: HumanAddr::from("liquidity0001"),
                 contract_addr: HumanAddr::from("pair0001"),
                 asset_infos: asset_infos_2.clone(),
                 start_time,
-                end_time
+                end_time,
             }
         ]
     );
@@ -405,12 +413,13 @@ fn register() {
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(
         pairs_res.pairs,
-        vec![PairInfo {
+        vec![FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0000"),
             contract_addr: HumanAddr::from("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
-            end_time
+            end_time,
         }]
     );
 
@@ -423,12 +432,68 @@ fn register() {
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(
         pairs_res.pairs,
-        vec![PairInfo {
+        vec![FactoryPairInfo {
+            owner: HumanAddr::from("addr0000"),
             liquidity_token: HumanAddr::from("liquidity0001"),
             contract_addr: HumanAddr::from("pair0001"),
             asset_infos: asset_infos_2.clone(),
             start_time,
-            end_time
+            end_time,
         }]
+    );
+
+    // try unregister
+    let msg = HandleMsg::Unregister {
+        asset_infos: [
+            AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0000"),
+            },
+            AssetInfo::Token {
+                contract_addr: HumanAddr::from("asset0001"),
+            },
+        ]
+    };
+
+    // check unauthorized
+    let env = mock_env("addr0001", &[]);
+    let res = handle(&mut deps, env, msg.clone());
+
+    match res {
+        Err(StdError::Unauthorized { .. }) => {}
+        _ => panic!("Must return unauthorized error"),
+    }
+
+    let env = mock_env("addr0000", &[]);
+    let res = handle(&mut deps, env, msg).unwrap();
+
+    assert_eq!(
+        res.log,
+        vec![
+            log("action", "unregister"),
+            log("pair", "asset0000-asset0001")
+        ]
+    );
+
+    // query pairs to check that the pair has been unregistered
+    let query_msg = QueryMsg::Pairs {
+        start_after: None,
+        limit: None
+    };
+
+    let res = query(&mut deps, query_msg).unwrap();
+    let pairs_res: PairsResponse = from_binary(&res).unwrap();
+
+    assert_eq!(
+        pairs_res.pairs,
+        vec![
+            FactoryPairInfo {
+                owner: HumanAddr::from("addr0000"),
+                liquidity_token: HumanAddr::from("liquidity0001"),
+                contract_addr: HumanAddr::from("pair0001"),
+                asset_infos: asset_infos_2.clone(),
+                start_time,
+                end_time,
+            }
+        ]
     );
 }
