@@ -3,10 +3,9 @@ use crate::factory::QueryMsg as FactoryQueryMsg;
 use crate::pair::{QueryMsg as PairQueryMsg, ReverseSimulationResponse, SimulationResponse};
 
 use cosmwasm_std::{
-    from_binary, to_binary, AllBalanceResponse, Api, BalanceResponse, BankQuery, Binary, Coin,
+    to_binary, AllBalanceResponse, Api, BalanceResponse, BankQuery, Coin,
     Extern, HumanAddr, Querier, QueryRequest, StdResult, Storage, Uint128, WasmQuery,
 };
-use cosmwasm_storage::to_length_prefixed;
 use cw20::{TokenInfoResponse, Cw20QueryMsg, BalanceResponse as Cw20BalanceResponse};
 
 pub fn query_balance<S: Storage, A: Api, Q: Querier>(
@@ -84,13 +83,6 @@ pub fn query_supply<S: Storage, A: Api, Q: Querier>(
             msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
         }))?;
     Ok(res.total_supply)
-}
-
-#[inline]
-fn concat(namespace: &[u8], key: &[u8]) -> Vec<u8> {
-    let mut k = namespace.to_vec();
-    k.extend_from_slice(key);
-    k
 }
 
 pub fn query_pair_info<S: Storage, A: Api, Q: Querier>(

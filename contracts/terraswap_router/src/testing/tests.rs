@@ -553,6 +553,7 @@ fn assert_minimum_receive_native_token() {
 #[test]
 fn assert_minimum_receive_token() {
     let mut deps = mock_dependencies(20, &[]);
+
     deps.querier.with_token_balances(&[(
         &HumanAddr::from("token0000"),
         &[(&HumanAddr::from("addr0000"), &Uint128::from(1000000u128))],

@@ -1,9 +1,8 @@
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Api, CanonicalAddr, Coin, Decimal, Extern, HumanAddr,
+    from_binary, from_slice, to_binary, Api, Coin, Decimal, Extern, HumanAddr,
     Querier, QuerierResult, QueryRequest, SystemError, Uint128, WasmQuery,
 };
-use cosmwasm_storage::to_length_prefixed;
 use std::collections::HashMap;
 
 use crate::asset::PairInfo;
@@ -31,11 +30,16 @@ pub fn mock_dependencies(
     }
 }
 
+enum QueryHandler {
+    Default,
+    Cw20,
+}
+
 pub struct WasmMockQuerier {
-    canonical_length: usize,
     query_handler: DefaultQueryHandler,
     cw20_query_handler: CW20QueryHandler,
-    handler: usize,
+    handler: QueryHandler,
+    canonical_length: usize,
 }
 
 #[derive(Clone, Default)]
@@ -130,10 +134,9 @@ impl Querier for WasmMockQuerier {
 
 impl WasmMockQuerier {
     pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
-        if self.handler == 0 {
-            self.query_handler.handle(request)
-        } else {
-            self.cw20_query_handler.handle(request)
+        match self.handler{
+            QueryHandler::Default => self.query_handler.handle(request),
+            QueryHandler::Cw20 => self.cw20_query_handler.handle(request),
         }
     }
 }
@@ -146,7 +149,7 @@ impl CW20QueryHandler {
     pub fn handle(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
         match &request {
             QueryRequest::Wasm(WasmQuery::Smart {
-                                   contract_addr: contract_addr,
+                                   contract_addr,
                                    msg,
                                }) => match from_binary(&msg).unwrap() {
                 Cw20QueryMsg::TokenInfo {} => {
@@ -234,7 +237,7 @@ impl DefaultQueryHandler {
                 }
             }
             QueryRequest::Wasm(WasmQuery::Smart {
-                                   contract_addr: contract_addr,
+                                   contract_addr: _,
                                    msg
                                }) => match from_binary(&msg).unwrap() {
                 FactoryQueryMsg::Pair { asset_infos } => {
@@ -270,7 +273,7 @@ impl WasmMockQuerier {
             cw20_query_handler: CW20QueryHandler {
                 token_querier: TokenQuerier::default(),
             },
-            handler: 0,
+            handler: QueryHandler::Default,
         }
     }
 
@@ -290,11 +293,11 @@ impl WasmMockQuerier {
     }
 
     pub fn with_default_query_handler(&mut self) {
-        self.handler = 0;
+        self.handler = QueryHandler::Default;
     }
 
     pub fn with_cw20_query_handler(&mut self) {
-        self.handler = 1;
+        self.handler = QueryHandler::Cw20;
     }
     // pub fn with_balance(&mut self, balances: &[(&HumanAddr, &[Coin])]) {
     //     for (addr, balance) in balances {
