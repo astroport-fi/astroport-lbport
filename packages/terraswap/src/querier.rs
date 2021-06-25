@@ -7,7 +7,7 @@ use cosmwasm_std::{
     Extern, HumanAddr, Querier, QueryRequest, StdResult, Storage, Uint128, WasmQuery,
 };
 use cosmwasm_storage::to_length_prefixed;
-use cw20::TokenInfoResponse;
+use cw20::{TokenInfoResponse, Cw20QueryMsg};
 
 pub fn query_balance<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -53,6 +53,18 @@ pub fn query_token_balance<S: Storage, A: Api, Q: Querier>(
         .unwrap_or_else(|_| to_binary(&Uint128::zero()).unwrap());
 
     from_binary(&res)
+    // let res: BalanceResponse = deps
+    //         .querier
+    //         .query(&QueryRequest::Wasm(
+    //             WasmQuery::Smart {
+    //                 contract_addr: HumanAddr::from(contract_addr),
+    //                 msg: to_binary(&Cw20QueryMsg::Balance {
+    //                     address:  HumanAddr::from(account_addr),
+    //                 })?,
+    //         }))//.unwrap();
+    //         .unwrap_or_else(|_| BalanceResponse{ amount: Coin::new( 0,"" )});//.unwrap();
+    //     //let bal =  from_binary(&res).unwrap();
+    //     Ok(res.amount.amount)
 }
 
 pub fn query_supply<S: Storage, A: Api, Q: Querier>(
@@ -60,13 +72,17 @@ pub fn query_supply<S: Storage, A: Api, Q: Querier>(
     contract_addr: &HumanAddr,
 ) -> StdResult<Uint128> {
     // load price form the oracle
-    let res: Binary = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Raw {
-        contract_addr: HumanAddr::from(contract_addr),
-        key: Binary::from(to_length_prefixed(b"token_info")),
-    }))?;
-
-    let token_info: TokenInfoResponse = from_binary(&res)?;
-    Ok(token_info.total_supply)
+    // let res: Binary = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Raw {
+    //     contract_addr: HumanAddr::from(contract_addr),
+    //     key: Binary::from(to_length_prefixed(b"token_info")),
+    // }))?;
+    // let token_info: TokenInfoResponse = from_binary(&res)?;
+    // Ok(token_info.total_supply)
+    let res: TokenInfoResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: HumanAddr::from(contract_addr),
+            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+        }))?;
+    Ok(res.total_supply)
 }
 
 #[inline]
