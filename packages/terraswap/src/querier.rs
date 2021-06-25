@@ -7,7 +7,7 @@ use cosmwasm_std::{
     Extern, HumanAddr, Querier, QueryRequest, StdResult, Storage, Uint128, WasmQuery,
 };
 use cosmwasm_storage::to_length_prefixed;
-use cw20::{TokenInfoResponse, Cw20QueryMsg};
+use cw20::{TokenInfoResponse, Cw20QueryMsg, BalanceResponse as Cw20BalanceResponse};
 
 pub fn query_balance<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
@@ -41,30 +41,31 @@ pub fn query_token_balance<S: Storage, A: Api, Q: Querier>(
     account_addr: &HumanAddr,
 ) -> StdResult<Uint128> {
     // load balance form the token contract
-    let res: Binary = deps
-        .querier
-        .query(&QueryRequest::Wasm(WasmQuery::Raw {
-            contract_addr: HumanAddr::from(contract_addr),
-            key: Binary::from(concat(
-                &to_length_prefixed(b"balance").to_vec(),
-                (deps.api.canonical_address(&account_addr)?).as_slice(),
-            )),
-        }))
-        .unwrap_or_else(|_| to_binary(&Uint128::zero()).unwrap());
+    // let res: Binary = deps
+    //     .querier
+    //     .query(&QueryRequest::Wasm(WasmQuery::Raw {
+    //         contract_addr: HumanAddr::from(contract_addr),
+    //         key: Binary::from(concat(
+    //             &to_length_prefixed(b"balance").to_vec(),
+    //             (deps.api.canonical_address(&account_addr)?).as_slice(),
+    //         )),
+    //     }))
+    //     .unwrap_or_else(|_| to_binary(&Uint128::zero()).unwrap());
+    //
+    // from_binary(&res)
 
-    from_binary(&res)
-    // let res: BalanceResponse = deps
-    //         .querier
-    //         .query(&QueryRequest::Wasm(
-    //             WasmQuery::Smart {
-    //                 contract_addr: HumanAddr::from(contract_addr),
-    //                 msg: to_binary(&Cw20QueryMsg::Balance {
-    //                     address:  HumanAddr::from(account_addr),
-    //                 })?,
-    //         }))//.unwrap();
-    //         .unwrap_or_else(|_| BalanceResponse{ amount: Coin::new( 0,"" )});//.unwrap();
-    //     //let bal =  from_binary(&res).unwrap();
-    //     Ok(res.amount.amount)
+    let res: Cw20BalanceResponse = deps
+        .querier
+        .query(&QueryRequest::Wasm(
+            WasmQuery::Smart {
+                contract_addr: HumanAddr::from(contract_addr),
+                msg: to_binary(&Cw20QueryMsg::Balance {
+                    address:  HumanAddr::from(account_addr),
+                })?,
+        }))
+        .unwrap_or_else(|_| Cw20BalanceResponse{ balance: Uint128::zero()});
+
+    Ok(res.balance)
 }
 
 pub fn query_supply<S: Storage, A: Api, Q: Querier>(
