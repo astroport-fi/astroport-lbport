@@ -19,7 +19,6 @@ fn token_balance_querier() {
     )]);
 
     deps.querier.with_cw20_query_handler();
-
     assert_eq!(
         Uint128(123u128),
         query_token_balance(
@@ -29,6 +28,7 @@ fn token_balance_querier() {
         )
         .unwrap()
     );
+    deps.querier.with_default_query_handler()
 }
 
 #[test]
