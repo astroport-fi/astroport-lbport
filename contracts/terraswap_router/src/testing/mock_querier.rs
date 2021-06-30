@@ -1,9 +1,9 @@
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Api, CanonicalAddr, Coin, Decimal, Extern, HumanAddr,
+    from_binary, from_slice, to_binary, Api, Coin, Decimal, Extern, HumanAddr,
     Querier, QuerierResult, QueryRequest, SystemError, Uint128, WasmQuery,
 };
-use cosmwasm_storage::to_length_prefixed;
+//use cosmwasm_storage::to_length_prefixed;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -13,6 +13,8 @@ use terra_cosmwasm::{
 };
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::pair::SimulationResponse;
+use cw20::{Cw20QueryMsg, BalanceResponse, TokenInfoResponse};
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -31,7 +33,6 @@ pub fn mock_dependencies(
     let custom_querier: WasmMockQuerier = WasmMockQuerier::new(
         MockQuerier::new(&[(&contract_addr, contract_balance)]),
         MockApi::new(canonical_length),
-        canonical_length,
     );
 
     Extern {
@@ -46,7 +47,6 @@ pub struct WasmMockQuerier {
     token_querier: TokenQuerier,
     tax_querier: TaxQuerier,
     terraswap_factory_querier: TerraswapFactoryQuerier,
-    canonical_length: usize,
 }
 
 #[derive(Clone, Default)]
@@ -187,97 +187,104 @@ impl WasmMockQuerier {
                 }
             }
             QueryRequest::Wasm(WasmQuery::Smart {
-                contract_addr: _,
+                contract_addr,
                 msg,
-            }) => match from_binary(&msg).unwrap() {
-                QueryMsg::Pair { asset_infos } => {
-                    let key = asset_infos[0].to_string() + asset_infos[1].to_string().as_str();
-                    match self.terraswap_factory_querier.pairs.get(&key) {
-                        Some(v) => Ok(to_binary(&PairInfo {
-                            contract_addr: v.clone(),
-                            liquidity_token: HumanAddr::from("liquidity"),
-                            start_time: 0,
-                            asset_infos: [
-                                WeightedAssetInfo {
-                                    info: AssetInfo::NativeToken {
-                                        denom: "uusd".to_string(),
-                                    },
-                                    start_weight: Default::default(),
-                                    end_weight: Default::default(),
-                                },
-                                WeightedAssetInfo {
-                                    info: AssetInfo::NativeToken {
-                                        denom: "uusd".to_string(),
-                                    },
-                                    start_weight: Default::default(),
-                                    end_weight: Default::default(),
-                                },
-                            ],
-                            end_time: 0,
-                            description: None,
+            }) => {
+                println!("Contract Address: {}", contract_addr.to_string());
+                if contract_addr.to_string() == "token0000" ||
+                    contract_addr.to_string() == "asset"||
+                    contract_addr.to_string() == "asset0002" {
+                    println!("Use Cw20QueryMsg");
+                    match from_binary(&msg).unwrap() {
+                        Cw20QueryMsg::TokenInfo {} => {
+                            let balances: &HashMap<HumanAddr, Uint128> =
+                                match self.token_querier.balances.get(contract_addr) {
+                                    Some(balances) => balances,
+                                    None => {
+                                        return Err(SystemError::Unknown {});
+                                    }
+                                };
+
+                            let mut total_supply = Uint128::zero();
+
+                            for balance in balances {
+                                total_supply += *balance.1;
+                            }
+
+                            Ok(to_binary(&TokenInfoResponse {
+                                name: "mAPPL".to_string(),
+                                symbol: "mAPPL".to_string(),
+                                decimals: 6,
+                                total_supply: total_supply,
+                            })
+                            )
+                        }
+                        Cw20QueryMsg::Balance { address } => {
+                            let balances: &HashMap<HumanAddr, Uint128> =
+                                match self.token_querier.balances.get(contract_addr) {
+                                    Some(balances) => balances,
+                                    None => {
+                                        return Err(SystemError::Unknown {});
+                                    }
+                                };
+
+                            let balance = match balances.get(&address) {
+                                Some(v) => v,
+                                None => {
+                                    return Err(SystemError::Unknown {});
+                                }
+                            };
+
+                            Ok(to_binary(&BalanceResponse {
+                                balance: *balance,
+                            }))
+                        }
+                        _ => panic!("DO NOT ENTER HERE")
+                    }
+                } else {
+                    match from_binary(&msg).unwrap() {
+                        QueryMsg::Pair { asset_infos } => {
+                            let key = asset_infos[0].to_string() + asset_infos[1].to_string().as_str();
+                            match self.terraswap_factory_querier.pairs.get(&key) {
+                                Some(v) => Ok(to_binary(&PairInfo {
+                                    contract_addr: v.clone(),
+                                    liquidity_token: HumanAddr::from("liquidity"),
+                                    start_time: 0,
+                                    asset_infos: [
+                                        WeightedAssetInfo {
+                                            info: AssetInfo::NativeToken {
+                                                denom: "uusd".to_string(),
+                                            },
+                                            start_weight: Default::default(),
+                                            end_weight: Default::default(),
+                                        },
+                                        WeightedAssetInfo {
+                                            info: AssetInfo::NativeToken {
+                                                denom: "uusd".to_string(),
+                                            },
+                                            start_weight: Default::default(),
+                                            end_weight: Default::default(),
+                                        },
+                                    ],
+                                    end_time: 0,
+                                    description: None,
+                                })),
+                                None => Err(SystemError::InvalidRequest {
+                                    error: "No pair info exists".to_string(),
+                                    request: msg.as_slice().into(),
+                                }),
+                            }
+                        }
+                        QueryMsg::Simulation { offer_asset } => Ok(to_binary(&SimulationResponse {
+                            return_amount: offer_asset.amount,
+                            commission_amount: Uint128::zero(),
+                            ask_weight: "".to_string(),
+                            spread_amount: Uint128::zero(),
+                            offer_weight: "".to_string()
                         })),
-                        None => Err(SystemError::InvalidRequest {
-                            error: "No pair info exists".to_string(),
-                            request: msg.as_slice().into(),
-                        }),
                     }
                 }
-                QueryMsg::Simulation { offer_asset } => Ok(to_binary(&SimulationResponse {
-                    return_amount: offer_asset.amount,
-                    commission_amount: Uint128::zero(),
-                    ask_weight: "".to_string(),
-                    spread_amount: Uint128::zero(),
-                    offer_weight: "".to_string()
-                })),
             },
-            QueryRequest::Wasm(WasmQuery::Raw { contract_addr, key }) => {
-                let key: &[u8] = key.as_slice();
-                let prefix_balance = to_length_prefixed(b"balance").to_vec();
-
-                if key[..prefix_balance.len()].to_vec() == prefix_balance {
-                    let balances: &HashMap<HumanAddr, Uint128> =
-                        match self.token_querier.balances.get(contract_addr) {
-                            Some(balances) => balances,
-                            None => {
-                                return Err(SystemError::InvalidRequest {
-                                    error: format!(
-                                        "No balance info exists for the contract {}",
-                                        contract_addr
-                                    ),
-                                    request: key.into(),
-                                })
-                            }
-                        };
-
-                    let key_address: &[u8] = &key[prefix_balance.len()..];
-                    let address_raw: CanonicalAddr = CanonicalAddr::from(key_address);
-
-                    let api: MockApi = MockApi::new(self.canonical_length);
-                    let address: HumanAddr = match api.human_address(&address_raw) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            return Err(SystemError::InvalidRequest {
-                                error: format!("Parsing query request: {}", e),
-                                request: key.into(),
-                            })
-                        }
-                    };
-
-                    let balance = match balances.get(&address) {
-                        Some(v) => v,
-                        None => {
-                            return Err(SystemError::InvalidRequest {
-                                error: "Balance not found".to_string(),
-                                request: key.into(),
-                            })
-                        }
-                    };
-
-                    Ok(to_binary(&to_binary(&balance).unwrap()))
-                } else {
-                    panic!("DO NOT ENTER HERE")
-                }
-            }
             _ => self.base.handle_query(request),
         }
     }
@@ -287,14 +294,12 @@ impl WasmMockQuerier {
     pub fn new<A: Api>(
         base: MockQuerier<TerraQueryWrapper>,
         _api: A,
-        canonical_length: usize,
     ) -> Self {
         WasmMockQuerier {
             base,
             token_querier: TokenQuerier::default(),
             tax_querier: TaxQuerier::default(),
             terraswap_factory_querier: TerraswapFactoryQuerier::default(),
-            canonical_length,
         }
     }
 

@@ -14,6 +14,7 @@ use terraswap::router::{
     ConfigResponse, Cw20HookMsg, HandleMsg, InitMsg, QueryMsg, SimulateSwapOperationsResponse,
     SwapOperation,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn proper_initialization() {
@@ -310,7 +311,6 @@ fn execute_swap_operation() {
             denom: "uusd".to_string(),
         }],
     )]);
-
     let msg = HandleMsg::ExecuteSwapOperation {
         operation: SwapOperation::NativeSwap {
             offer_denom: "uusd".to_string(),
@@ -319,6 +319,7 @@ fn execute_swap_operation() {
         to: None,
     };
     let env = mock_env("addr0000", &[]);
+
     let res = handle(&mut deps, env, msg.clone());
     match res {
         Err(StdError::Unauthorized { .. }) => {}
@@ -338,7 +339,6 @@ fn execute_swap_operation() {
             "uluna".to_string()
         )],
     );
-
     // optional to address
     // swap_send
     let msg = HandleMsg::ExecuteSwapOperation {
@@ -368,7 +368,6 @@ fn execute_swap_operation() {
         &HumanAddr::from("asset"),
         &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &Uint128(1000000u128))],
     )]);
-
     let msg = HandleMsg::ExecuteSwapOperation {
         operation: SwapOperation::TerraSwap {
             offer_asset_info: AssetInfo::Token {
@@ -380,7 +379,6 @@ fn execute_swap_operation() {
         },
         to: Some(HumanAddr::from("addr0000")),
     };
-
     let env = mock_env(MOCK_CONTRACT_ADDR, &[]);
     let res = handle(&mut deps, env, msg).unwrap();
     assert_eq!(
@@ -422,7 +420,7 @@ fn query_buy_with_routes() {
     let env = mock_env("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    let _res = init(&mut deps, env, msg).unwrap();
+    let _res = init(&mut deps, env.clone(), msg).unwrap();
 
     // set tax rate as 5%
     deps.querier.with_tax(
@@ -433,8 +431,14 @@ fn query_buy_with_routes() {
         ],
     );
 
+    let mut _block_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
     let msg = QueryMsg::SimulateSwapOperations {
         offer_amount: Uint128::from(1000000u128),
+        block_time: _block_time,
         operations: vec![
             SwapOperation::NativeSwap {
                 offer_denom: "uusd".to_string(),
@@ -458,7 +462,6 @@ fn query_buy_with_routes() {
             },
         ],
     };
-
     deps.querier.with_terraswap_pairs(&[
         (&"ukrwasset0000".to_string(), &HumanAddr::from("pair0000")),
         (&"asset0000uluna".to_string(), &HumanAddr::from("pair0001")),
@@ -472,8 +475,14 @@ fn query_buy_with_routes() {
         }
     );
 
+    _block_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
     let msg = QueryMsg::SimulateSwapOperations {
         offer_amount: Uint128::from(1000000u128),
+        block_time: _block_time,
         operations: vec![
             SwapOperation::NativeSwap {
                 offer_denom: "uusd".to_string(),
@@ -540,6 +549,7 @@ fn assert_minimum_receive_native_token() {
 #[test]
 fn assert_minimum_receive_token() {
     let mut deps = mock_dependencies(20, &[]);
+
     deps.querier.with_token_balances(&[(
         &HumanAddr::from("token0000"),
         &[(&HumanAddr::from("addr0000"), &Uint128::from(1000000u128))],

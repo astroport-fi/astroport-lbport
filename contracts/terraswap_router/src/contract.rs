@@ -10,7 +10,6 @@ use crate::state::{read_config, store_config, Config};
 
 use cw20::Cw20ReceiveMsg;
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
 use terraswap::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
@@ -175,8 +174,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::Config {} => to_binary(&query_config(deps)?),
         QueryMsg::SimulateSwapOperations {
             offer_amount,
+            block_time,
             operations,
-        } => to_binary(&simulate_swap_operations(deps, offer_amount, operations)?),
+        } => to_binary(&simulate_swap_operations(deps, offer_amount, block_time, operations)?),
     }
 }
 
@@ -202,11 +202,14 @@ pub fn migrate<S: Storage, A: Api, Q: Querier>(
 fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     offer_amount: Uint128,
+    block_time:u64,
     operations: Vec<SwapOperation>,
 ) -> StdResult<SimulateSwapOperationsResponse> {
     let config: Config = read_config(&deps.storage)?;
     let terraswap_factory = deps.api.human_address(&config.terraswap_factory)?;
     let terra_querier = TerraQuerier::new(&deps.querier);
+
+    assert_operations(&operations)?;
 
     let operations_len = operations.len();
     if operations_len == 0 {
@@ -257,12 +260,6 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
                     }
                     _ => {}
                 }
-
-                let block_time = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-
                 let mut res: SimulationResponse =
                     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
                         contract_addr: HumanAddr::from(pair_info.contract_addr),
@@ -296,6 +293,7 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
 
 fn assert_operations(operations: &Vec<SwapOperation>) -> StdResult<()> {
     let mut ask_asset_map: HashMap<String, bool> = HashMap::new();
+
     for operation in operations.into_iter() {
         let (offer_asset, ask_asset) = match operation {
             SwapOperation::NativeSwap {

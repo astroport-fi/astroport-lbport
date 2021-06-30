@@ -41,9 +41,10 @@ pub fn calc_out_given_in(
 
     let weight_ratio = weight_in.div(&weight_out);
 
-    let foo: FixedFloat = fixed_pow(y, weight_ratio).unwrap();
-    let bar = FixedFloat::from_num(1).sub(foo);
-    let amount_out: u128 = bar.mul(&FixedFloat::from_num(balance_out.u128())).to_num();
+    let multiplier: FixedFloat = fixed_pow(y, weight_ratio).unwrap();
+    let multiplier = FixedFloat::from_num(1).sub(multiplier);
+
+    let amount_out: u128 = FixedFloat::from_num(balance_out.u128()).mul(&multiplier).to_num();
 
     Uint128(amount_out)
 }
@@ -62,10 +63,10 @@ pub fn calc_in_given_out(
     let y = FixedFloat::from_num(balance_out.u128() * DECIMAL_FRACTIONAL.u128() / updated_balance.u128());
     let y = y.div(&FixedFloat::from_num(DECIMAL_FRACTIONAL.u128()));
 
-    let foo: FixedFloat = fixed_pow(y, weight_ratio).unwrap();
-    let bar = foo.sub(FixedFloat::from_num(1));
+    let multiplier: FixedFloat = fixed_pow(y, weight_ratio).unwrap();
+    let multiplier = multiplier.sub(FixedFloat::from_num(1));
 
-    let amount_in: u128 = FixedFloat::from_num(balance_in.u128()).mul(&bar).to_num();
+    let amount_in: u128 = FixedFloat::from_num(balance_in.u128()).mul(&multiplier).to_num();
 
     Uint128(amount_in)
 }
