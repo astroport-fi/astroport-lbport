@@ -75,7 +75,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
             mint: Some(MinterResponse {
                 minter: env.contract.address.clone(),
                 cap: None,
-            }),//TODO Hooks could be called by third party code, registering other contracts terraswap_factory/src/contract.rs:140
+            }),
             init_hook: Some(InitHook {
                 msg: to_binary(&HandleMsg::PostInitialize {})?,
                 contract_addr: env.contract.address,
@@ -238,7 +238,7 @@ pub fn try_provide_liquidity<S: Storage, A: Api, Q: Querier>(
             .expect("Wrong asset info is given"),
     ];
 
-    if deposits[0] == Uint128::zero() || deposits[1] == Uint128::zero(){
+    if deposits[0].is_zero() || deposits[1].is_zero(){
         return Err(StdError::generic_err("event of zero transfer"));
     }
 
@@ -270,7 +270,8 @@ pub fn try_provide_liquidity<S: Storage, A: Api, Q: Querier>(
 
     let liquidity_token = deps.api.human_address(&pair_info.liquidity_token)?;
     let total_share = query_supply(&deps, &liquidity_token)?;
-    let share = if total_share == Uint128::zero() {
+
+    let share = if total_share.is_zero() {
         // Initial share = collateral amount
         Uint128((deposits[0].u128() * deposits[1].u128()).integer_sqrt())
     } else {

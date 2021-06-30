@@ -33,7 +33,6 @@ pub fn mock_dependencies(
     let custom_querier: WasmMockQuerier = WasmMockQuerier::new(
         MockQuerier::new(&[(&contract_addr, contract_balance)]),
         MockApi::new(canonical_length),
-        canonical_length,
     );
 
     Extern {
@@ -48,7 +47,6 @@ pub struct WasmMockQuerier {
     token_querier: TokenQuerier,
     tax_querier: TaxQuerier,
     terraswap_factory_querier: TerraswapFactoryQuerier,
-    canonical_length: usize,
 }
 
 #[derive(Clone, Default)]
@@ -296,14 +294,12 @@ impl WasmMockQuerier {
     pub fn new<A: Api>(
         base: MockQuerier<TerraQueryWrapper>,
         _api: A,
-        canonical_length: usize,
     ) -> Self {
         WasmMockQuerier {
             base,
             token_querier: TokenQuerier::default(),
             tax_querier: TaxQuerier::default(),
             terraswap_factory_querier: TerraswapFactoryQuerier::default(),
-            canonical_length,
         }
     }
 

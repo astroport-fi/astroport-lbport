@@ -19,7 +19,6 @@ pub fn mock_dependencies(
     let contract_addr = HumanAddr::from(MOCK_CONTRACT_ADDR);
     let custom_querier: WasmMockQuerier = WasmMockQuerier::new(
         MockQuerier::new(&[(&contract_addr, contract_balance)]),
-        canonical_length,
         MockApi::new(canonical_length),
     );
 
@@ -39,7 +38,6 @@ pub struct WasmMockQuerier {
     query_handler: DefaultQueryHandler,
     cw20_query_handler: CW20QueryHandler,
     handler: QueryHandler,
-    canonical_length: usize,
 }
 
 #[derive(Clone, Default)]
@@ -260,11 +258,9 @@ impl DefaultQueryHandler {
 impl WasmMockQuerier {
     pub fn new<A: Api>(
         base: MockQuerier<TerraQueryWrapper>,
-        canonical_length: usize,
         _api: A,
     ) -> Self {
         WasmMockQuerier {
-            canonical_length,
             query_handler: DefaultQueryHandler {
                 base,
                 tax_querier: TaxQuerier::default(),

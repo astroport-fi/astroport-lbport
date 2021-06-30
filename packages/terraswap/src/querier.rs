@@ -13,11 +13,11 @@ pub fn query_balance<S: Storage, A: Api, Q: Querier>(
     account_addr: &HumanAddr,
     denom: String,
 ) -> StdResult<Uint128> {
-    // load price form the oracle
-    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
-        address: HumanAddr::from(account_addr),
-        denom,
-    }))?;
+    let balance: BalanceResponse = deps.querier.query(
+        &QueryRequest::Bank(BankQuery::Balance {
+            address: HumanAddr::from(account_addr),
+            denom,
+        }))?;
     Ok(balance.amount.amount)
 }
 
@@ -25,12 +25,10 @@ pub fn query_all_balances<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     account_addr: &HumanAddr,
 ) -> StdResult<Vec<Coin>> {
-    // load price form the oracle
-    let all_balances: AllBalanceResponse =
-        deps.querier
-            .query(&QueryRequest::Bank(BankQuery::AllBalances {
-                address: HumanAddr::from(account_addr),
-            }))?;
+    let all_balances: AllBalanceResponse = deps.querier.query(
+        &QueryRequest::Bank(BankQuery::AllBalances {
+            address: HumanAddr::from(account_addr),
+        }))?;
     Ok(all_balances.amount)
 }
 
@@ -40,26 +38,12 @@ pub fn query_token_balance<S: Storage, A: Api, Q: Querier>(
     account_addr: &HumanAddr,
 ) -> StdResult<Uint128> {
     // load balance form the token contract
-    // let res: Binary = deps
-    //     .querier
-    //     .query(&QueryRequest::Wasm(WasmQuery::Raw {
-    //         contract_addr: HumanAddr::from(contract_addr),
-    //         key: Binary::from(concat(
-    //             &to_length_prefixed(b"balance").to_vec(),
-    //             (deps.api.canonical_address(&account_addr)?).as_slice(),
-    //         )),
-    //     }))
-    //     .unwrap_or_else(|_| to_binary(&Uint128::zero()).unwrap());
-    //
-    // from_binary(&res)
-
-    let res: Cw20BalanceResponse = deps
-        .querier
-        .query(&QueryRequest::Wasm(
+    let res: Cw20BalanceResponse = deps.querier.query(
+        &QueryRequest::Wasm(
             WasmQuery::Smart {
                 contract_addr: HumanAddr::from(contract_addr),
                 msg: to_binary(&Cw20QueryMsg::Balance {
-                    address:  HumanAddr::from(account_addr),
+                    address: HumanAddr::from(account_addr),
                 })?,
         }))
         .unwrap_or_else(|_| Cw20BalanceResponse{ balance: Uint128::zero()});
@@ -71,17 +55,12 @@ pub fn query_supply<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     contract_addr: &HumanAddr,
 ) -> StdResult<Uint128> {
-    // load price form the oracle
-    // let res: Binary = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Raw {
-    //     contract_addr: HumanAddr::from(contract_addr),
-    //     key: Binary::from(to_length_prefixed(b"token_info")),
-    // }))?;
-    // let token_info: TokenInfoResponse = from_binary(&res)?;
-    // Ok(token_info.total_supply)
-    let res: TokenInfoResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    let res: TokenInfoResponse = deps.querier.query(
+        &QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: HumanAddr::from(contract_addr),
             msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
         }))?;
+
     Ok(res.total_supply)
 }
 
