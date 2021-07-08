@@ -5,7 +5,6 @@
   "required": [
     "asset_infos",
     "contract_addr",
-    "creator",
     "end_time",
     "liquidity_token",
     "start_time"
@@ -20,9 +19,6 @@
       "minItems": 2
     },
     "contract_addr": {
-      "$ref": "#/definitions/HumanAddr"
-    },
-    "creator": {
       "$ref": "#/definitions/HumanAddr"
     },
     "description": {

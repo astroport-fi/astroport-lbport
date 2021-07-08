@@ -63,6 +63,7 @@
         "contract_addr",
         "end_time",
         "liquidity_token",
+        "owner",
         "start_time"
       ],
       "properties": {
@@ -83,6 +84,9 @@
           "minimum": 0.0
         },
         "liquidity_token": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "owner": {
           "$ref": "#/definitions/HumanAddr"
         },
         "start_time": {

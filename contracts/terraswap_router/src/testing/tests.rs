@@ -362,6 +362,7 @@ fn execute_swap_operation() {
             "uluna".to_string()
         )],
     );
+
     deps.querier
         .with_terraswap_pairs(&[(&"assetuusd".to_string(), &HumanAddr::from("pair"))]);
     deps.querier.with_token_balances(&[(
