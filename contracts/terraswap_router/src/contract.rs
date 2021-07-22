@@ -307,7 +307,7 @@ fn assert_operations_order(operations: &Vec<SwapOperation>) -> StdResult<()> {
 
         if !prev_ask.is_empty() && prev_ask != offer_asset.to_string() {
             return Err(StdError::generic_err(
-                "invalid operations; multiple output token",
+                "invalid operations order; offer does not equal to prev ask",
             ));
         }
 
