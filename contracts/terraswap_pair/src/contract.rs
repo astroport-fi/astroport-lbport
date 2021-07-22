@@ -528,7 +528,7 @@ pub fn query_simulation<S: Storage, A: Api, Q: Querier>(
         ask_pool = pools[0].clone();
     } else {
         return Err(StdError::generic_err(
-            "Given offer asset is not blong to pairs",
+            "Given offer asset does not belong to pairs",
         ));
     }
 
@@ -636,9 +636,9 @@ fn get_ask_by_spot_price(
     offer_amount: Uint128,
 ) -> Uint128{
     let ratio = FixedFloat::from_num(ask_pool.u128())
-        .mul(&ask_weight)
+        .div(&ask_weight)
         .div(&FixedFloat::from_num(offer_pool.u128())
-            .mul(&offer_weight)
+            .div(&offer_weight)
         )
         .mul(&FixedFloat::from_num(offer_amount.u128()));
 

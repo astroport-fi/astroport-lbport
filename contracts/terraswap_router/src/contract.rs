@@ -102,7 +102,7 @@ pub fn execute_swap_operations<S: Storage, A: Api, Q: Querier>(
     assert_operations(&operations)?;
 
     let to = if let Some(to) = to { to } else { sender };
-    let target_asset_info = operations.last().unwrap().get_target_asset_info();
+    let target_asset_info = operations.last().unwrap().get_ask_asset_info();
 
     let mut operation_index = 0;
     let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = operations
@@ -176,7 +176,12 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
             offer_amount,
             block_time,
             operations,
-        } => to_binary(&simulate_swap_operations(deps, offer_amount, block_time, operations)?),
+        } => to_binary(&simulate_swap_operations(
+            deps,
+            offer_amount,
+            block_time,
+            operations,
+        )?),
     }
 }
 
@@ -202,19 +207,20 @@ pub fn migrate<S: Storage, A: Api, Q: Querier>(
 fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     offer_amount: Uint128,
-    block_time:u64,
+    block_time: u64,
     operations: Vec<SwapOperation>,
 ) -> StdResult<SimulateSwapOperationsResponse> {
     let config: Config = read_config(&deps.storage)?;
     let terraswap_factory = deps.api.human_address(&config.terraswap_factory)?;
     let terra_querier = TerraQuerier::new(&deps.querier);
 
-    assert_operations(&operations)?;
-
     let operations_len = operations.len();
     if operations_len == 0 {
         return Err(StdError::generic_err("must provide operations"));
     }
+
+    assert_operations(&operations)?;
+    assert_operations_order(&operations)?;
 
     let mut operation_index = 0;
     let mut offer_amount = offer_amount;
@@ -243,6 +249,7 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
 
                 offer_amount = res.receive.amount;
             }
+
             SwapOperation::TerraSwap {
                 offer_asset_info,
                 ask_asset_info,
@@ -291,27 +298,31 @@ fn simulate_swap_operations<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+fn assert_operations_order(operations: &Vec<SwapOperation>) -> StdResult<()> {
+    let mut prev_ask = String::new();
+
+    for operation in operations.into_iter() {
+        let offer_asset = operation.get_offer_asset_info();
+        let ask_asset = operation.get_ask_asset_info();
+
+        if !prev_ask.is_empty() && prev_ask != offer_asset.to_string() {
+            return Err(StdError::generic_err(
+                "invalid operations order; offer does not equal to prev ask",
+            ));
+        }
+
+        prev_ask = ask_asset.to_string()
+    }
+
+    Ok(())
+}
+
 fn assert_operations(operations: &Vec<SwapOperation>) -> StdResult<()> {
     let mut ask_asset_map: HashMap<String, bool> = HashMap::new();
 
     for operation in operations.into_iter() {
-        let (offer_asset, ask_asset) = match operation {
-            SwapOperation::NativeSwap {
-                offer_denom,
-                ask_denom,
-            } => (
-                AssetInfo::NativeToken {
-                    denom: offer_denom.clone(),
-                },
-                AssetInfo::NativeToken {
-                    denom: ask_denom.clone(),
-                },
-            ),
-            SwapOperation::TerraSwap {
-                offer_asset_info,
-                ask_asset_info,
-            } => (offer_asset_info.clone(), ask_asset_info.clone()),
-        };
+        let offer_asset = operation.get_offer_asset_info();
+        let ask_asset = operation.get_ask_asset_info();
 
         ask_asset_map.remove(&offer_asset.to_string());
         ask_asset_map.insert(ask_asset.to_string(), true);
@@ -427,6 +438,71 @@ fn test_invalid_operations() {
                     contract_addr: HumanAddr::from("asset0002"),
                 },
             },
+        ])
+        .is_err()
+    );
+}
+
+#[test]
+fn test_invalid_operations_order() {
+    assert_eq!(
+        true,
+        assert_operations_order(&vec![
+            SwapOperation::NativeSwap {
+                offer_denom: "uusd".to_string(),
+                ask_denom: "uluna".to_string(),
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+                ask_asset_info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0001"),
+                },
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0001"),
+                },
+                ask_asset_info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+                ask_asset_info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0002"),
+                },
+            },
+        ])
+        .is_ok()
+    );
+
+    assert_eq!(
+        true,
+        assert_operations_order(&vec![
+            SwapOperation::NativeSwap {
+                offer_denom: "uusd".to_string(),
+                ask_denom: "uluna".to_string(),
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info: AssetInfo::NativeToken {
+                    denom: "ukrw".to_string(),
+                },
+                ask_asset_info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0001"),
+                },
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info: AssetInfo::Token {
+                    contract_addr: HumanAddr::from("asset0001"),
+                },
+                ask_asset_info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+            }
         ])
         .is_err()
     );
