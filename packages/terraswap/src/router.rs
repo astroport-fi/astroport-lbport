@@ -25,7 +25,18 @@ pub enum SwapOperation {
 }
 
 impl SwapOperation {
-    pub fn get_target_asset_info(&self) -> AssetInfo {
+    pub fn get_offer_asset_info(&self) -> AssetInfo {
+        match self {
+            SwapOperation::NativeSwap { offer_denom, .. } => AssetInfo::NativeToken {
+                denom: offer_denom.clone(),
+            },
+            SwapOperation::TerraSwap {
+                offer_asset_info, ..
+            } => offer_asset_info.clone(),
+        }
+    }
+
+    pub fn get_ask_asset_info(&self) -> AssetInfo {
         match self {
             SwapOperation::NativeSwap { ask_denom, .. } => AssetInfo::NativeToken {
                 denom: ask_denom.clone(),

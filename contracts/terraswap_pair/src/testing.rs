@@ -1,8 +1,5 @@
-use crate::contract::{
-    assert_max_spread, handle, init, query_pair_info, query_pool, query_reverse_simulation,
-    query_simulation,
-};
-use crate::math::{decimal_multiplication, reverse_decimal};
+use crate::contract::{assert_max_spread, handle, init, query_pair_info, query_pool, query_reverse_simulation, query_simulation};
+use crate::math::{decimal_multiplication, reverse_decimal, DECIMAL_FRACTIONAL};
 use crate::mock_querier::mock_dependencies;
 
 use cosmwasm_std::testing::{mock_env, MOCK_CONTRACT_ADDR};
@@ -14,13 +11,12 @@ use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
-use terraswap::pair::{
-    Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
-};
+use terraswap::pair::{Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse};
 use terraswap::token::InitMsg as TokenInitMsg;
+use std::ops::{Sub};
 
-const COMISSION_AMOUNT: u128 = 15;
-const COMISSION_RATIO: u128 = 10000;
+const COMMISSION_AMOUNT: u128 = 15;
+const COMMISSION_RATIO: u128 = 10000;
 
 #[test]
 fn proper_initialization() {
@@ -749,7 +745,7 @@ fn try_native_to_token() {
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
     let expected_commission_amount =
-        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.15%
+        expected_ret_amount.multiply_ratio(COMMISSION_AMOUNT, COMMISSION_RATIO); // 0.15%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = Uint128::zero(); // no tax for token
 
@@ -953,7 +949,7 @@ fn try_token_to_native() {
     let expected_ret_amount = Uint128(952_380_953u128);
     let expected_spread_amount = (offer_amount * exchange_rate - expected_ret_amount).unwrap();
     let expected_commission_amount =
-        expected_ret_amount.multiply_ratio(COMISSION_AMOUNT, COMISSION_RATIO); // 0.15%
+        expected_ret_amount.multiply_ratio(COMMISSION_AMOUNT, COMMISSION_RATIO); // 0.15%
     let expected_return_amount = (expected_ret_amount - expected_commission_amount).unwrap();
     let expected_tax_amount = std::cmp::min(
         Uint128(1000000u128),
@@ -1104,6 +1100,116 @@ fn test_max_spread() {
         Uint128::from(10000u128),
     )
     .unwrap();
+}
+
+#[test]
+fn test_spread() {
+    let tkn_contract = HumanAddr::from("TKN");
+    let tkn_amount = Uint128(50_000_000_u128 * DECIMAL_FRACTIONAL.u128());
+
+    let usdc_contract = HumanAddr::from("USDC");
+    let usdc_amount = Uint128(250_000_u128 * DECIMAL_FRACTIONAL.u128());
+
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+
+    let mut deps = mock_dependencies(20, &[]);
+
+    deps.querier.with_token_balances(&[(
+        &tkn_contract,
+        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &tkn_amount)],
+    ), (
+        &usdc_contract,
+        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &usdc_amount)],
+    ), (
+        &HumanAddr::from("liquidity0000"),
+        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &Uint128::zero())]
+    )]);
+
+    let msg = InitMsg {
+        asset_infos: [
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: tkn_contract.clone(),
+                },
+                start_weight: Uint128(49),
+                end_weight: Uint128(20),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: usdc_contract.clone(),
+                },
+                start_weight: Uint128(1),
+                end_weight: Uint128(30),
+            },
+        ],
+        token_code_id: 10u64,
+        init_hook: None,
+        start_time,
+        end_time,
+        description: Some(String::from("description")),
+    };
+
+    let env = mock_env("addr0000", &[]);
+    // we can just call .unwrap() to assert this was a success
+    let _res = init(&mut deps, env, msg).unwrap();
+
+    // post initalize
+    let msg = HandleMsg::PostInitialize {};
+    let env = mock_env("liquidity0000", &[]);
+    let _res = handle(&mut deps, env.clone(), msg).unwrap();
+
+    // successfully provide liquidity for the exist pool
+    let msg = HandleMsg::ProvideLiquidity {
+        assets: [
+            Asset {
+                info: AssetInfo::Token {
+                    contract_addr: tkn_contract.clone(),
+                },
+                amount: tkn_amount.clone(),
+            },
+            Asset {
+                info: AssetInfo::Token {
+                    contract_addr: usdc_contract.clone(),
+                },
+                amount: usdc_amount.clone(),
+            },
+        ],
+        slippage_tolerance: None,
+    };
+
+    let env = mock_env("addr0000", &[]);
+    let _res = handle(&mut deps, env, msg).unwrap();
+
+    // Check balances
+    let res: PoolResponse = query_pool(&deps).unwrap();
+    assert_eq!(res.assets[0].info, AssetInfo::Token { contract_addr: tkn_contract.clone()});
+    assert_eq!(res.assets[0].amount, tkn_amount);
+
+    assert_eq!(res.assets[1].info, AssetInfo::Token { contract_addr: usdc_contract.clone()});
+    assert_eq!(res.assets[1].amount, usdc_amount);
+
+    let simulation_res: SimulationResponse = query_simulation(
+        &deps,
+        Asset {
+            amount: Uint128::from(10_u128 * DECIMAL_FRACTIONAL.u128()),
+            info: AssetInfo::Token {
+                contract_addr: usdc_contract.clone(),
+            },
+        },
+        start_time,
+    )
+    .unwrap();
+
+    // Spot price: (ask_pool / ask_weight) / (offer_pool / offer_weight) * offer_amount
+    // (50_000_000 / 49) / ( 250_000 / 1) * 1 * DECIMAL_FRACTIONAL = 40816326530
+    let spot_price = Uint128::from(40816326530_u128);
+    let return_before_comission = simulation_res.return_amount + simulation_res.commission_amount;
+    assert_eq!(simulation_res.return_amount, Uint128::from(40754882156_u128));
+    assert_eq!(simulation_res.spread_amount, spot_price.sub(return_before_comission).unwrap());
 }
 
 #[test]
