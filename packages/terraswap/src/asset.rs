@@ -3,12 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 use crate::querier::{query_balance, query_token_balance};
-use cosmwasm_std::{
-    to_binary, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal, Env, Extern, HumanAddr,
-    Querier, StdError, StdResult, Storage, Uint128, WasmMsg,
-};
-use cw20::Cw20HandleMsg;
+use cosmwasm_std::{to_binary, BankMsg, Coin, CosmosMsg, Decimal, Addr, StdError, StdResult, Uint128, WasmMsg, MessageInfo, Deps};
 use terra_cosmwasm::TerraQuerier;
+use cw20::Cw20ExecuteMsg;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Asset {
@@ -44,9 +41,9 @@ impl fmt::Display for WeightedAssetInfo {
 }
 
 impl WeightedAssetInfo {
-    pub fn to_raw<S: Storage, A: Api, Q: Querier>(
+    pub fn to_raw(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
     ) -> StdResult<WeightedAssetInfoRaw> {
         Ok(WeightedAssetInfoRaw {
             info: self.info.to_raw(deps)?,
@@ -56,16 +53,16 @@ impl WeightedAssetInfo {
     }
 }
 
-static DECIMAL_FRACTION: Uint128 = Uint128(1_000_000_000_000_000_000u128);
+static DECIMAL_FRACTION: Uint128 = Uint128::new(1_000_000_000_000_000_000u128);
 
 impl Asset {
     pub fn is_native_token(&self) -> bool {
         self.info.is_native_token()
     }
 
-    pub fn compute_tax<S: Storage, A: Api, Q: Querier>(
+    pub fn compute_tax(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
     ) -> StdResult<Uint128> {
         let amount = self.amount;
         if let AssetInfo::NativeToken { denom } = &self.info {
@@ -76,11 +73,11 @@ impl Asset {
                 let tax_rate: Decimal = (terra_querier.query_tax_rate()?).rate;
                 let tax_cap: Uint128 = (terra_querier.query_tax_cap(denom.to_string())?).cap;
                 Ok(std::cmp::min(
-                    (amount
-                        - amount.multiply_ratio(
+                    (amount.checked_sub(
+                        amount.multiply_ratio(
                             DECIMAL_FRACTION,
                             DECIMAL_FRACTION * tax_rate + DECIMAL_FRACTION,
-                        ))?,
+                        )))?,
                     tax_cap,
                 ))
             }
@@ -89,46 +86,45 @@ impl Asset {
         }
     }
 
-    pub fn deduct_tax<S: Storage, A: Api, Q: Querier>(
+    pub fn deduct_tax(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
     ) -> StdResult<Coin> {
         let amount = self.amount;
         if let AssetInfo::NativeToken { denom } = &self.info {
             Ok(Coin {
                 denom: denom.to_string(),
-                amount: (amount - self.compute_tax(deps)?)?,
+                amount: (amount.checked_sub( self.compute_tax(deps).unwrap())).unwrap(),
             })
         } else {
             Err(StdError::generic_err("cannot deduct tax from token asset"))
         }
     }
 
-    pub fn into_msg<S: Storage, A: Api, Q: Querier>(
+    pub fn into_msg(
         self,
-        deps: &Extern<S, A, Q>,
-        sender: HumanAddr,
-        recipient: HumanAddr,
+        deps: Deps,
+        _sender: Addr,
+        recipient: Addr,
     ) -> StdResult<CosmosMsg> {
         let amount = self.amount;
 
         match &self.info {
             AssetInfo::Token { contract_addr } => Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: contract_addr.clone(),
-                msg: to_binary(&Cw20HandleMsg::Transfer { recipient, amount })?,
-                send: vec![],
+                contract_addr: contract_addr.to_string(),
+                msg: to_binary(&Cw20ExecuteMsg::Transfer { recipient: recipient.to_string(), amount })?,
+                funds: vec![],
             })),
             AssetInfo::NativeToken { .. } => Ok(CosmosMsg::Bank(BankMsg::Send {
-                from_address: sender,
-                to_address: recipient,
+                to_address: recipient.to_string(),
                 amount: vec![self.deduct_tax(deps)?],
             })),
         }
     }
 
-    pub fn assert_sent_native_token_balance(&self, env: &Env) -> StdResult<()> {
+    pub fn assert_sent_native_token_balance(&self, info: &MessageInfo) -> StdResult<()> {
         if let AssetInfo::NativeToken { denom } = &self.info {
-            match env.message.sent_funds.iter().find(|x| x.denom == *denom) {
+            match info.funds.iter().find(|x| x.denom == *denom) {
                 Some(coin) => {
                     if self.amount == coin.amount {
                         Ok(())
@@ -153,7 +149,7 @@ impl Asset {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AssetInfo {
-    Token { contract_addr: HumanAddr },
+    Token { contract_addr: Addr },
     NativeToken { denom: String },
 }
 
@@ -167,16 +163,16 @@ impl fmt::Display for AssetInfo {
 }
 
 impl AssetInfo {
-    pub fn to_raw<S: Storage, A: Api, Q: Querier>(
+    pub fn to_raw(
         &self,
-        deps: &Extern<S, A, Q>,
+        _deps: Deps,
     ) -> StdResult<AssetInfoRaw> {
         match self {
             AssetInfo::NativeToken { denom } => Ok(AssetInfoRaw::NativeToken {
                 denom: denom.to_string(),
             }),
-            AssetInfo::Token { contract_addr } => Ok(AssetInfoRaw::Token {
-                contract_addr: deps.api.canonical_address(&contract_addr)?,
+            AssetInfo::Token { contract_addr, .. } => Ok(AssetInfoRaw::Token {
+                contract_addr: contract_addr.clone(),
             }),
         }
     }
@@ -187,10 +183,10 @@ impl AssetInfo {
             AssetInfo::Token { .. } => false,
         }
     }
-    pub fn query_pool<S: Storage, A: Api, Q: Querier>(
+    pub fn query_pool(
         &self,
-        deps: &Extern<S, A, Q>,
-        pool_addr: &HumanAddr,
+        deps: Deps,
+        pool_addr: &Addr,
     ) -> StdResult<Uint128> {
         match self {
             AssetInfo::Token { contract_addr, .. } => {
@@ -230,9 +226,9 @@ pub struct WeightedAssetInfoRaw {
 }
 
 impl WeightedAssetInfoRaw {
-    pub fn to_normal<S: Storage, A: Api, Q: Querier>(
+    pub fn to_normal(
         &self,
-        deps: &Extern<S, A, Q>,
+        _deps: Deps,
     ) -> StdResult<WeightedAssetInfo> {
         Ok(WeightedAssetInfo {
             info: match &self.info {
@@ -240,7 +236,7 @@ impl WeightedAssetInfoRaw {
                     denom: denom.to_string(),
                 },
                 AssetInfoRaw::Token { contract_addr } => AssetInfo::Token {
-                    contract_addr: deps.api.human_address(&contract_addr)?,
+                    contract_addr: contract_addr.clone(),
                 },
             },
             start_weight: self.start_weight,
@@ -251,21 +247,21 @@ impl WeightedAssetInfoRaw {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum AssetInfoRaw {
-    Token { contract_addr: CanonicalAddr },
+    Token { contract_addr: Addr },
     NativeToken { denom: String },
 }
 
 impl AssetInfoRaw {
-    pub fn to_normal<S: Storage, A: Api, Q: Querier>(
+    pub fn to_normal(
         &self,
-        deps: &Extern<S, A, Q>,
+        _deps: Deps,
     ) -> StdResult<AssetInfo> {
         match self {
             AssetInfoRaw::NativeToken { denom } => Ok(AssetInfo::NativeToken {
                 denom: denom.to_string(),
             }),
             AssetInfoRaw::Token { contract_addr } => Ok(AssetInfo::Token {
-                contract_addr: deps.api.human_address(&contract_addr)?,
+                contract_addr: contract_addr.clone(),
             }),
         }
     }
@@ -273,7 +269,7 @@ impl AssetInfoRaw {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             AssetInfoRaw::NativeToken { denom } => denom.as_bytes(),
-            AssetInfoRaw::Token { contract_addr } => contract_addr.as_slice(),
+            AssetInfoRaw::Token { contract_addr } => contract_addr.as_bytes(),
         }
     }
 
@@ -303,8 +299,8 @@ impl AssetInfoRaw {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairInfo {
     pub asset_infos: [WeightedAssetInfo; 2],
-    pub contract_addr: HumanAddr,
-    pub liquidity_token: HumanAddr,
+    pub contract_addr: Addr,
+    pub liquidity_token: Addr,
     pub start_time: u64,
     pub end_time: u64,
     pub description: Option<String>,
@@ -313,25 +309,25 @@ pub struct PairInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairInfoRaw {
     pub asset_infos: [WeightedAssetInfoRaw; 2],
-    pub contract_addr: CanonicalAddr,
-    pub liquidity_token: CanonicalAddr,
+    pub contract_addr: Addr,
+    pub liquidity_token: Addr,
     pub start_time: u64,
     pub end_time: u64,
     pub description: Option<String>,
 }
 
 impl PairInfoRaw {
-    pub fn to_normal<S: Storage, A: Api, Q: Querier>(
+    pub fn to_normal(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
     ) -> StdResult<PairInfo> {
         Ok(PairInfo {
-            liquidity_token: deps.api.human_address(&self.liquidity_token)?,
+            liquidity_token: self.liquidity_token.clone(),
             start_time: self.start_time,
-            contract_addr: deps.api.human_address(&self.contract_addr)?,
+            contract_addr: self.contract_addr.clone(),
             asset_infos: [
-                self.asset_infos[0].to_normal(&deps)?,
-                self.asset_infos[1].to_normal(&deps)?,
+                self.asset_infos[0].to_normal(deps)?,
+                self.asset_infos[1].to_normal(deps)?,
             ],
 
             end_time: self.end_time,
@@ -339,10 +335,10 @@ impl PairInfoRaw {
         })
     }
 
-    pub fn query_pools<S: Storage, A: Api, Q: Querier>(
+    pub fn query_pools(
         &self,
-        deps: &Extern<S, A, Q>,
-        contract_addr: &HumanAddr,
+        deps: Deps,
+        contract_addr: &Addr,
     ) -> StdResult<[WeightedAsset; 2]> {
         let info_0: WeightedAssetInfo = self.asset_infos[0].to_normal(deps)?;
         let info_1: WeightedAssetInfo = self.asset_infos[1].to_normal(deps)?;
