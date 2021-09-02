@@ -2,11 +2,11 @@ use std::env::current_dir;
 use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
-use cosmwasm_std::HandleResponse;
+use cosmwasm_std::Response;
 
 use terraswap::asset::PairInfo;
 use terraswap::pair::{
-    Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, QueryMsg, ReverseSimulationResponse,
+    Cw20HookMsg, ExecuteMsg, InitMsg, PoolResponse, QueryMsg, ReverseSimulationResponse,
     SimulationResponse,
 };
 
@@ -17,9 +17,9 @@ fn main() {
     remove_schemas(&out_dir).unwrap();
 
     export_schema(&schema_for!(InitMsg), &out_dir);
-    export_schema(&schema_for!(HandleMsg), &out_dir);
+    export_schema(&schema_for!(ExecuteMsg), &out_dir);
     export_schema(&schema_for!(Cw20HookMsg), &out_dir);
-    export_schema(&schema_for!(HandleResponse), &out_dir);
+    export_schema(&schema_for!(Response), &out_dir);
     export_schema(&schema_for!(QueryMsg), &out_dir);
     export_schema(&schema_for!(PairInfo), &out_dir);
     export_schema(&schema_for!(PoolResponse), &out_dir);

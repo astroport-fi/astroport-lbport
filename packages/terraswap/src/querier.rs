@@ -50,7 +50,7 @@ pub fn query_token_balance(
 
 pub fn query_supply(
     deps: Deps,
-    contract_addr: &Addr,
+    contract_addr: Addr,
 ) -> StdResult<Uint128> {
     let res: TokenInfoResponse = deps.querier.query(
         &QueryRequest::Wasm(WasmQuery::Smart {

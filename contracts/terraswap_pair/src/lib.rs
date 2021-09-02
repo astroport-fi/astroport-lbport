@@ -1,4 +1,5 @@
 pub mod contract;
+mod error;
 pub mod math;
 pub mod state;
 
@@ -8,5 +9,5 @@ mod testing;
 #[cfg(test)]
 mod mock_querier;
 
-#[cfg(all(target_arch = "wasm32", not(feature = "library")))]
-cosmwasm_std::create_entry_points_with_migration!(contract);
+// #[cfg(all(target_arch = "wasm32", not(feature = "library")))]
+// cosmwasm_std::create_entry_points_with_migration!(contract);

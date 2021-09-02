@@ -6,7 +6,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub type FixedFloat = I64F64;
 
 /////////////////////////////////////////////////////////////
-pub const DECIMAL_FRACTIONAL: Uint128 = Uint128(1_000_000_000u128);
+pub const DECIMAL_FRACTIONAL: Uint128 = Uint128::new(1_000_000_000u128);
 
 pub fn reverse_decimal(decimal: Decimal) -> Decimal {
     if decimal.is_zero() {
@@ -18,7 +18,7 @@ pub fn reverse_decimal(decimal: Decimal) -> Decimal {
 
 pub fn decimal_subtraction(a: Decimal, b: Decimal) -> StdResult<Decimal> {
     Ok(Decimal::from_ratio(
-        (a * DECIMAL_FRACTIONAL - b * DECIMAL_FRACTIONAL)?,
+        (a * DECIMAL_FRACTIONAL).checked_sub(b * DECIMAL_FRACTIONAL)?,
         DECIMAL_FRACTIONAL,
     ))
 }
@@ -53,7 +53,7 @@ pub fn calc_out_given_in(
         .mul(&multiplier)
         .to_num();
 
-    Uint128(amount_out)
+    Uint128::from(amount_out)
 }
 
 pub fn calc_in_given_out(
@@ -63,7 +63,7 @@ pub fn calc_in_given_out(
     weight_out: FixedFloat,
     amount_out: Uint128,
 ) -> Uint128 {
-    let updated_balance = balance_out.sub(amount_out).unwrap();
+    let updated_balance = balance_out.checked_sub(amount_out).unwrap();
 
     let weight_ratio = weight_out.div(&weight_in);
 
@@ -79,5 +79,5 @@ pub fn calc_in_given_out(
         .mul(&multiplier)
         .to_num();
 
-    Uint128(amount_in)
+    Uint128::from(amount_in)
 }
