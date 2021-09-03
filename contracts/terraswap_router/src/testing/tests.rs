@@ -7,6 +7,7 @@ use crate::contract::{handle, init, query};
 use crate::testing::mock_querier::mock_dependencies;
 
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg};
+use std::time::{SystemTime, UNIX_EPOCH};
 use terra_cosmwasm::{create_swap_msg, create_swap_send_msg};
 use terraswap::asset::{Asset, AssetInfo};
 use terraswap::pair::HandleMsg as PairHandleMsg;
@@ -14,7 +15,6 @@ use terraswap::router::{
     ConfigResponse, Cw20HookMsg, HandleMsg, InitMsg, QueryMsg, SimulateSwapOperationsResponse,
     SwapOperation,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn proper_initialization() {

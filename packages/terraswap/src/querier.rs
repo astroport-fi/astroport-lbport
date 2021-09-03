@@ -61,7 +61,7 @@ pub fn query_supply(
     Ok(res.total_supply)
 }
 
-pub fn query_pair_info<S: Storage, A: Api, Q: Querier>(
+pub fn query_pair_info(
     deps: Deps,
     factory_contract: &Addr,
     asset_infos: &[AssetInfo; 2],
@@ -74,7 +74,7 @@ pub fn query_pair_info<S: Storage, A: Api, Q: Querier>(
     }))
 }
 
-pub fn simulate<S: Storage, A: Api, Q: Querier>(
+pub fn simulate(
     deps: Deps,
     pair_contract: &Addr,
     offer_asset: &Asset,

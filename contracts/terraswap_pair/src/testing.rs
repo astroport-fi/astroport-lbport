@@ -1,4 +1,7 @@
-use crate::contract::{assert_max_spread, handle, init, query_pair_info, query_pool, query_reverse_simulation, query_simulation};
+use crate::contract::{
+    assert_max_spread, handle, init, query_pair_info, query_pool, query_reverse_simulation,
+    query_simulation,
+};
 use crate::math::{decimal_multiplication, reverse_decimal, DECIMAL_FRACTIONAL};
 use crate::mock_querier::mock_dependencies;
 
@@ -8,12 +11,14 @@ use cosmwasm_std::{
     StdError, Uint128, WasmMsg,
 };
 use cw20::{Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
+use std::ops::Sub;
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
-use terraswap::pair::{Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse};
+use terraswap::pair::{
+    Cw20HookMsg, HandleMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
+};
 use terraswap::token::InitMsg as TokenInitMsg;
-use std::ops::{Sub};
 
 const COMMISSION_AMOUNT: u128 = 15;
 const COMMISSION_RATIO: u128 = 10000;
@@ -770,9 +775,13 @@ fn try_native_to_token() {
     )
     .unwrap();
 
-    let amount_diff = (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128 - simulation_res.commission_amount.u128() as i128).abs();
-    let spread_diff = (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
+    let amount_diff =
+        (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128
+        - simulation_res.commission_amount.u128() as i128)
+        .abs();
+    let spread_diff =
+        (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
 
     let diff_tolerance = 10i128;
 
@@ -796,9 +805,14 @@ fn try_native_to_token() {
     )
     .unwrap();
 
-    let offer_diff = (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128 - reverse_simulation_res.commission_amount.u128() as i128).abs();
-    let spread_diff = (expected_spread_amount.u128() as i128 - reverse_simulation_res.spread_amount.u128() as i128).abs();
+    let offer_diff =
+        (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128
+        - reverse_simulation_res.commission_amount.u128() as i128)
+        .abs();
+    let spread_diff = (expected_spread_amount.u128() as i128
+        - reverse_simulation_res.spread_amount.u128() as i128)
+        .abs();
 
     assert_eq!(offer_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -817,7 +831,10 @@ fn try_native_to_token() {
             log("return_amount", simulation_res.return_amount.to_string()),
             log("tax_amount", expected_tax_amount.to_string()),
             log("spread_amount", simulation_res.spread_amount.to_string()),
-            log("commission_amount", simulation_res.commission_amount.to_string()),
+            log(
+                "commission_amount",
+                simulation_res.commission_amount.to_string()
+            ),
         ]
     );
 
@@ -982,10 +999,13 @@ fn try_token_to_native() {
     )
     .unwrap();
 
-
-    let ret_diff = (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128 - simulation_res.commission_amount.u128() as i128).abs();
-    let spread_diff = (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
+    let ret_diff =
+        (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128
+        - simulation_res.commission_amount.u128() as i128)
+        .abs();
+    let spread_diff =
+        (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
 
     let diff_tolerance = 10i128;
 
@@ -1006,9 +1026,14 @@ fn try_token_to_native() {
     )
     .unwrap();
 
-    let offer_diff = (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128 - reverse_simulation_res.commission_amount.u128() as i128).abs();
-    let spread_diff = (expected_spread_amount.u128() as i128 - reverse_simulation_res.spread_amount.u128() as i128).abs();
+    let offer_diff =
+        (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
+    let commission_diff = (expected_commission_amount.u128() as i128
+        - reverse_simulation_res.commission_amount.u128() as i128)
+        .abs();
+    let spread_diff = (expected_spread_amount.u128() as i128
+        - reverse_simulation_res.spread_amount.u128() as i128)
+        .abs();
 
     let diff_tolerance = 5i128;
 
@@ -1118,16 +1143,20 @@ fn test_spread() {
 
     let mut deps = mock_dependencies(20, &[]);
 
-    deps.querier.with_token_balances(&[(
-        &tkn_contract,
-        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &tkn_amount)],
-    ), (
-        &usdc_contract,
-        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &usdc_amount)],
-    ), (
-        &HumanAddr::from("liquidity0000"),
-        &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &Uint128::zero())]
-    )]);
+    deps.querier.with_token_balances(&[
+        (
+            &tkn_contract,
+            &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &tkn_amount)],
+        ),
+        (
+            &usdc_contract,
+            &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &usdc_amount)],
+        ),
+        (
+            &HumanAddr::from("liquidity0000"),
+            &[(&HumanAddr::from(MOCK_CONTRACT_ADDR), &Uint128::zero())],
+        ),
+    ]);
 
     let msg = InitMsg {
         asset_infos: [
@@ -1186,10 +1215,20 @@ fn test_spread() {
 
     // Check balances
     let res: PoolResponse = query_pool(&deps).unwrap();
-    assert_eq!(res.assets[0].info, AssetInfo::Token { contract_addr: tkn_contract.clone()});
+    assert_eq!(
+        res.assets[0].info,
+        AssetInfo::Token {
+            contract_addr: tkn_contract.clone()
+        }
+    );
     assert_eq!(res.assets[0].amount, tkn_amount);
 
-    assert_eq!(res.assets[1].info, AssetInfo::Token { contract_addr: usdc_contract.clone()});
+    assert_eq!(
+        res.assets[1].info,
+        AssetInfo::Token {
+            contract_addr: usdc_contract.clone()
+        }
+    );
     assert_eq!(res.assets[1].amount, usdc_amount);
 
     let simulation_res: SimulationResponse = query_simulation(
@@ -1208,8 +1247,14 @@ fn test_spread() {
     // (50_000_000 / 49) / ( 250_000 / 1) * 1 * DECIMAL_FRACTIONAL = 40816326530
     let spot_price = Uint128::from(40816326530_u128);
     let return_before_comission = simulation_res.return_amount + simulation_res.commission_amount;
-    assert_eq!(simulation_res.return_amount, Uint128::from(40754882156_u128));
-    assert_eq!(simulation_res.spread_amount, spot_price.sub(return_before_comission).unwrap());
+    assert_eq!(
+        simulation_res.return_amount,
+        Uint128::from(40754882156_u128)
+    );
+    assert_eq!(
+        simulation_res.spread_amount,
+        spot_price.sub(return_before_comission).unwrap()
+    );
 }
 
 #[test]
@@ -1329,7 +1374,7 @@ fn test_query_pool() {
 
 #[test]
 fn test_weight_calculations() {
-   let start_time = SystemTime::now()
+    let start_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
@@ -1401,44 +1446,44 @@ fn test_weight_calculations() {
     }
 
     let mut test_cases: Vec<TestCase> = Vec::new();
-    test_cases.push(TestCase{
+    test_cases.push(TestCase {
         expected_error: true,
-        start_time: start_time -1,
+        start_time: start_time - 1,
         expected_ask_weight: Default::default(),
         expected_offer_weight: Default::default(),
     });
 
-    test_cases.push(TestCase{
+    test_cases.push(TestCase {
         expected_error: true,
         start_time: end_time + 1,
         expected_ask_weight: Default::default(),
         expected_offer_weight: Default::default(),
     });
 
-    test_cases.push(TestCase{
+    test_cases.push(TestCase {
         expected_error: false,
         start_time: start_time,
         expected_ask_weight: String::from("49"),
         expected_offer_weight: String::from("1"),
     });
-    test_cases.push(TestCase{
+    test_cases.push(TestCase {
         expected_error: false,
         start_time: start_time + 50,
         expected_ask_weight: String::from("34.5"),
         expected_offer_weight: String::from("15.5"),
     });
-    test_cases.push(TestCase{
+    test_cases.push(TestCase {
         expected_error: false,
         start_time: start_time + 100,
         expected_ask_weight: String::from("20"),
         expected_offer_weight: String::from("30"),
     });
 
-    for t in &test_cases{
+    for t in &test_cases {
         let simulation_res = query_simulation(
-        &deps,
-        Asset {
-            info: AssetInfo::NativeToken {
+            &deps,
+            Asset {
+                info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),
                 },
                 amount: offer_amount,
@@ -1451,18 +1496,21 @@ fn test_weight_calculations() {
                 panic!("{:?}", e);
             }
 
-            SimulationResponse{
+            SimulationResponse {
                 return_amount: Default::default(),
                 spread_amount: Default::default(),
                 commission_amount: Default::default(),
                 ask_weight: Default::default(),
-                offer_weight: Default::default()
+                offer_weight: Default::default(),
             }
         });
 
         if !t.expected_error {
             assert_eq!(simulation_res.ask_weight.as_str(), &t.expected_ask_weight);
-            assert_eq!(simulation_res.offer_weight.as_str(), &t.expected_offer_weight);
+            assert_eq!(
+                simulation_res.offer_weight.as_str(),
+                &t.expected_offer_weight
+            );
         }
     }
 }

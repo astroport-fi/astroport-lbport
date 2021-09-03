@@ -7,7 +7,7 @@ use cw20::Cw20ReceiveMsg;
 use crate::asset::AssetInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct InitMsg {
+pub struct InstantiateMsg {
     pub terraswap_factory: Addr,
 }
 
@@ -48,7 +48,7 @@ impl SwapOperation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum HandleMsg {
+pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
     /// Execute multiple BuyOperation
     ExecuteSwapOperations {
