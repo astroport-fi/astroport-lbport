@@ -60,71 +60,71 @@ pub fn mock_instance(
 #[test]
 fn proper_initialization() {
     let mut deps = mock_instance(WASM, &[]);
-    // let start_time = SystemTime::now()
-    //     .duration_since(UNIX_EPOCH)
-    //     .unwrap()
-    //     .as_secs();
-    // let end_time = start_time + 1000;
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
 
-    // let msg = InitMsg {
-    //     asset_infos: [
-    //         WeightedAssetInfo {
-    //             info: AssetInfo::NativeToken {
-    //                 denom: "uusd".to_string(),
-    //             },
-    //             start_weight: Uint128::from(1u128),
-    //             end_weight: Uint128::from(1u128),
-    //         },
-    //         WeightedAssetInfo {
-    //             info: AssetInfo::Token {
-    //                 contract_addr: Addr::unchecked("asset0000"),
-    //             },
-    //             start_weight: Uint128::from(1u128),
-    //             end_weight: Uint128::from(1u128),
-    //         },
-    //     ],
-    //     token_code_id: 10u64,
-    //     init_hook: None,
-    //     start_time,
-    //     end_time,
-    //     description: Some(String::from("description")),
-    // };
-    //
-    // let env = mock_env();
-    // let info = mock_info("addr0000", &[]);
+    let msg = InitMsg {
+        asset_infos: [
+            WeightedAssetInfo {
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: Addr::unchecked("asset0000"),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            },
+        ],
+        token_code_id: 10u64,
+        init_hook: None,
+        start_time,
+        end_time,
+        description: Some(String::from("description")),
+    };
+
+    let env = mock_env();
+    let info = mock_info("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    // let _res: Response = instantiate(&mut deps, env.clone(), info, msg).unwrap();
-    //
-    // // cannot change it after post intialization
-    // let msg = ExecuteMsg::PostInitialize {};
-    // let info = mock_info("liquidity0000", &[]);
-    // let _res: Response = execute(&mut deps, env.clone(), info, msg).unwrap();
-    //
-    // // it worked, let's query the state
-    // let res = query(&mut deps, env, QueryMsg::Pair {}).unwrap();
-    // let pair_info: PairInfo = from_binary(&res).unwrap();
-    // assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
-    // assert_eq!(
-    //     [
-    //         WeightedAssetInfo {
-    //             info: AssetInfo::NativeToken {
-    //                 denom: "uusd".to_string(),
-    //             },
-    //             start_weight: Uint128::from(1u128),
-    //             end_weight: Uint128::from(1u128),
-    //         },
-    //         WeightedAssetInfo {
-    //             info: AssetInfo::Token {
-    //                 contract_addr: Addr::unchecked("asset0000"),
-    //             },
-    //             start_weight: Uint128::from(1u128),
-    //             end_weight: Uint128::from(1u128),
-    //         }
-    //     ],
-    //     pair_info.asset_infos
-    // );
-    //
-    // assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
-    // assert_eq!("description", pair_info.description.unwrap());
+    let _res: Response = instantiate(&mut deps, env.clone(), info, msg).unwrap();
+
+    // cannot change it after post intialization
+    let msg = ExecuteMsg::PostInitialize {};
+    let info = mock_info("liquidity0000", &[]);
+    let _res: Response = execute(&mut deps, env.clone(), info, msg).unwrap();
+
+    // it worked, let's query the state
+    let res = query(&mut deps, env, QueryMsg::Pair {}).unwrap();
+    let pair_info: PairInfo = from_binary(&res).unwrap();
+    assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
+    assert_eq!(
+        [
+            WeightedAssetInfo {
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::Token {
+                    contract_addr: Addr::unchecked("asset0000"),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            }
+        ],
+        pair_info.asset_infos
+    );
+
+    assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
+    assert_eq!("description", pair_info.description.unwrap());
 }
