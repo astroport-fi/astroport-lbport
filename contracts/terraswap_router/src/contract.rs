@@ -362,12 +362,12 @@ fn test_invalid_operations() {
                     denom: "ukrw".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
             },
             SwapOperation::TerraSwap {
                 offer_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
                 ask_asset_info: AssetInfo::NativeToken {
                     denom: "uluna".to_string(),
@@ -390,12 +390,12 @@ fn test_invalid_operations() {
                     denom: "ukrw".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
             },
             SwapOperation::TerraSwap {
                 offer_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
                 ask_asset_info: AssetInfo::NativeToken {
                     denom: "uluna".to_string(),
@@ -406,7 +406,7 @@ fn test_invalid_operations() {
                     denom: "uluna".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0002"),
+                    contract_addr: Addr::unchecked("asset0002"),
                 },
             },
         ])
@@ -426,12 +426,12 @@ fn test_invalid_operations() {
                     denom: "ukrw".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
             },
             SwapOperation::TerraSwap {
                 offer_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
                 ask_asset_info: AssetInfo::NativeToken {
                     denom: "uaud".to_string(),
@@ -442,7 +442,7 @@ fn test_invalid_operations() {
                     denom: "uluna".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0002"),
+                    contract_addr: Addr::unchecked("asset0002"),
                 },
             },
         ])
@@ -464,12 +464,12 @@ fn test_invalid_operations_order() {
                     denom: "uluna".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
             },
             SwapOperation::TerraSwap {
                 offer_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
                 ask_asset_info: AssetInfo::NativeToken {
                     denom: "uluna".to_string(),
@@ -480,7 +480,7 @@ fn test_invalid_operations_order() {
                     denom: "uluna".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0002"),
+                    contract_addr: Addr::unchecked("asset0002"),
                 },
             },
         ])
@@ -499,12 +499,12 @@ fn test_invalid_operations_order() {
                     denom: "ukrw".to_string(),
                 },
                 ask_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
             },
             SwapOperation::TerraSwap {
                 offer_asset_info: AssetInfo::Token {
-                    contract_addr: HumanAddr::from("asset0001"),
+                    contract_addr: Addr::unchecked("asset0001"),
                 },
                 ask_asset_info: AssetInfo::NativeToken {
                     denom: "uluna".to_string(),
