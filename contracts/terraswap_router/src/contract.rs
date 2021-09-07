@@ -179,23 +179,23 @@ fn assert_minium_receive(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Config {} => Ok(to_binary(&query_config(deps)?)?),
+        QueryMsg::Config {} => to_binary(&query_config(deps)?),
         QueryMsg::SimulateSwapOperations {
             offer_amount,
             block_time,
             operations,
-        } => Ok(to_binary(&simulate_swap_operations(
+        } => to_binary(&simulate_swap_operations(
             deps,
             offer_amount,
             block_time,
             operations,
-        )?)?),
+        )?),
     }
 }
 
-pub fn query_config(deps: Deps) -> Result<ConfigResponse, ContractError> {
+pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let state = CONFIG.load(deps.storage)?;
     let resp = ConfigResponse {
         terraswap_factory: state.terraswap_factory,
@@ -208,16 +208,16 @@ fn simulate_swap_operations(
     offer_amount: Uint128,
     block_time: u64,
     operations: Vec<SwapOperation>,
-) -> Result<SimulateSwapOperationsResponse, ContractError> {
+) -> StdResult<SimulateSwapOperationsResponse> {
     let config: Config = CONFIG.load(deps.storage)?;
     let terraswap_factory = config.terraswap_factory;
     let terra_querier = TerraQuerier::new(&deps.querier);
 
     let operations_len = operations.len();
     if operations_len == 0 {
-        return Err(ContractError::Std(StdError::generic_err(
+        return Err(StdError::generic_err(
             "must provide operations",
-        )));
+        ));
     }
 
     assert_operations(&operations)?;

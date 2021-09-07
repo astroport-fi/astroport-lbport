@@ -91,7 +91,7 @@ impl Querier for WasmMockQuerier {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
-                    error: format!("Parsing query request: {}", e.into()),
+                    error: format!("Parsing query request: {}", e),
                     request: bin_request.into(),
                 })
             }
