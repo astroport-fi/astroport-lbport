@@ -16,9 +16,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
 use terraswap::pair::{
-    Cw20HookMsg, ExecuteMsg, InitMsg, PoolResponse, ReverseSimulationResponse, SimulationResponse,
+    Cw20HookMsg, ExecuteMsg, InstantiateMsg, PoolResponse, ReverseSimulationResponse,
+    SimulationResponse,
 };
-use terraswap::token::InstantiateMsg as TokenInitMsg;
+use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 const COMMISSION_AMOUNT: u128 = 15;
 const COMMISSION_RATIO: u128 = 10000;
@@ -43,7 +44,7 @@ fn proper_initialization() {
         .as_secs();
     let end_time = start_time + 1000;
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -82,7 +83,7 @@ fn proper_initialization() {
                 msg: WasmMsg::Instantiate {
                     admin: None,
                     code_id: 10u64,
-                    msg: to_binary(&TokenInitMsg {
+                    msg: to_binary(&TokenInstantiateMsg {
                         name: "terraswap liquidity token".to_string(),
                         symbol: "uLP".to_string(),
                         decimals: 6,
@@ -171,7 +172,7 @@ fn provide_liquidity() {
         &[(&MOCK_CONTRACT_ADDR.to_string(), &Uint128::zero())],
     )]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -607,7 +608,7 @@ fn withdraw_liquidity() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -752,7 +753,7 @@ fn try_native_to_token() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -963,7 +964,7 @@ fn try_token_to_native() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -1245,7 +1246,7 @@ fn test_spread() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::Token {
@@ -1400,7 +1401,7 @@ fn test_query_pool() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -1492,7 +1493,7 @@ fn test_weight_calculations() {
         ),
     ]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {

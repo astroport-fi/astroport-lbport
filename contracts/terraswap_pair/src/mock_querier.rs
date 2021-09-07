@@ -91,7 +91,7 @@ impl Querier for WasmMockQuerier {
             Ok(v) => v,
             Err(e) => {
                 return SystemResult::Err(SystemError::InvalidRequest {
-                    error: format!("Parsing query request: {}", e),
+                    error: format!("Parsing query request: {}", e.into()),
                     request: bin_request.into(),
                 })
             }
@@ -129,19 +129,6 @@ impl WasmMockQuerier {
                 }
             }
             QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
-                // if contract_addr == "factory" {
-                //     match from_binary(&msg).unwrap() {
-                //         FeeInfo { .. } => SystemResult::Ok(
-                //             to_binary(&FeeInfoResponse {
-                //                 fee_address: Some(Addr::unchecked("fee_address")),
-                //                 total_fee_bps: 30,
-                //                 maker_fee_bps: 1660,
-                //             })
-                //                 .into(),
-                //         ),
-                //         _ => panic!("DO NOT ENTER HERE"),
-                //     }
-                // } else {
                 match from_binary(&msg).unwrap() {
                     Cw20QueryMsg::TokenInfo {} => {
                         let balances: &HashMap<String, Uint128> =

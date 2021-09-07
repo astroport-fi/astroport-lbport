@@ -5,7 +5,7 @@ use crate::querier::{
 };
 
 use cosmwasm_std::testing::MOCK_CONTRACT_ADDR;
-use cosmwasm_std::{to_binary, BankMsg, Coin, CosmosMsg, Decimal, Addr, Uint128, WasmMsg};
+use cosmwasm_std::{to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Uint128, WasmMsg};
 use cw20::Cw20ExecuteMsg;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -33,12 +33,10 @@ fn token_balance_querier() {
 
 #[test]
 fn balance_querier() {
-    let deps = mock_dependencies(
-        &[Coin {
-            denom: "uusd".to_string(),
-            amount: Uint128::from(200u128),
-        }],
-    );
+    let deps = mock_dependencies(&[Coin {
+        denom: "uusd".to_string(),
+        amount: Uint128::from(200u128),
+    }]);
 
     assert_eq!(
         query_balance(
@@ -53,18 +51,16 @@ fn balance_querier() {
 
 #[test]
 fn all_balances_querier() {
-    let deps = mock_dependencies(
-        &[
-            Coin {
-                denom: "uusd".to_string(),
-                amount: Uint128::from(200u128),
-            },
-            Coin {
-                denom: "ukrw".to_string(),
-                amount: Uint128::from(300u128),
-            },
-        ],
-    );
+    let deps = mock_dependencies(&[
+        Coin {
+            denom: "uusd".to_string(),
+            amount: Uint128::from(200u128),
+        },
+        Coin {
+            denom: "ukrw".to_string(),
+            amount: Uint128::from(300u128),
+        },
+    ]);
 
     assert_eq!(
         query_all_balances(deps.as_ref(), &Addr::unchecked(MOCK_CONTRACT_ADDR),).unwrap(),
@@ -111,32 +107,30 @@ fn test_asset_info() {
     let native_token_info: AssetInfo = AssetInfo::NativeToken {
         denom: "uusd".to_string(),
     };
-    
+
     assert_eq!(false, token_info.equal(&native_token_info));
-    
+
     assert_eq!(
         false,
         token_info.equal(&AssetInfo::Token {
             contract_addr: Addr::unchecked("asset0001"),
         })
     );
-    
+
     assert_eq!(
         true,
         token_info.equal(&AssetInfo::Token {
             contract_addr: Addr::unchecked("asset0000"),
         })
     );
-    
+
     assert_eq!(true, native_token_info.is_native_token());
     assert_eq!(false, token_info.is_native_token());
-    
-    let mut deps = mock_dependencies(
-        &[Coin {
-            denom: "uusd".to_string(),
-            amount: Uint128::from(123u128),
-        }],
-    );
+
+    let mut deps = mock_dependencies(&[Coin {
+        denom: "uusd".to_string(),
+        amount: Uint128::from(123u128),
+    }]);
     deps.querier.with_token_balances(&[(
         &"asset0000".to_string(),
         &[
@@ -146,16 +140,16 @@ fn test_asset_info() {
             (&"addr00002".to_string(), &Uint128::from(123u128)),
         ],
     )]);
-    
+
     assert_eq!(
         native_token_info
             .query_pool(deps.as_ref(), &Addr::unchecked(MOCK_CONTRACT_ADDR))
             .unwrap(),
         Uint128::from(123u128)
     );
-    
+
     deps.querier.with_cw20_query_handler();
-    
+
     assert_eq!(
         token_info
             .query_pool(deps.as_ref(), &Addr::unchecked(MOCK_CONTRACT_ADDR))
@@ -166,12 +160,10 @@ fn test_asset_info() {
 
 #[test]
 fn test_asset() {
-    let mut deps = mock_dependencies(
-        &[Coin {
-            denom: "uusd".to_string(),
-            amount: Uint128::from(123u128),
-        }],
-    );
+    let mut deps = mock_dependencies(&[Coin {
+        denom: "uusd".to_string(),
+        amount: Uint128::from(123u128),
+    }]);
 
     deps.querier.with_token_balances(&[(
         &"asset0000".to_string(),
@@ -202,7 +194,10 @@ fn test_asset() {
         },
     };
 
-    assert_eq!(token_asset.compute_tax(deps.as_ref()).unwrap(), Uint128::zero());
+    assert_eq!(
+        token_asset.compute_tax(deps.as_ref()).unwrap(),
+        Uint128::zero()
+    );
     assert_eq!(
         native_token_asset.compute_tax(deps.as_ref()).unwrap(),
         Uint128::from(1220u128)
@@ -225,14 +220,14 @@ fn test_asset() {
             )
             .unwrap(),
         CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: "asset0000".to_string(),
-                msg: to_binary(&Cw20ExecuteMsg::Transfer {
-                    recipient: "addr0000".to_string(),
-                    amount: Uint128::from(123123u128),
-                })
-                .unwrap(),
-                funds: vec![],
+            contract_addr: "asset0000".to_string(),
+            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+                recipient: "addr0000".to_string(),
+                amount: Uint128::from(123123u128),
             })
+            .unwrap(),
+            funds: vec![],
+        })
     );
 
     assert_eq!(

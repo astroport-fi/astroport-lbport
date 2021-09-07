@@ -2,30 +2,26 @@ use crate::asset::{Asset, AssetInfo, PairInfo};
 use crate::factory::QueryMsg as FactoryQueryMsg;
 use crate::pair::{QueryMsg as PairQueryMsg, ReverseSimulationResponse, SimulationResponse};
 
-use cosmwasm_std::{to_binary, AllBalanceResponse, Api, BalanceResponse, BankQuery, Coin, Addr, Querier, QueryRequest, StdResult, Storage, Uint128, WasmQuery, Deps};
-use cw20::{TokenInfoResponse, Cw20QueryMsg, BalanceResponse as Cw20BalanceResponse};
+use cosmwasm_std::{
+    to_binary, Addr, AllBalanceResponse, Api, BalanceResponse, BankQuery, Coin, Deps, Querier,
+    QueryRequest, StdResult, Storage, Uint128, WasmQuery,
+};
+use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 
-pub fn query_balance(
-    deps: Deps,
-    account_addr: &Addr,
-    denom: String,
-) -> StdResult<Uint128> {
-    let balance: BalanceResponse = deps.querier.query(
-        &QueryRequest::Bank(BankQuery::Balance {
-            address: account_addr.to_string(),
-            denom,
-        }))?;
+pub fn query_balance(deps: Deps, account_addr: &Addr, denom: String) -> StdResult<Uint128> {
+    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
+        address: account_addr.to_string(),
+        denom,
+    }))?;
     Ok(balance.amount.amount)
 }
 
-pub fn query_all_balances(
-    deps: Deps,
-    account_addr: &Addr,
-) -> StdResult<Vec<Coin>> {
-    let all_balances: AllBalanceResponse = deps.querier.query(
-        &QueryRequest::Bank(BankQuery::AllBalances {
-            address: account_addr.to_string(),
-        }))?;
+pub fn query_all_balances(deps: Deps, account_addr: &Addr) -> StdResult<Vec<Coin>> {
+    let all_balances: AllBalanceResponse =
+        deps.querier
+            .query(&QueryRequest::Bank(BankQuery::AllBalances {
+                address: account_addr.to_string(),
+            }))?;
     Ok(all_balances.amount)
 }
 
@@ -35,28 +31,26 @@ pub fn query_token_balance(
     account_addr: &Addr,
 ) -> StdResult<Uint128> {
     // load balance form the token contract
-    let res: Cw20BalanceResponse = deps.querier.query(
-        &QueryRequest::Wasm(
-            WasmQuery::Smart {
-                contract_addr: contract_addr.to_string(),
-                msg: to_binary(&Cw20QueryMsg::Balance {
-                    address: account_addr.to_string(),
-                })?,
-            }))
-        .unwrap_or_else(|_| Cw20BalanceResponse{ balance: Uint128::zero()});
+    let res: Cw20BalanceResponse = deps
+        .querier
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: contract_addr.to_string(),
+            msg: to_binary(&Cw20QueryMsg::Balance {
+                address: account_addr.to_string(),
+            })?,
+        }))
+        .unwrap_or_else(|_| Cw20BalanceResponse {
+            balance: Uint128::zero(),
+        });
 
     Ok(res.balance)
 }
 
-pub fn query_supply(
-    deps: Deps,
-    contract_addr: Addr,
-) -> StdResult<Uint128> {
-    let res: TokenInfoResponse = deps.querier.query(
-        &QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: contract_addr.to_string(),
-            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
-        }))?;
+pub fn query_supply(deps: Deps, contract_addr: Addr) -> StdResult<Uint128> {
+    let res: TokenInfoResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: contract_addr.to_string(),
+        msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+    }))?;
 
     Ok(res.total_supply)
 }

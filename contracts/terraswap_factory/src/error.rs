@@ -11,10 +11,4 @@ pub enum ContractError {
 
     #[error("Pair was already registered")]
     PairWasRegistered {},
-
-    #[error("Duplicate of pair configs")]
-    PairConfigDuplicate {},
-
-    #[error("Pair config not found")]
-    PairConfigNotFound {},
 }

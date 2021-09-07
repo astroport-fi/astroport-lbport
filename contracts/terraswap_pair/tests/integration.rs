@@ -27,7 +27,7 @@ use cosmwasm_vm::{Instance, InstanceOptions};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::pair::{ExecuteMsg, InitMsg, QueryMsg};
+use terraswap::pair::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 // This line will test the output of cargo wasm
 static WASM: &[u8] =
@@ -66,7 +66,7 @@ fn proper_initialization() {
         .as_secs();
     let end_time = start_time + 1000;
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {

@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 use crate::asset::{Asset, WeightedAsset, WeightedAssetInfo};
 use crate::hook::InitHook;
 
-use cosmwasm_std::{Decimal, Addr, Uint128};
+use cosmwasm_std::{Addr, Decimal, Uint128};
 use cw20::Cw20ReceiveMsg;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct InitMsg {
+pub struct InstantiateMsg {
     /// Asset infos
     pub asset_infos: [WeightedAssetInfo; 2],
     /// Token contract code id for initialization
@@ -40,7 +40,7 @@ pub enum ExecuteMsg {
         belief_price: Option<Decimal>,
         max_spread: Option<Decimal>,
         to: Option<Addr>,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

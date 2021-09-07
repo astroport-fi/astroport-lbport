@@ -9,18 +9,18 @@ use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
 use crate::error::ContractError;
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::{
-    ConfigResponse, ExecuteMsg, FactoryPairInfo, FactoryPairInfoRaw, InitMsg, MigrateMsg,
-    PairsResponse, QueryMsg,
+    ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
+    QueryMsg,
 };
 use terraswap::hook::InitHook;
-use terraswap::pair::InitMsg as PairInitMsg;
+use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    msg: InitMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let config = Config {
         owner: info.sender,
@@ -36,7 +36,7 @@ pub fn instantiate(
                 msg: hook.msg,
                 funds: vec![],
             }
-                .into(),
+            .into(),
             id: 0,
             gas_limit: None,
             reply_on: ReplyOn::Never,
@@ -112,7 +112,7 @@ pub fn try_create_pair(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    asset_infos: [WeightedAssetInfo; 2],
+    weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
     description: Option<String>,
@@ -120,28 +120,23 @@ pub fn try_create_pair(
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
 
-    let raw_infos = [
-        asset_infos[0].info.to_raw(deps.as_ref())?,
-        asset_infos[1].info.to_raw(deps.as_ref())?,
+    let asset_infos = [
+        weighted_asset_infos[0].info.clone(),
+        weighted_asset_infos[1].info.clone(),
     ];
-    if read_pair(deps.as_ref(), &raw_infos).is_ok() {
+    if read_pair(deps.as_ref(), &asset_infos).is_ok() {
         return Err(ContractError::Std(StdError::generic_err(
             "Pair already exists",
         )));
     }
-
-    let raw_asset_infos = [
-        asset_infos[0].to_raw(deps.as_ref())?,
-        asset_infos[1].to_raw(deps.as_ref())?,
-    ];
     PAIRS.save(
         deps.storage,
-        &pair_key(&raw_infos),
-        &FactoryPairInfoRaw {
+        &pair_key(&asset_infos),
+        &FactoryPairInfo {
             owner: info.sender,
             liquidity_token: Addr::unchecked(""),
             contract_addr: Addr::unchecked(""),
-            asset_infos: raw_asset_infos,
+            asset_infos: weighted_asset_infos.clone(),
             start_time,
             end_time,
         },
@@ -152,14 +147,14 @@ pub fn try_create_pair(
             code_id: config.pair_code_id,
             funds: vec![],
             admin: None,
-            label: String::from("Terraswap pair"),
-            msg: to_binary(&PairInitMsg {
-                asset_infos: asset_infos.clone(),
+            label: String::from(""),
+            msg: to_binary(&PairInstantiateMsg {
+                asset_infos: weighted_asset_infos.clone(),
                 token_code_id: config.token_code_id,
                 init_hook: Some(InitHook {
                     contract_addr: env.contract.address,
                     msg: to_binary(&ExecuteMsg::Register {
-                        asset_infos: asset_infos.clone(),
+                        asset_infos: weighted_asset_infos,
                     })?,
                 }),
                 start_time,
@@ -167,7 +162,7 @@ pub fn try_create_pair(
                 description,
             })?,
         }
-            .into(),
+        .into(),
         id: 0,
         gas_limit: None,
         reply_on: ReplyOn::Never,
@@ -180,7 +175,7 @@ pub fn try_create_pair(
                 msg: hook.msg,
                 funds: vec![],
             }
-                .into(),
+            .into(),
             id: 0,
             gas_limit: None,
             reply_on: ReplyOn::Never,
@@ -199,25 +194,23 @@ pub fn try_create_pair(
 pub fn try_register(
     deps: DepsMut,
     info: MessageInfo,
-    asset_infos: [WeightedAssetInfo; 2],
+    weighted_asset_infos: [WeightedAssetInfo; 2],
 ) -> Result<Response, ContractError> {
-    let raw_infos = [
-        asset_infos[0].info.to_raw(deps.as_ref())?,
-        asset_infos[1].info.to_raw(deps.as_ref())?,
+    let asset_infos = [
+        weighted_asset_infos[0].info.clone(),
+        weighted_asset_infos[1].info.clone(),
     ];
-    let pair_info: FactoryPairInfoRaw = read_pair(deps.as_ref(), &raw_infos)?;
+    let pair_info: FactoryPairInfo = read_pair(deps.as_ref(), &asset_infos)?;
     if pair_info.contract_addr != Addr::unchecked("") {
-        return Err(ContractError::Std(StdError::generic_err(
-            "Pair was already registered",
-        )));
+        return Err(ContractError::PairWasRegistered {});
     }
 
     let pair_contract = info.sender;
     let liquidity_token = query_liquidity_token(deps.as_ref(), pair_contract.clone())?;
     PAIRS.save(
         deps.storage,
-        &pair_key(&raw_infos),
-        &FactoryPairInfoRaw {
+        &pair_key(&asset_infos),
+        &FactoryPairInfo {
             contract_addr: pair_contract.clone(),
             liquidity_token,
             ..pair_info
@@ -236,20 +229,14 @@ pub fn try_unregister(
     info: MessageInfo,
     asset_infos: [AssetInfo; 2],
 ) -> Result<Response, ContractError> {
-    let raw_infos = [
-        asset_infos[0].to_raw(deps.as_ref())?,
-        asset_infos[1].to_raw(deps.as_ref())?,
-    ];
-
-    let pair_info: FactoryPairInfoRaw = read_pair(deps.as_ref(), &raw_infos)?;
+    let pair_info: FactoryPairInfo = read_pair(deps.as_ref(), &asset_infos)?;
 
     // Permission check
     if pair_info.owner != info.sender {
         return Err(ContractError::Unauthorized {});
     }
 
-    //remove_pair(deps.storage, &pair_info);
-    PAIRS.remove(deps.storage, &pair_key(&raw_infos));
+    PAIRS.remove(deps.storage, &pair_key(&asset_infos));
 
     Ok(Response::new().add_attributes(vec![
         attr("action", "unregister"),
@@ -280,9 +267,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 }
 
 pub fn query_pair(deps: Deps, asset_infos: [AssetInfo; 2]) -> StdResult<FactoryPairInfo> {
-    let raw_infos = [asset_infos[0].to_raw(deps)?, asset_infos[1].to_raw(deps)?];
-    let pair_info: FactoryPairInfoRaw = read_pair(deps, &raw_infos)?;
-    pair_info.to_normal(deps)
+    PAIRS.load(deps.storage, &pair_key(&asset_infos))
 }
 
 pub fn query_pairs(
@@ -290,15 +275,10 @@ pub fn query_pairs(
     start_after: Option<[AssetInfo; 2]>,
     limit: Option<u32>,
 ) -> StdResult<PairsResponse> {
-    let start_after = if let Some(start_after) = start_after {
-        Some([start_after[0].to_raw(deps)?, start_after[1].to_raw(deps)?])
-    } else {
-        None
-    };
-
+    let start_after =
+        start_after.map(|start_after| [start_after[0].clone(), start_after[1].clone()]);
     let pairs: Vec<FactoryPairInfo> = read_pairs(deps, start_after, limit);
     let resp = PairsResponse { pairs };
-
     Ok(resp)
 }
 

@@ -30,9 +30,9 @@ use cosmwasm_vm::{Instance, InstanceOptions};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, ExecuteMsg, InitMsg, QueryMsg};
+use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use terraswap::hook::InitHook;
-use terraswap::pair::InitMsg as PairInitMsg;
+use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 // This line will test the output of cargo wasm
 static WASM: &[u8] =
@@ -66,7 +66,7 @@ pub fn mock_instance(
 fn proper_initialization() {
     let mut deps = mock_instance(WASM, &[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -88,7 +88,7 @@ fn proper_initialization() {
 #[test]
 fn update_config() {
     let mut deps = mock_instance(WASM, &[]);
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -160,7 +160,7 @@ fn create_pair() {
     let end_time = start_time + 1000;
     let mut deps = mock_instance(WASM, &[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -210,7 +210,7 @@ fn create_pair() {
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-            msg: to_binary(&PairInitMsg {
+            msg: to_binary(&PairInstantiateMsg {
                 asset_infos: asset_infos.clone(),
                 token_code_id: 123u64,
                 init_hook: Some(InitHook {
@@ -228,7 +228,7 @@ fn create_pair() {
             .unwrap(),
             code_id: 321u64,
             funds: vec![],
-            label: String::from("Terraswap pair"),
+            label: String::from(""),
             admin: None
         }))]
     );

@@ -169,7 +169,7 @@ impl CW20QueryHandler {
                                 decimals: 6,
                                 total_supply: total_supply,
                             })
-                                .into(),
+                            .into(),
                         )
                     }
                     Cw20QueryMsg::Balance { address } => {
@@ -233,9 +233,9 @@ impl DefaultQueryHandler {
                 }
             }
             QueryRequest::Wasm(WasmQuery::Smart {
-                                   contract_addr: _,
-                                   msg,
-                               }) => match from_binary(&msg).unwrap() {
+                contract_addr: _,
+                msg,
+            }) => match from_binary(&msg).unwrap() {
                 FactoryQueryMsg::Pair { asset_infos } => {
                     let key = asset_infos[0].to_string() + asset_infos[1].to_string().as_str();
                     match self.terraswap_factory_querier.pairs.get(&key) {

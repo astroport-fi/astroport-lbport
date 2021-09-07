@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    Addr, Api, Binary, Deps, DepsMut, Env, MessageInfo, Querier, Response, StdError, StdResult,
-    Storage, WasmMsg,
+    entry_point, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
+    WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -15,7 +15,13 @@ use terraswap::token::InstantiateMsg;
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub fn init(mut deps: DepsMut, _env: Env, msg: InstantiateMsg) -> StdResult<Response> {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn instantiate(
+    mut deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: InstantiateMsg,
+) -> StdResult<Response> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     // Check valid token info
@@ -61,6 +67,7 @@ pub fn init(mut deps: DepsMut, _env: Env, msg: InstantiateMsg) -> StdResult<Resp
     }
 }
 
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -70,6 +77,7 @@ pub fn execute(
     cw20_execute(deps, env, info, msg)
 }
 
+// #[cfg_attr(not(feature = "library"), entry_point)]
 // pub fn migrate(
 //     deps: DepsMut,
 //     env: Env,
@@ -78,10 +86,7 @@ pub fn execute(
 //     cw20_migrate(deps, env, msg)
 // }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: Deps,
-    env: Env,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     cw20_query(deps, env, msg)
 }

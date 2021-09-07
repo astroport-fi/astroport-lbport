@@ -14,10 +14,10 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use integer_sqrt::IntegerSquareRoot;
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
-use terraswap::asset::{Asset, AssetInfo, PairInfo, PairInfoRaw, WeightedAsset};
+use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
 use terraswap::hook::InitHook;
 use terraswap::pair::{
-    Cw20HookMsg, ExecuteMsg, InitMsg, MigrateMsg, PoolResponse, QueryMsg,
+    Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
     ReverseSimulationResponse, SimulationResponse,
 };
 use terraswap::querier::query_supply;
@@ -31,7 +31,7 @@ pub fn instantiate(
     deps: DepsMut,
     env: Env,
     _info: MessageInfo,
-    msg: InitMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     // Check LBP parameters
     if msg.start_time < env.block.time.seconds() {
@@ -60,13 +60,10 @@ pub fn instantiate(
         }
     }
 
-    let pair_info: &PairInfoRaw = &PairInfoRaw {
+    let pair_info: &PairInfo = &PairInfo {
         contract_addr: env.contract.address.clone(),
         liquidity_token: Addr::unchecked(""),
-        asset_infos: [
-            msg.asset_infos[0].to_raw(deps.as_ref())?,
-            msg.asset_infos[1].to_raw(deps.as_ref())?,
-        ],
+        asset_infos: [msg.asset_infos[0].clone(), msg.asset_infos[1].clone()],
         start_time: msg.start_time,
         end_time: msg.end_time,
         description: msg.description,
@@ -172,7 +169,7 @@ pub fn receive_cw20(
         }) => {
             // only asset contract can execute this message
             let mut authorized: bool = false;
-            let config: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+            let config: PairInfo = PAIR_INFO.load(deps.storage)?;
             let pools: [WeightedAsset; 2] =
                 config.query_pools(deps.as_ref(), &env.contract.address)?;
             for pool in pools.iter() {
@@ -214,7 +211,7 @@ pub fn receive_cw20(
 
 // Must token contract execute it
 pub fn try_post_initialize(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
-    let mut config: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let mut config: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     // permission check
     if config.liquidity_token != Addr::unchecked("") {
@@ -237,7 +234,7 @@ pub fn try_provide_liquidity(
         asset.assert_sent_native_token_balance(&info)?;
     }
 
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     let mut pools: [WeightedAsset; 2] =
         pair_info.query_pools(deps.as_ref(), &env.contract.address)?;
     let deposits: [Uint128; 2] = [
@@ -257,7 +254,6 @@ pub fn try_provide_liquidity(
         return Err(ContractError::InvalidZeroAmount {});
     }
 
-    //let mut i = 0;
     let mut messages: Vec<SubMsg> = vec![];
     for (i, pool) in pools.iter_mut().enumerate() {
         // If the pool is token contract, then we need to execute TransferFrom msg to receive funds
@@ -282,7 +278,6 @@ pub fn try_provide_liquidity(
             // To calculated properly we should subtract user deposit from the pool
             pool.amount = pool.amount.checked_sub(deposits[i]).unwrap();
         }
-        //i += 1;
     }
 
     // assert slippage tolerance
@@ -337,7 +332,7 @@ pub fn try_withdraw_liquidity(
     sender: Addr,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     if info.sender != pair_info.liquidity_token {
         return Err(ContractError::Unauthorized {});
@@ -417,7 +412,7 @@ pub fn try_swap(
 ) -> Result<Response, ContractError> {
     offer_asset.assert_sent_native_token_balance(&info)?;
 
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     let pools: [WeightedAsset; 2] = pair_info.query_pools(deps.as_ref(), &env.contract.address)?;
 
@@ -531,12 +526,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_pair_info(deps: Deps) -> StdResult<PairInfo> {
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
-    pair_info.to_normal(deps)
+    PAIR_INFO.load(deps.storage)
 }
 
 pub fn query_pool(deps: Deps) -> StdResult<PoolResponse> {
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     let contract_addr = pair_info.contract_addr.clone();
     let assets: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
     let total_share: Uint128 = query_supply(deps, pair_info.liquidity_token)?;
@@ -554,7 +548,7 @@ pub fn query_simulation(
     offer_asset: Asset,
     block_time: u64,
 ) -> StdResult<SimulationResponse> {
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     let contract_addr = pair_info.contract_addr.clone();
     let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
@@ -611,7 +605,7 @@ pub fn query_reverse_simulation(
     ask_asset: Asset,
     block_time: u64,
 ) -> StdResult<ReverseSimulationResponse> {
-    let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     let contract_addr = pair_info.contract_addr.clone();
     let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;

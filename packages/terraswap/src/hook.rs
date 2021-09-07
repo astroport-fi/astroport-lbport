@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, Addr};
+use cosmwasm_std::{Addr, Binary};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

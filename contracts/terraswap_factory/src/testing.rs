@@ -1,6 +1,4 @@
-use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, CosmosMsg, StdError, SubMsg, Uint128, WasmMsg,
-};
+use cosmwasm_std::{attr, from_binary, to_binary, Addr, CosmosMsg, SubMsg, Uint128, WasmMsg};
 
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
@@ -12,16 +10,16 @@ use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{
-    ConfigResponse, ExecuteMsg, FactoryPairInfo, InitMsg, PairsResponse, QueryMsg,
+    ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
 };
 use terraswap::hook::InitHook;
-use terraswap::pair::InitMsg as PairInitMsg;
+use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[test]
 fn proper_initialization() {
     let mut deps = mock_dependencies(&[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -44,7 +42,7 @@ fn proper_initialization() {
 fn update_config() {
     let mut deps = mock_dependencies(&[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -120,7 +118,7 @@ fn create_pair() {
 
     let mut deps = mock_dependencies(&[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -170,7 +168,7 @@ fn create_pair() {
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-            msg: to_binary(&PairInitMsg {
+            msg: to_binary(&PairInstantiateMsg {
                 asset_infos: asset_infos.clone(),
                 token_code_id: 123u64,
                 init_hook: Some(InitHook {
@@ -188,27 +186,18 @@ fn create_pair() {
             code_id: 321u64,
             funds: vec![],
             admin: None,
-            label: String::from("Terraswap pair"),
+            label: String::from(""),
         }))]
     );
 
-    let raw_infos = [
-        asset_infos[0].info.to_raw(deps.as_ref()).unwrap(),
-        asset_infos[1].info.to_raw(deps.as_ref()).unwrap(),
-    ];
+    let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
 
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
     assert_eq!(pair_info.start_time, start_time);
     assert_eq!(pair_info.end_time, end_time);
-    assert_eq!(
-        pair_info.asset_infos[0]
-            .info
-            .to_normal(deps.as_ref())
-            .unwrap(),
-        asset_infos[0].info
-    );
+    assert_eq!(pair_info.asset_infos[0].info, asset_infos[0].info);
     assert_eq!(
         pair_info.asset_infos[0].start_weight,
         asset_infos[0].start_weight
@@ -217,13 +206,7 @@ fn create_pair() {
         pair_info.asset_infos[0].end_weight,
         asset_infos[0].end_weight
     );
-    assert_eq!(
-        pair_info.asset_infos[1]
-            .info
-            .to_normal(deps.as_ref())
-            .unwrap(),
-        asset_infos[1].info
-    );
+    assert_eq!(pair_info.asset_infos[1].info, asset_infos[1].info);
     assert_eq!(
         pair_info.asset_infos[1].start_weight,
         asset_infos[1].start_weight
@@ -244,7 +227,7 @@ fn register() {
 
     let mut deps = mock_dependencies(&[]);
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         init_hook: None,
@@ -348,10 +331,7 @@ fn register() {
     let env = mock_env();
     let info = mock_info("pair0000", &[]);
     let res = execute(deps.as_mut(), env, info, msg).unwrap_err();
-    assert_eq!(
-        res,
-        ContractError::Std(StdError::generic_err("Pair was already registered"))
-    );
+    assert_eq!(res, ContractError::PairWasRegistered {});
 
     // Store one more item to test query pairs
     let asset_infos_2 = [
