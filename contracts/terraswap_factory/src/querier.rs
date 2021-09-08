@@ -1,13 +1,10 @@
-use cosmwasm_std::{Api, Extern, HumanAddr, Querier, QueryRequest, StdResult, Storage, WasmQuery, to_binary};
-use terraswap::pair::{QueryMsg};
-use terraswap::asset::{PairInfo};
+use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
+use terraswap::asset::PairInfo;
+use terraswap::pair::QueryMsg;
 
-pub fn query_liquidity_token<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    contract_addr: &HumanAddr,
-) -> StdResult<HumanAddr> {
+pub fn query_liquidity_token(deps: Deps, contract_addr: Addr) -> StdResult<Addr> {
     let res: PairInfo = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: contract_addr.clone(),
+        contract_addr: contract_addr.to_string(),
         msg: to_binary(&QueryMsg::Pair {})?,
     }))?;
 
