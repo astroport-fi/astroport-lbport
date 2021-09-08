@@ -77,15 +77,6 @@ pub fn execute(
     cw20_execute(deps, env, info, msg)
 }
 
-// #[cfg_attr(not(feature = "library"), entry_point)]
-// pub fn migrate(
-//     deps: DepsMut,
-//     env: Env,
-//     msg: MigrateMsg,
-// ) -> Result {
-//     cw20_migrate(deps, env, msg)
-// }
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     cw20_query(deps, env, msg)
