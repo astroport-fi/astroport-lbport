@@ -94,7 +94,7 @@ fn supply_querier() {
     deps.querier.with_cw20_query_handler();
 
     assert_eq!(
-        query_supply(deps.as_ref(), Addr::unchecked("liquidity0000")).unwrap(),
+        query_supply(deps.as_ref(), &Addr::unchecked("liquidity0000")).unwrap(),
         Uint128::from(492u128)
     )
 }

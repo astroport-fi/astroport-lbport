@@ -46,7 +46,7 @@ pub fn query_token_balance(
     Ok(res.balance)
 }
 
-pub fn query_supply(deps: Deps, contract_addr: Addr) -> StdResult<Uint128> {
+pub fn query_supply(deps: Deps, contract_addr: &Addr) -> StdResult<Uint128> {
     let res: TokenInfoResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: contract_addr.to_string(),
         msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,

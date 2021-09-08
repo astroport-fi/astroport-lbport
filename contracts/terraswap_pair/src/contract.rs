@@ -251,7 +251,7 @@ pub fn try_provide_liquidity(
     ];
 
     if deposits[0].is_zero() || deposits[1].is_zero() {
-        return Err(ContractError::InvalidZeroAmount {});
+        return Err(ContractError::ZeroAmount {});
     }
 
     let mut messages: Vec<SubMsg> = vec![];
@@ -284,7 +284,7 @@ pub fn try_provide_liquidity(
     assert_slippage_tolerance(&slippage_tolerance, &deposits, &pools)?;
 
     let liquidity_token = pair_info.liquidity_token.clone();
-    let total_share = query_supply(deps.as_ref(), liquidity_token)?;
+    let total_share = query_supply(deps.as_ref(), &liquidity_token)?;
 
     let share = if total_share.is_zero() {
         // Initial share = collateral amount
@@ -340,7 +340,7 @@ pub fn try_withdraw_liquidity(
     let liquidity_addr: Addr = pair_info.liquidity_token.clone();
 
     let pools: [WeightedAsset; 2] = pair_info.query_pools(deps.as_ref(), &env.contract.address)?;
-    let total_share: Uint128 = query_supply(deps.as_ref(), liquidity_addr)?;
+    let total_share: Uint128 = query_supply(deps.as_ref(), &liquidity_addr)?;
 
     let share_ratio: Decimal = Decimal::from_ratio(amount, total_share);
     let refund_assets: Vec<Asset> = pools
@@ -533,7 +533,7 @@ pub fn query_pool(deps: Deps) -> StdResult<PoolResponse> {
     let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     let contract_addr = pair_info.contract_addr.clone();
     let assets: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
-    let total_share: Uint128 = query_supply(deps, pair_info.liquidity_token)?;
+    let total_share: Uint128 = query_supply(deps, &pair_info.liquidity_token)?;
 
     let resp = PoolResponse {
         assets,

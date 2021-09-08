@@ -10,5 +10,5 @@ pub enum ContractError {
     Unauthorized {},
 
     #[error("Event of zero transfer")]
-    InvalidZeroAmount {},
+    ZeroAmount {},
 }
