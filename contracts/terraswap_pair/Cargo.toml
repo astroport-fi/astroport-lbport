@@ -42,6 +42,7 @@ cw-storage-plus = {version = "0.8.0", features = ['iterator']}
 schemars = "0.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.20" }
+cosmwasm-bignumber = "2.2.0"
 
 [dependencies.fixed]
 git = "https://github.com/encointer/substrate-fixed"
