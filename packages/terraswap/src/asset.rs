@@ -160,7 +160,7 @@ impl AssetInfo {
     pub fn query_pool(&self, deps: Deps, pool_addr: &Addr) -> StdResult<Uint128> {
         match self {
             AssetInfo::Token { contract_addr, .. } => {
-                query_token_balance(deps, &contract_addr, &pool_addr)
+                query_token_balance(deps, contract_addr, pool_addr)
             }
             AssetInfo::NativeToken { denom, .. } => {
                 query_balance(deps, pool_addr, denom.to_string())

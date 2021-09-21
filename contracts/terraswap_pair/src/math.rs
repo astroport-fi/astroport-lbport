@@ -1,4 +1,4 @@
-use cosmwasm_std::{Decimal, StdResult, Uint128};
+use cosmwasm_std::Uint128;
 use fixed::transcendental::pow as fixed_pow;
 use fixed::types::I64F64;
 use std::ops::{Add, Div, Mul, Sub};
@@ -7,25 +7,6 @@ pub type FixedFloat = I64F64;
 
 /////////////////////////////////////////////////////////////
 pub const DECIMAL_FRACTIONAL: Uint128 = Uint128::new(1_000_000_000u128);
-
-pub fn reverse_decimal(decimal: Decimal) -> Decimal {
-    if decimal.is_zero() {
-        return Decimal::zero();
-    }
-
-    Decimal::from_ratio(DECIMAL_FRACTIONAL, decimal * DECIMAL_FRACTIONAL)
-}
-
-pub fn decimal_subtraction(a: Decimal, b: Decimal) -> StdResult<Decimal> {
-    Ok(Decimal::from_ratio(
-        (a * DECIMAL_FRACTIONAL).checked_sub(b * DECIMAL_FRACTIONAL)?,
-        DECIMAL_FRACTIONAL,
-    ))
-}
-
-pub fn decimal_multiplication(a: Decimal, b: Decimal) -> Decimal {
-    Decimal::from_ratio(a * DECIMAL_FRACTIONAL * b, DECIMAL_FRACTIONAL)
-}
 
 pub fn calc_out_given_in(
     balance_in: Uint128,
