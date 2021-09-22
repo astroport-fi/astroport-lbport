@@ -1,3 +1,4 @@
+use crate::math::calc_share;
 use crate::math::{calc_in_given_out, calc_out_given_in, FixedFloat};
 use crate::state::PAIR_INFO;
 
@@ -6,7 +7,6 @@ use cosmwasm_std::{
     attr, entry_point, from_binary, to_binary, Addr, Binary, Coin, Decimal, Deps, DepsMut, Env,
     MessageInfo, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
 };
-use terraswap::U256;
 
 use crate::error::ContractError;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
@@ -283,25 +283,7 @@ pub fn try_provide_liquidity(
 
     let liquidity_token = pair_info.liquidity_token.clone();
     let total_share = query_supply(deps.as_ref(), &liquidity_token)?;
-
-    let share = if total_share.is_zero() {
-        // Initial share = collateral amount
-        Uint128::new(
-            (U256::from(deposits[0].u128()) * U256::from(deposits[1].u128()))
-                .integer_sqrt()
-                .as_u128(),
-        )
-    } else {
-        // min(1, 2)
-        // 1. sqrt(deposit_0 * exchange_rate_0_to_1 * deposit_0) * (total_share / sqrt(pool_0 * pool_1))
-        // == deposit_0 * total_share / pool_0
-        // 2. sqrt(deposit_1 * exchange_rate_1_to_0 * deposit_1) * (total_share / sqrt(pool_1 * pool_1))
-        // == deposit_1 * total_share / pool_1
-        std::cmp::min(
-            deposits[0].multiply_ratio(total_share, pools[0].amount),
-            deposits[1].multiply_ratio(total_share, pools[1].amount),
-        )
-    };
+    let share = calc_share(total_share, deposits, pools);
 
     // mint LP token to sender
     messages.push(SubMsg {
