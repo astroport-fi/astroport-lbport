@@ -9,6 +9,7 @@ use cosmwasm_std::{
 use terraswap::U256;
 
 use crate::error::ContractError;
+use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
@@ -24,13 +25,18 @@ use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 /// Commission rate == 0.15%
 const COMMISSION_RATE: &str = "0.0015";
 
+// version info for migration info
+const CONTRACT_NAME: &str = "terraswap-pair";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
-    env: Env,
-    _info: MessageInfo,
-    msg: InstantiateMsg,
+deps: DepsMut,
+env: Env,
+info: MessageInfo,
+msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     // Check LBP parameters
     if msg.start_time < env.block.time.seconds() {
         return Err(ContractError::Std(StdError::generic_err(
@@ -88,7 +94,7 @@ pub fn instantiate(
                 }),
             })?,
             funds: vec![],
-            admin: None,
+            admin: Some(info.sender.to_string()),
             label: String::from("terraswap liquidity token"),
         }
         .into(),
@@ -843,6 +849,7 @@ fn get_current_weight(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+
     Ok(Response::default())
 }

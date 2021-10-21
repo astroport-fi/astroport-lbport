@@ -8,6 +8,7 @@ use crate::querier::compute_tax;
 use crate::state::{Config, CONFIG};
 
 use crate::error::ContractError;
+use cw2::set_contract_version;
 use cw20::Cw20ReceiveMsg;
 use std::collections::HashMap;
 use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
@@ -19,13 +20,18 @@ use terraswap::router::{
     SimulateSwapOperationsResponse, SwapOperation,
 };
 
+// version info for migration info
+const CONTRACT_NAME: &str = "terraswap-router";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    msg: InstantiateMsg,
+deps: DepsMut,
+_env: Env,
+_info: MessageInfo,
+msg: InstantiateMsg,
 ) -> Result<Response<TerraMsgWrapper>, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     CONFIG.save(
         deps.storage,
         &Config {
@@ -301,7 +307,8 @@ fn simulate_swap_operations(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+
     Ok(Response::default())
 }
 

@@ -4,7 +4,7 @@ use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 
-use crate::state::read_pair;
+use crate::state::{CONFIG, read_pair};
 
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -157,6 +157,7 @@ fn create_pair() {
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
+    let config = CONFIG.load(&deps.storage);
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
         res.attributes,
@@ -185,7 +186,7 @@ fn create_pair() {
             .unwrap(),
             code_id: 321u64,
             funds: vec![],
-            admin: None,
+            admin: Some(config.unwrap().owner.to_string()),
             label: String::from(""),
         }))]
     );

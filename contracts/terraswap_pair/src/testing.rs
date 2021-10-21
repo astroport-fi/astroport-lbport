@@ -75,14 +75,14 @@ fn proper_initialization() {
     // we can just call .unwrap() to assert this was a success
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
-    let res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
     assert_eq!(
         res.messages,
         vec![
             SubMsg {
                 id: 0,
                 msg: WasmMsg::Instantiate {
-                    admin: None,
+                    admin: Some(info.sender.to_string()),
                     code_id: 10u64,
                     msg: to_binary(&TokenInstantiateMsg {
                         name: "terraswap liquidity token".to_string(),
