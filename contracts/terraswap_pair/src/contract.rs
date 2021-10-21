@@ -846,3 +846,28 @@ fn get_current_weight(
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     Ok(Response::default())
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod unit {
+    use crate::contract::compute_swap;
+    use crate::math::FixedFloat;
+    use cosmwasm_std::Uint128;
+
+    #[test]
+    fn compute_swap_rounding() {
+        let offer_pool = Uint128::from(5_000_000_000_000_u128);
+        let offer_weight = FixedFloat::from_num(1);
+        let ask_pool = Uint128::from(1_000_000_000_u128);
+        let ask_weight = FixedFloat::from_num(1);
+        let offer_amount = Uint128::from(1_u128);
+
+        let return_amount = Uint128::from(0_u128);
+        let spread_amount = Uint128::from(0_u128);
+        let commission_amount = Uint128::from(0_u128);
+
+        assert_eq!(
+            compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount),
+            Ok((return_amount, spread_amount, commission_amount))
+        );
+    }
+}
