@@ -4,7 +4,7 @@ use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 
-use crate::state::{CONFIG, read_pair};
+use crate::state::{read_pair, CONFIG};
 
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};

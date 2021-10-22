@@ -26,10 +26,10 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-deps: DepsMut,
-_env: Env,
-_info: MessageInfo,
-msg: InstantiateMsg,
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: InstantiateMsg,
 ) -> Result<Response<TerraMsgWrapper>, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     CONFIG.save(
@@ -221,9 +221,7 @@ fn simulate_swap_operations(
 
     let operations_len = operations.len();
     if operations_len == 0 {
-        return Err(StdError::generic_err(
-            "must provide operations",
-        ));
+        return Err(StdError::generic_err("must provide operations"));
     }
 
     assert_operations(&operations)?;

@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    Addr, attr, Binary, Deps, DepsMut, entry_point, Env, MessageInfo, ReplyOn, Response, StdError,
-    StdResult, SubMsg, to_binary, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response,
+    StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 
@@ -14,7 +14,7 @@ use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_liquidity_token;
-use crate::state::{Config, CONFIG, pair_key, PAIRS, read_pair, read_pairs};
+use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-factory";
@@ -36,7 +36,8 @@ pub fn instantiate(
         msg: WasmMsg::UpdateAdmin {
             contract_addr: env.contract.address.to_string(),
             admin: msg.owner,
-        }.into(),
+        }
+        .into(),
         gas_limit: None,
         reply_on: ReplyOn::Never,
     });
