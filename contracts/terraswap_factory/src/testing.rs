@@ -22,6 +22,7 @@ fn proper_initialization() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -35,7 +36,7 @@ fn proper_initialization() {
     let config_res: ConfigResponse = from_binary(&query_res).unwrap();
     assert_eq!(123u64, config_res.token_code_id);
     assert_eq!(321u64, config_res.pair_code_id);
-    assert_eq!(Addr::unchecked("addr0000"), config_res.owner);
+    assert_eq!(Addr::unchecked("owner0000"), config_res.owner);
 }
 
 #[test]
@@ -45,6 +46,7 @@ fn update_config() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -56,7 +58,7 @@ fn update_config() {
 
     // update owner
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner: Some(Addr::unchecked("addr0001")),
         pair_code_id: None,
@@ -121,6 +123,7 @@ fn create_pair() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -194,7 +197,7 @@ fn create_pair() {
     let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
 
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
-    assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
+    assert_eq!(pair_info.owner, Addr::unchecked("owner0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
     assert_eq!(pair_info.start_time, start_time);
     assert_eq!(pair_info.end_time, end_time);
@@ -231,6 +234,7 @@ fn register() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 

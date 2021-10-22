@@ -1,13 +1,9 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response,
-    StdError, StdResult, SubMsg, WasmMsg,
+    Addr, attr, Binary, Deps, DepsMut, entry_point, Env, MessageInfo, ReplyOn, Response, StdError,
+    StdResult, SubMsg, to_binary, WasmMsg,
 };
-
-use crate::querier::query_liquidity_token;
-use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
-
-use crate::error::ContractError;
 use cw2::set_contract_version;
+
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
@@ -16,6 +12,10 @@ use terraswap::factory::{
 use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
+use crate::error::ContractError;
+use crate::querier::query_liquidity_token;
+use crate::state::{Config, CONFIG, pair_key, PAIRS, read_pair, read_pairs};
+
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-factory";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -23,13 +23,26 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
+    env: Env,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    let owner = deps.api.addr_validate(&msg.owner)?;
+
+    let mut messages: Vec<SubMsg> = vec![];
+    messages.push(SubMsg {
+        id: 0,
+        msg: WasmMsg::UpdateAdmin {
+            contract_addr: env.contract.address.to_string(),
+            admin: msg.owner,
+        }.into(),
+        gas_limit: None,
+        reply_on: ReplyOn::Never,
+    });
+
     let config = Config {
-        owner: info.sender,
+        owner,
         token_code_id: msg.token_code_id,
         pair_code_id: msg.pair_code_id,
     };
@@ -117,7 +130,7 @@ pub fn try_update_config(
 pub fn try_create_pair(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
@@ -139,7 +152,7 @@ pub fn try_create_pair(
         deps.storage,
         &pair_key(&asset_infos),
         &FactoryPairInfo {
-            owner: info.sender,
+            owner: config.owner.clone(),
             liquidity_token: Addr::unchecked(""),
             contract_addr: Addr::unchecked(""),
             asset_infos: weighted_asset_infos.clone(),
