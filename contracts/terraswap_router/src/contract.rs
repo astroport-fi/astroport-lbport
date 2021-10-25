@@ -215,9 +215,7 @@ fn simulate_swap_operations(
 
     let operations_len = operations.len();
     if operations_len == 0 {
-        return Err(StdError::generic_err(
-            "must provide operations",
-        ));
+        return Err(StdError::generic_err("must provide operations"));
     }
 
     assert_operations(&operations)?;
