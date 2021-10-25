@@ -23,24 +23,12 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     let owner = deps.api.addr_validate(&msg.owner)?;
-
-    let mut messages: Vec<SubMsg> = vec![];
-    messages.push(SubMsg {
-        id: 0,
-        msg: WasmMsg::UpdateAdmin {
-            contract_addr: env.contract.address.to_string(),
-            admin: msg.owner,
-        }
-        .into(),
-        gas_limit: None,
-        reply_on: ReplyOn::Never,
-    });
 
     let config = Config {
         owner,

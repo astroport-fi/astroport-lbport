@@ -82,7 +82,7 @@ fn proper_initialization() {
             SubMsg {
                 id: 0,
                 msg: WasmMsg::Instantiate {
-                    admin: Some(info.sender.to_string()),
+                    admin: None,
                     code_id: 10u64,
                     msg: to_binary(&TokenInstantiateMsg {
                         name: "terraswap liquidity token".to_string(),
