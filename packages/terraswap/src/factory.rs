@@ -33,7 +33,7 @@ pub enum ExecuteMsg {
         /// Init hook for after works
         init_hook: Option<InitHook>,
     },
-    /// Register is invoked from created pair contract after initialzation
+    /// Register is invoked from created pair contract after initialization
     Register {
         asset_infos: [WeightedAssetInfo; 2],
     },
