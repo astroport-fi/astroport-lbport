@@ -83,33 +83,3 @@ pub struct FactoryPairInfo {
     pub start_time: u64,
     pub end_time: u64,
 }
-
-// #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-// pub struct FactoryPairInfoRaw {
-//     pub asset_infos: [WeightedAssetInfo; 2],
-//     pub owner: Addr,
-//     pub contract_addr: Addr,
-//     pub liquidity_token: Addr,
-//     pub start_time: u64,
-//     pub end_time: u64,
-// }
-//
-// impl FactoryPairInfoRaw {
-//     pub fn to_normal(
-//         &self,
-//         deps: Deps,
-//     ) -> StdResult<FactoryPairInfo> {
-//         Ok(FactoryPairInfo {
-//             owner: self.owner.clone(),
-//             liquidity_token: self.liquidity_token.clone(),
-//             start_time: self.start_time,
-//             contract_addr: self.contract_addr.clone(),
-//             asset_infos: [
-//                 self.asset_infos[0].to_normal(deps)?,
-//                 self.asset_infos[1].to_normal(deps)?,
-//             ],
-//
-//             end_time: self.end_time,
-//         })
-//     }
-// }
