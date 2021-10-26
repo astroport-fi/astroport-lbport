@@ -849,16 +849,61 @@ pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Respons
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod unit {
-    use crate::contract::compute_swap;
+    use crate::contract::*;
     use crate::math::FixedFloat;
     use cosmwasm_std::Uint128;
+    use proptest::prelude::*;
+
+    /// (ask_pool / ask_weight) / (offer_pool / offer_weight) * offer_amount
+    /// (50000000 / 49) / ( 250000 / 1) * 10000000000 = 40816326530.612244898
+    fn spot_price(
+        ask_pool: u128,
+        ask_weight: u32,
+        offer_pool: u128,
+        offer_weight: u32,
+        offer_amount: u128,
+    ) -> u128 {
+        let x = FixedFloat::from_num(ask_pool).div(FixedFloat::from_num(ask_weight));
+        let y = FixedFloat::from_num(offer_pool).div(FixedFloat::from_num(offer_weight));
+        x.div(y).mul(FixedFloat::from_num(offer_amount)).to_num()
+    }
+
+    #[test]
+    fn spot_price_test() {
+        let ask_pool = Uint128::from(50_000_000u128);
+        let ask_weight = FixedFloat::from_num(49u32);
+        let offer_pool = Uint128::from(250_000u128);
+        let offer_weight = FixedFloat::from_num(1u32);
+        let offer_amount = Uint128::from(10_000_000_000u128);
+        let price = spot_price(
+            ask_pool.u128(),
+            ask_weight.to_num(),
+            offer_pool.u128(),
+            offer_weight.to_num(),
+            offer_amount.u128(),
+        );
+        println!("price={}", price.to_string());
+        let (return_amount, spread_amount, commission_amount) =
+            compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount).unwrap();
+        println!(
+            "return_amount={} spread_amount={} commission_amount={}",
+            return_amount.u128(),
+            spread_amount.u128(),
+            commission_amount.u128()
+        );
+
+        assert_eq!(
+            price,
+            (return_amount + spread_amount + commission_amount).u128()
+        );
+    }
 
     #[test]
     fn compute_swap_rounding() {
         let offer_pool = Uint128::from(5_000_000_000_000_u128);
-        let offer_weight = FixedFloat::from_num(1);
+        let offer_weight = FixedFloat::from_num(1u128);
         let ask_pool = Uint128::from(1_000_000_000_u128);
-        let ask_weight = FixedFloat::from_num(1);
+        let ask_weight = FixedFloat::from_num(1u128);
         let offer_amount = Uint128::from(1_u128);
 
         let return_amount = Uint128::from(0_u128);
@@ -869,5 +914,82 @@ mod unit {
             compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount),
             Ok((return_amount, spread_amount, commission_amount))
         );
+    }
+
+    #[test]
+    fn compute_swap_max() {
+        let max_fixed_float: u128 = 9223372036854775807;
+        let offer_pool = Uint128::from(1u128);
+        let offer_weight = FixedFloat::from_num(1u128);
+        let ask_pool = Uint128::from(max_fixed_float.clone());
+        let ask_weight = FixedFloat::from_num(1u128);
+        let offer_amount = Uint128::from(1u128);
+
+        let price = spot_price(
+            ask_pool.u128(),
+            ask_weight.to_num(),
+            offer_pool.u128(),
+            offer_weight.to_num(),
+            offer_amount.u128(),
+        );
+        println!("price={}", price.to_string());
+
+        let return_amount = Uint128::from(4604768480190209844u128);
+        let spread_amount = Uint128::from(4611686027650759940u128);
+        let commission_amount = Uint128::from(6917529013806023u128);
+
+        assert_eq!(
+            compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount),
+            Ok((return_amount, spread_amount, commission_amount))
+        );
+        assert_eq!(
+            price,
+            (return_amount + spread_amount + commission_amount).u128()
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn compute_swap_test(
+            offer_pool in 1_000000..9_000_000_000_000_000000u128,
+            offer_weight in 1..50u128,
+            ask_pool in 1_000000..9_000_000_000_000_000000u128,
+            ask_weight in 1..50u128,
+            offer_amount in 1..100_000_000000u128,
+        ) {
+            let offer_pool = Uint128::from(offer_pool);
+            let offer_weight = FixedFloat::from_num(offer_weight);
+            let ask_pool = Uint128::from(ask_pool);
+            let ask_weight = FixedFloat::from_num(ask_weight);
+            let offer_amount = Uint128::from(offer_amount);
+
+             let price = spot_price(
+                ask_pool.u128(),
+                ask_weight.to_num(),
+                offer_pool.u128(),
+                offer_weight.to_num(),
+                offer_amount.u128(),
+            );
+            let (return_amount, spread_amount, commission_amount) = compute_swap(
+                offer_pool,
+                offer_weight,
+                ask_pool,
+                ask_weight,
+                offer_amount,
+            ).unwrap();
+
+            assert!(
+                price == (return_amount + spread_amount + commission_amount).u128(),
+                "return_amount={}, spread_amount={}, commission_amount={}, offer_pool={}, offer_weight={}, ask_pool={}, ask_weight={}, offer_amount={}",
+                return_amount.u128(),
+                spread_amount.u128(),
+                commission_amount.u128(),
+                offer_pool.u128(),
+                offer_weight.to_string(),
+                ask_pool.u128(),
+                ask_weight.to_string(),
+                offer_amount.u128(),
+            );
+        }
     }
 }

@@ -866,7 +866,7 @@ fn try_native_to_token() {
     let spread_diff =
         (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
 
-    let diff_tolerance = 10i128;
+    let diff_tolerance = 14i128;
 
     assert_eq!(amount_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -1101,7 +1101,7 @@ fn try_token_to_native() {
     let spread_diff =
         (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
 
-    let diff_tolerance = 10i128;
+    let diff_tolerance = 14i128;
 
     assert_eq!(ret_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -1351,11 +1351,16 @@ fn test_spread() {
     let return_before_comission = simulation_res.return_amount + simulation_res.commission_amount;
     assert_eq!(
         simulation_res.return_amount,
-        Uint128::from(40754882156_u128)
+        Uint128::from(40753863239_u128)
     );
     assert_eq!(
+        simulation_res.commission_amount,
+        Uint128::from(61222628_u128)
+    );
+    assert_eq!(simulation_res.spread_amount, Uint128::from(1240663_u128));
+    assert_eq!(
         simulation_res.spread_amount,
-        spot_price.checked_sub(return_before_comission).unwrap()
+        spot_price.checked_sub(return_before_comission).unwrap(),
     );
 }
 
