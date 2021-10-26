@@ -8,6 +8,7 @@ The factory contract can perform creation of terraswap pair contract and also be
 {
   "pair_code_id": "123",
   "token_code_id": "123",
+  "owner": "terra...",
   "init_hook": {
     "msg": "123",
     "contract_addr": "terra..."
@@ -33,31 +34,31 @@ The factory contract can perform creation of terraswap pair contract and also be
 
 ```json
 {
-   "create_pair":{
-      "asset_infos":[
-         {
-            "info":{
-               "token":{
-                  "contract_address":"terra..."
-               }
-            },
-            "start_weight":20,
-            "end_weight":30
-         },
-         {
-            "info":{
-               "native_token":{
-                  "denom":"uusd"
-               }
-            },
-            "start_weight":30,
-            "end_weight":20
-         }
-      ],
-      "start_time":1623337825,
-      "end_time":1623900000,
-      "description":"this pair description is optional"
-   }
+  "create_pair": {
+    "asset_infos": [
+      {
+        "info": {
+          "token": {
+            "contract_address": "terra..."
+          }
+        },
+        "start_weight": 20,
+        "end_weight": 30
+      },
+      {
+        "info": {
+          "native_token": {
+            "denom": "uusd"
+          }
+        },
+        "start_weight": 30,
+        "end_weight": 20
+      }
+    ],
+    "start_time": 1623337825,
+    "end_time": 1623900000,
+    "description": "this pair description is optional"
+  }
 }
 ```
 
@@ -130,12 +131,11 @@ The factory contract owner can change relevant code IDs for future pair contract
 
 ```json
 {
-    "update_config":
-    {
-        "owner": Option<HumanAddr>,
-        "pair_code_id": Option<u64>,
-        "token_code_id": Option<u64>,
-    }
+  "update_config": {
+    "owner": Option<HumanAddr>,
+    "pair_code_id": Option<u64>,
+    "token_code_id": Option<u64>
+  }
 }
 ```
 
@@ -170,41 +170,42 @@ Once a `Pair` contract invokes it, the sender address is registered as `Pair` co
 
 ```json
 {
-   "register":{
-      "asset_infos":[
-         {
-            "token":{
-               "contract_addr":"terra1~~"
-            }
-         },
-         {
-            "native_token":{
-               "denom":"uusd"
-            }
-         }
-      ]
-   }
+  "register": {
+    "asset_infos": [
+      {
+        "token": {
+          "contract_addr": "terra1~~"
+        }
+      },
+      {
+        "native_token": {
+          "denom": "uusd"
+        }
+      }
+    ]
+  }
 }
 ```
 
 ### Unregister
 
 The pair can be removed from factory using unregister function. Only the creator of pair is allowed to remove it.
+
 ```json
 {
-   "unregister":{
-      "asset_infos":[
-         {
-            "token":{
-               "contract_addr":"terra1~~"
-            }
-         },
-         {
-            "native_token":{
-               "denom":"uusd"
-            }
-         }
-      ]
-   }
+  "unregister": {
+    "asset_infos": [
+      {
+        "token": {
+          "contract_addr": "terra1~~"
+        }
+      },
+      {
+        "native_token": {
+          "denom": "uusd"
+        }
+      }
+    ]
+  }
 }
 ```
