@@ -230,6 +230,7 @@ fn register() {
     let end_time = start_time + 1000;
 
     let mut deps = mock_dependencies(&[]);
+
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
