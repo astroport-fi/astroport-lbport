@@ -230,17 +230,15 @@ fn register() {
     let end_time = start_time + 1000;
 
     let mut deps = mock_dependencies(&[]);
-    let sender = "addr0000";
-    let owner = "owner0000";
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
-        owner: owner.to_string(),
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
     let env = mock_env();
-    let info = mock_info(sender.clone(), &[]);
+    let info = mock_info("addr0000", &[]);
     let _res = instantiate(deps.as_mut(), env, info, msg).unwrap();
 
     let asset_infos = [
@@ -269,7 +267,7 @@ fn register() {
     };
 
     let env = mock_env();
-    let info = mock_info(sender.clone(), &[]);
+    let info = mock_info("addr0000", &[]);
     let _res = execute(deps.as_mut(), env, info, msg).unwrap();
 
     // register terraswap pair querier
@@ -321,7 +319,7 @@ fn register() {
     assert_eq!(
         pair_res,
         FactoryPairInfo {
-            owner: Addr::unchecked(sender.clone()),
+            owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
             asset_infos: asset_infos.clone(),
@@ -416,7 +414,7 @@ fn register() {
         pairs_res.pairs,
         vec![
             FactoryPairInfo {
-                owner: Addr::unchecked(sender.clone()),
+                owner: Addr::unchecked("addr0000"),
                 liquidity_token: Addr::unchecked("liquidity0000"),
                 contract_addr: Addr::unchecked("pair0000"),
                 asset_infos: asset_infos.clone(),
@@ -424,7 +422,7 @@ fn register() {
                 end_time,
             },
             FactoryPairInfo {
-                owner: Addr::unchecked(sender.clone()),
+                owner: Addr::unchecked("addr0000"),
                 liquidity_token: Addr::unchecked("liquidity0001"),
                 contract_addr: Addr::unchecked("pair0001"),
                 asset_infos: asset_infos_2.clone(),
@@ -444,7 +442,7 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![FactoryPairInfo {
-            owner: Addr::unchecked(sender.clone()),
+            owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
             asset_infos: asset_infos.clone(),
@@ -463,7 +461,7 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![FactoryPairInfo {
-            owner: Addr::unchecked(sender.clone()),
+            owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
             asset_infos: asset_infos_2.clone(),
@@ -495,7 +493,7 @@ fn register() {
     }
 
     let env = mock_env();
-    let info = mock_info(sender.clone(), &[]);
+    let info = mock_info("addr0000", &[]);
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     assert_eq!(
@@ -518,7 +516,7 @@ fn register() {
     assert_eq!(
         pairs_res.pairs,
         vec![FactoryPairInfo {
-            owner: Addr::unchecked(sender),
+            owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
             asset_infos: asset_infos_2.clone(),
