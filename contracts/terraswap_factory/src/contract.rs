@@ -119,7 +119,7 @@ pub fn try_update_config(
 pub fn try_create_pair(
     deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
@@ -141,7 +141,7 @@ pub fn try_create_pair(
         deps.storage,
         &pair_key(&asset_infos),
         &FactoryPairInfo {
-            owner: config.owner.clone(),
+            owner: info.sender,
             liquidity_token: Addr::unchecked(""),
             contract_addr: Addr::unchecked(""),
             asset_infos: weighted_asset_infos.clone(),
