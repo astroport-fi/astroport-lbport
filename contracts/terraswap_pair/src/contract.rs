@@ -680,7 +680,7 @@ fn get_ask_by_spot_price(
     Uint128::from(ratio.to_num::<u128>())
 }
 
-fn compute_swap(
+pub fn compute_swap(
     offer_pool: Uint128,
     offer_weight: FixedFloat,
     ask_pool: Uint128,
