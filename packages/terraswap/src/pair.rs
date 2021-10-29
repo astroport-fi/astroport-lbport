@@ -53,6 +53,10 @@ pub enum Cw20HookMsg {
         to: Option<Addr>,
     },
     WithdrawLiquidity {},
+    ProvideLiquidity {
+        assets: [Asset; 2],
+        slippage_tolerance: Option<Decimal>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -203,6 +203,17 @@ pub fn receive_cw20(
             Addr::unchecked(cw20_msg.sender),
             cw20_msg.amount,
         ),
+        Ok(Cw20HookMsg::ProvideLiquidity {
+               assets,
+               slippage_tolerance}
+        ) => try_provide_liquidity_by_cw20hook(
+            deps,
+            env,
+            info,
+            cw20_msg.amount,
+            assets,
+            slippage_tolerance
+        ),
         Err(err) => Err(ContractError::Std(err)),
     }
 }
@@ -314,6 +325,94 @@ pub fn try_provide_liquidity(
             funds: vec![],
         }
         .into(),
+        id: 0,
+        gas_limit: None,
+        reply_on: ReplyOn::Never,
+    });
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(vec![
+            attr("action", "provide_liquidity"),
+            attr("assets", format!("{}, {}", assets[0], assets[1])),
+            attr("share", share.to_string()),
+        ]))
+}
+
+pub fn try_provide_liquidity_by_cw20hook(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    token_amount: Uint128,
+    assets: [Asset; 2],
+    slippage_tolerance: Option<Decimal>,
+) -> Result<Response, ContractError> {
+    for asset in assets.iter() {
+        asset.assert_sent_native_token_balance(&info)?;
+        asset.assert_sent_token_balance(token_amount, &info.sender)?;
+    }
+
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
+    let mut pools: [WeightedAsset; 2] =
+        pair_info.query_pools(deps.as_ref(), &env.contract.address)?;
+    let deposits: [Uint128; 2] = [
+        assets
+            .iter()
+            .find(|a| a.info.equal(&pools[0].info))
+            .map(|a| a.amount)
+            .expect("Wrong asset info is given"),
+        assets
+            .iter()
+            .find(|a| a.info.equal(&pools[1].info))
+            .map(|a| a.amount)
+            .expect("Wrong asset info is given"),
+    ];
+
+    if deposits[0].is_zero() || deposits[1].is_zero() {
+        return Err(ContractError::ZeroAmount {});
+    }
+
+    let mut messages: Vec<SubMsg> = vec![];
+    for (i, pool) in pools.iter_mut().enumerate() {
+        // To calculated properly we should subtract user deposit from the pool
+        pool.amount = pool.amount.checked_sub(deposits[i]).unwrap();
+    }
+
+    // assert slippage tolerance
+    assert_slippage_tolerance(&slippage_tolerance, &deposits, &pools)?;
+
+    let liquidity_token = pair_info.liquidity_token.clone();
+    let total_share = query_supply(deps.as_ref(), &liquidity_token)?;
+
+    let share = if total_share.is_zero() {
+        // Initial share = collateral amount
+        Uint128::new(
+            (U256::from(deposits[0].u128()) * U256::from(deposits[1].u128()))
+                .integer_sqrt()
+                .as_u128(),
+        )
+    } else {
+        // min(1, 2)
+        // 1. sqrt(deposit_0 * exchange_rate_0_to_1 * deposit_0) * (total_share / sqrt(pool_0 * pool_1))
+        // == deposit_0 * total_share / pool_0
+        // 2. sqrt(deposit_1 * exchange_rate_1_to_0 * deposit_1) * (total_share / sqrt(pool_1 * pool_1))
+        // == deposit_1 * total_share / pool_1
+        std::cmp::min(
+            deposits[0].multiply_ratio(total_share, pools[0].amount),
+            deposits[1].multiply_ratio(total_share, pools[1].amount),
+        )
+    };
+
+    // mint LP token to sender
+    messages.push(SubMsg {
+        msg: WasmMsg::Execute {
+            contract_addr: pair_info.liquidity_token.to_string(),
+            msg: to_binary(&Cw20ExecuteMsg::Mint {
+                recipient: info.sender.to_string(),
+                amount: share,
+            })?,
+            funds: vec![],
+        }
+            .into(),
         id: 0,
         gas_limit: None,
         reply_on: ReplyOn::Never,
@@ -673,9 +772,9 @@ fn get_ask_by_spot_price(
     offer_amount: Uint128,
 ) -> Uint128 {
     let ratio = FixedFloat::from_num(ask_pool.u128())
-        .div(ask_weight)
-        .div(FixedFloat::from_num(offer_pool.u128()).div(offer_weight))
-        .mul(FixedFloat::from_num(offer_amount.u128()));
+        .div(&ask_weight)
+        .div(&FixedFloat::from_num(offer_pool.u128()).div(&offer_weight))
+        .mul(&FixedFloat::from_num(offer_amount.u128()));
 
     Uint128::from(ratio.to_num::<u128>())
 }
@@ -829,14 +928,14 @@ fn get_current_weight(
         let ratio = FixedFloat::from_num(
             (end_weight.u128() - start_weight.u128()) * (block_time - start_time) as u128,
         )
-        .div(time_diff);
+        .div(&time_diff);
 
         Ok(start_weight_fixed.add(ratio))
     } else {
         let ratio = FixedFloat::from_num(
             (start_weight.u128() - end_weight.u128()) * (block_time - start_time) as u128,
         )
-        .div(time_diff);
+        .div(&time_diff);
 
         Ok(start_weight_fixed.sub(ratio))
     }
