@@ -17,18 +17,21 @@
 //!      });
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
-use cosmwasm_std::testing::mock_info;
+use cosmwasm_std::testing::{
+    mock_env as mock_env_std, mock_info, MockApi as MockApi_std, MockStorage as MockStorage_std,
+};
 use cosmwasm_std::{from_binary, to_binary, Addr, Coin, ContractResult, Response, Uint128};
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier,
     MockStorage, MOCK_CONTRACT_ADDR,
 };
 use cosmwasm_vm::{Instance, InstanceOptions};
-use cw20::Cw20ReceiveMsg;
+use cw20::{Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg};
+use cw_multi_test::{App, BankKeeper, ContractWrapper, Executor};
 use std::time::{SystemTime, UNIX_EPOCH};
-use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAssetInfo};
+use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::pair::{Cw20HookMsg, ExecuteMsg, InstantiateMsg, PoolResponse, QueryMsg};
-
+use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 // This line will test the output of cargo wasm
 // static WASM: &[u8] =
 //     include_bytes!("../../../target/wasm32-unknown-unknown/release/terraswap_pair.wasm");
@@ -37,6 +40,59 @@ static WASM: &[u8] = include_bytes!("../../../artifacts/terraswap_pair.wasm");
 // static WASM: &[u8] = include_bytes!("../contract.wasm");
 
 const DEFAULT_GAS_LIMIT: u64 = 500_000_000;
+
+const OWNER: &str = "Owner";
+const TOKEN_INITIAL_AMOUNT: Uint128 = Uint128::new(1000000_00000);
+
+fn mock_app() -> App {
+    let env = mock_env_std();
+    let api = MockApi_std::default();
+    let bank = BankKeeper {};
+
+    App::new(api, env.block, bank, MockStorage_std::new())
+}
+
+fn store_token_code(app: &mut App) -> u64 {
+    let terra_swap_token_contract = Box::new(ContractWrapper::new(
+        terraswap_token::contract::execute,
+        terraswap_token::contract::instantiate,
+        terraswap_token::contract::query,
+    ));
+
+    app.store_code(terra_swap_token_contract)
+}
+
+fn instantiate_token(app: &mut App, owner: Addr, token_code_id: u64) -> Addr {
+    let token_name = "TerraSwapToken";
+
+    let init_msg = TokenInstantiateMsg {
+        name: token_name.to_string(),
+        symbol: "TerraT".to_string(),
+        decimals: 6,
+        initial_balances: vec![Cw20Coin {
+            address: OWNER.to_string(),
+            amount: TOKEN_INITIAL_AMOUNT,
+        }],
+        mint: None,
+        init_hook: None,
+    };
+
+    let token_instance = app
+        .instantiate_contract(token_code_id, owner, &init_msg, &[], token_name, None)
+        .unwrap();
+
+    return token_instance.clone();
+}
+
+fn store_pair_code(app: &mut App) -> u64 {
+    let pair_contract = Box::new(ContractWrapper::new(
+        terraswap_pair::contract::execute,
+        terraswap_pair::contract::instantiate,
+        terraswap_pair::contract::query,
+    ));
+
+    app.store_code(pair_contract)
+}
 
 pub fn mock_instance(
     wasm: &[u8],
@@ -132,14 +188,30 @@ fn proper_initialization() {
 
 #[test]
 fn provide_liquidity_cw20_hook() {
-    let mut deps_pair = mock_instance(WASM, &[(&"liquidity0000".to_string(), &[])]);
+    let mut app = mock_app();
+    let owner = Addr::unchecked(OWNER);
+    let token_code_id = store_token_code(&mut app);
+
+    app.init_bank_balance(
+        &owner.clone(),
+        vec![Coin {
+            denom: "uluna".to_string(),
+            amount: Uint128::new(200_00000),
+        }],
+    )
+    .unwrap();
+
+    let token_instance = instantiate_token(&mut app, owner.clone(), token_code_id);
+
+    let pair_code_id = store_pair_code(&mut app);
+
     let start_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
     let end_time = start_time + 1000;
 
-    let msg = InstantiateMsg {
+    let init_msg = InstantiateMsg {
         asset_infos: [
             WeightedAssetInfo {
                 info: AssetInfo::NativeToken {
@@ -150,41 +222,90 @@ fn provide_liquidity_cw20_hook() {
             },
             WeightedAssetInfo {
                 info: AssetInfo::Token {
-                    contract_addr: Addr::unchecked("asset0000"),
+                    contract_addr: token_instance.clone(),
                 },
                 start_weight: Uint128::from(1u128),
                 end_weight: Uint128::from(1u128),
             },
         ],
-        token_code_id: 10u64,
+        token_code_id,
         init_hook: None,
         start_time,
         end_time,
-        description: Some(String::from("description")),
+        description: None,
     };
 
-    let env = mock_env();
-    let info = mock_info("pair0000", &[]);
+    let pair_instance = app
+        .instantiate_contract(
+            pair_code_id,
+            owner.clone(),
+            &init_msg,
+            &[],
+            "TerraSwapPair",
+            None,
+        )
+        .unwrap();
 
-    // we can just call .unwrap() to assert this was a success
-    let _res: Response =
-        instantiate(&mut deps_pair, env.clone(), info.clone(), msg.clone()).unwrap();
+    let msg_pair = QueryMsg::Pair {};
+    let res: PairInfo = app
+        .wrap()
+        .query_wasm_smart(pair_instance.clone(), &msg_pair)
+        .unwrap();
+    assert_eq!(start_time, res.start_time);
 
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res: Response = execute(&mut deps_pair, env.clone(), info, msg).unwrap();
+    let msg_token_increase = Cw20ExecuteMsg::IncreaseAllowance {
+        spender: pair_instance.to_string(),
+        expires: None,
+        amount: TOKEN_INITIAL_AMOUNT + TOKEN_INITIAL_AMOUNT,
+    };
 
-    let res = query(&mut deps_pair, env.clone(), QueryMsg::Pair {}).unwrap();
-    let pair_info: PairInfo = from_binary(&res).unwrap();
-    assert_eq!(Addr::unchecked("liquidity0000"), pair_info.liquidity_token);
+    app.execute_contract(
+        owner.clone(),
+        token_instance.clone(),
+        &msg_token_increase,
+        &[],
+    )
+    .unwrap();
 
-    let res = query(&mut deps_pair, env.clone(), QueryMsg::Pool {}).unwrap();
-    let pair_pool: PoolResponse = from_binary(&res).unwrap();
-    assert_eq!("3", pair_pool.total_share.to_string());
+    let msg_provide = ExecuteMsg::ProvideLiquidity {
+        assets: [
+            Asset {
+                info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+                amount: Uint128::from(100u128),
+            },
+            Asset {
+                info: AssetInfo::Token {
+                    contract_addr: token_instance.clone(),
+                },
+                amount: Uint128::from(10u128),
+            },
+        ],
+        slippage_tolerance: None,
+    };
 
-    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
-        sender: "asset0000".into(),
-        amount: Uint128::from(100u128),
+    app.execute_contract(
+        owner.clone(),
+        pair_instance.clone(),
+        &msg_provide,
+        &[Coin {
+            denom: "uluna".to_string(),
+            amount: Uint128::from(100u128),
+        }],
+    )
+    .unwrap();
+
+    // let msg_pool = QueryMsg::Pool {};
+    // let res: PoolResponse = app
+    //     .wrap()
+    //     .query_wasm_smart(pair_instance.clone(), &msg_pool)
+    //     .unwrap();
+    // assert_eq!(Uint128::new(100), res.total_share);
+
+    let msg_provide_liquidity_by_hook = Cw20ExecuteMsg::Send {
+        contract: pair_instance.to_string(),
+        amount: Uint128::new(100),
         msg: to_binary(&Cw20HookMsg::ProvideLiquidity {
             assets: [
                 Asset {
@@ -195,7 +316,7 @@ fn provide_liquidity_cw20_hook() {
                 },
                 Asset {
                     info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0000"),
+                        contract_addr: token_instance.clone(),
                     },
                     amount: Uint128::from(100u128),
                 },
@@ -203,17 +324,44 @@ fn provide_liquidity_cw20_hook() {
             slippage_tolerance: None,
         })
         .unwrap(),
-    });
+    };
 
-    let env = mock_env();
-    let info = mock_info(
-        "asset0000",
+    app.execute_contract(
+        owner.clone(),
+        token_instance.clone(),
+        &msg_provide_liquidity_by_hook,
         &[Coin {
             denom: "uluna".to_string(),
-            amount: Uint128::from(100u128),
+            amount: Uint128::new(100),
         }],
-    );
+    )
+    .unwrap();
 
-    let res: Response = execute(&mut deps_pair, env.clone(), info, msg).unwrap();
-    assert_eq!(0, res.messages.len());
+    let msg_pool = QueryMsg::Pool {};
+    let res: PoolResponse = app
+        .wrap()
+        .query_wasm_smart(pair_instance.clone(), &msg_pool)
+        .unwrap();
+    assert_eq!(Uint128::new(100), res.clone().total_share);
+    assert_eq!(
+        res.assets,
+        [
+            WeightedAsset {
+                info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+                amount: Default::default(),
+                start_weight: Uint128::from(49u128),
+                end_weight: Uint128::from(20u128),
+            },
+            WeightedAsset {
+                info: AssetInfo::Token {
+                    contract_addr: token_instance.clone(),
+                },
+                amount: Default::default(),
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(30u128),
+            },
+        ]
+    );
 }

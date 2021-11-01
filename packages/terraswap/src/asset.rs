@@ -126,9 +126,13 @@ impl Asset {
         }
     }
 
-    pub fn assert_sent_token_balance(&self, token_amount: Uint128, sender: &Addr) -> StdResult<()> {
+    pub fn assert_sent_token_balance(
+        &self,
+        token_amount: Uint128,
+        sender: String,
+    ) -> StdResult<()> {
         if let AssetInfo::Token { contract_addr } = &self.info {
-            if contract_addr == sender {
+            if contract_addr.to_string() == sender {
                 if self.amount == token_amount {
                     Ok(())
                 } else {
