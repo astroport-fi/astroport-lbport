@@ -132,7 +132,7 @@ fn proper_initialization() {
 
 #[test]
 fn provide_liquidity_cw20_hook() {
-    let mut deps_pair = mock_instance(WASM, &[]);
+    let mut deps_pair = mock_instance(WASM, &[(&"liquidity0000".to_string(), &[])]);
     let start_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
