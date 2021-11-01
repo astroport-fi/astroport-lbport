@@ -204,15 +204,15 @@ pub fn receive_cw20(
             cw20_msg.amount,
         ),
         Ok(Cw20HookMsg::ProvideLiquidity {
-               assets,
-               slippage_tolerance}
-        ) => try_provide_liquidity_by_cw20hook(
+            assets,
+            slippage_tolerance,
+        }) => try_provide_liquidity_by_cw20hook(
             deps,
             env,
             info,
             cw20_msg.amount,
             assets,
-            slippage_tolerance
+            slippage_tolerance,
         ),
         Err(err) => Err(ContractError::Std(err)),
     }
@@ -412,7 +412,7 @@ pub fn try_provide_liquidity_by_cw20hook(
             })?,
             funds: vec![],
         }
-            .into(),
+        .into(),
         id: 0,
         gas_limit: None,
         reply_on: ReplyOn::Never,

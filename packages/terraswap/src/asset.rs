@@ -126,16 +126,20 @@ impl Asset {
         }
     }
 
-    pub fn assert_sent_token_balance(&self, token_amount: Uint128, sender: &Addr) -> StdResult<()>{
-        if let AssetInfo::Token{ contract_addr } = &self.info {
-            if contract_addr.to_string() == sender.to_string() {
+    pub fn assert_sent_token_balance(&self, token_amount: Uint128, sender: &Addr) -> StdResult<()> {
+        if let AssetInfo::Token { contract_addr } = &self.info {
+            if contract_addr == sender {
                 if self.amount == token_amount {
                     Ok(())
                 } else {
-                    Err(StdError::generic_err("Token balance missmatch between the argument and the transferred"))
+                    Err(StdError::generic_err(
+                        "Token balance missmatch between the argument and the transferred",
+                    ))
                 }
             } else {
-                Err(StdError::generic_err("Token address missmatch between the argument and the transferred"))
+                Err(StdError::generic_err(
+                    "Token address missmatch between the argument and the transferred",
+                ))
             }
         } else {
             Ok(())
