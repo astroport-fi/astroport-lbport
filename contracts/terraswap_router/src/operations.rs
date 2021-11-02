@@ -9,7 +9,8 @@ use crate::state::{Config, CONFIG};
 use crate::error::ContractError;
 use cw20::Cw20ExecuteMsg;
 use terra_cosmwasm::{create_swap_msg, create_swap_send_msg, TerraMsgWrapper};
-use terraswap::asset::{Asset, AssetInfo, PairInfo};
+use terraswap::asset::{Asset, AssetInfo};
+use terraswap::factory::FactoryPairInfo;
 use terraswap::pair::ExecuteMsg as PairExecuteMsg;
 use terraswap::querier::{query_balance, query_pair_info, query_token_balance};
 use terraswap::router::SwapOperation;
@@ -76,7 +77,7 @@ pub fn execute_swap_operation(
         } => {
             let config: Config = CONFIG.load(deps.storage)?;
             let terraswap_factory = config.terraswap_factory;
-            let pair_info: PairInfo = query_pair_info(
+            let pair_info: FactoryPairInfo = query_pair_info(
                 deps.as_ref(),
                 &terraswap_factory,
                 &[offer_asset_info.clone(), ask_asset_info],

@@ -824,7 +824,7 @@ fn try_native_to_token() {
         }],
     );
 
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
     let msg_transfer = res.messages.get(0).expect("no message");
 
     // current price is 1.5, so expected return without spread is 1000
@@ -851,6 +851,7 @@ fn try_native_to_token() {
 
     let simulation_res: SimulationResponse = query_simulation(
         deps.as_ref(),
+        env.clone(),
         Asset {
             info: AssetInfo::NativeToken {
                 denom: "uusd".to_string(),
@@ -879,6 +880,7 @@ fn try_native_to_token() {
     // check reverse simulation res
     let reverse_simulation_res: ReverseSimulationResponse = query_reverse_simulation(
         deps.as_ref(),
+        env,
         Asset {
             info: AssetInfo::Token {
                 contract_addr: Addr::unchecked("asset0000"),
@@ -1082,6 +1084,7 @@ fn try_token_to_native() {
 
     let simulation_res: SimulationResponse = query_simulation(
         deps.as_ref(),
+        env.clone(),
         Asset {
             amount: offer_amount,
             info: AssetInfo::Token {
@@ -1109,6 +1112,7 @@ fn try_token_to_native() {
     // check reverse simulation res
     let reverse_simulation_res: ReverseSimulationResponse = query_reverse_simulation(
         deps.as_ref(),
+        env,
         Asset {
             amount: expected_return_amount,
             info: AssetInfo::NativeToken {
@@ -1315,7 +1319,7 @@ fn test_spread() {
     let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     // Check balances
-    let res: PoolResponse = query_pool(deps.as_ref()).unwrap();
+    let res: PoolResponse = query_pool(deps.as_ref(), env.clone()).unwrap();
     assert_eq!(
         res.assets[0].info,
         AssetInfo::Token {
@@ -1334,6 +1338,7 @@ fn test_spread() {
 
     let simulation_res: SimulationResponse = query_simulation(
         deps.as_ref(),
+        env,
         Asset {
             amount: Uint128::from(10_u128 * DECIMAL_FRACTIONAL.u128()),
             info: AssetInfo::Token {
@@ -1450,7 +1455,7 @@ fn test_query_pool() {
     let msg = ExecuteMsg::PostInitialize {};
     let info = mock_info("liquidity0000", &[]);
     let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
-    let res: PoolResponse = query_pool(deps.as_ref()).unwrap();
+    let res: PoolResponse = query_pool(deps.as_ref(), env).unwrap();
     assert_eq!(
         res.assets,
         [
@@ -1536,7 +1541,7 @@ fn test_weight_calculations() {
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
     // we can just call .unwrap() to assert this was a success
-    let _res = instantiate(deps.as_mut(), env, info, msg).unwrap();
+    let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     // check simulation res
     struct TestCase {
@@ -1583,6 +1588,7 @@ fn test_weight_calculations() {
     for t in &test_cases {
         let simulation_res = query_simulation(
             deps.as_ref(),
+            env.clone(),
             Asset {
                 info: AssetInfo::NativeToken {
                     denom: "uusd".to_string(),

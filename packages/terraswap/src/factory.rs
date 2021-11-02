@@ -27,10 +27,13 @@ pub enum ExecuteMsg {
     CreatePair {
         /// Asset infos
         asset_infos: [WeightedAssetInfo; 2],
+        /// LBP start time
         start_time: u64,
+        /// LBP end time
         end_time: u64,
+        /// Pair description
         description: Option<String>,
-        /// Init hook for after works
+        /// Init hook for post initialization
         init_hook: Option<InitHook>,
     },
     /// Register is invoked from created pair contract after initialization
@@ -76,10 +79,7 @@ pub struct PairsResponse {
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FactoryPairInfo {
-    pub asset_infos: [WeightedAssetInfo; 2],
     pub owner: Addr,
     pub contract_addr: Addr,
     pub liquidity_token: Addr,
-    pub start_time: u64,
-    pub end_time: u64,
 }

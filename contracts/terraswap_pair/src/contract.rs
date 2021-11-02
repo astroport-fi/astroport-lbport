@@ -65,7 +65,6 @@ pub fn instantiate(
     }
 
     let pair_info: &PairInfo = &PairInfo {
-        contract_addr: env.contract.address.clone(),
         liquidity_token: Addr::unchecked(""),
         asset_infos: [msg.asset_infos[0].clone(), msg.asset_infos[1].clone()],
         start_time: msg.start_time,
@@ -518,18 +517,18 @@ pub fn try_swap(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Pair {} => to_binary(&query_pair_info(deps)?),
-        QueryMsg::Pool {} => to_binary(&query_pool(deps)?),
+        QueryMsg::Pool {} => to_binary(&query_pool(deps, env)?),
         QueryMsg::Simulation {
             offer_asset,
             block_time,
-        } => to_binary(&query_simulation(deps, offer_asset, block_time)?),
+        } => to_binary(&query_simulation(deps, env, offer_asset, block_time)?),
         QueryMsg::ReverseSimulation {
             ask_asset,
             block_time,
-        } => to_binary(&query_reverse_simulation(deps, ask_asset, block_time)?),
+        } => to_binary(&query_reverse_simulation(deps, env, ask_asset, block_time)?),
     }
 }
 
@@ -537,10 +536,9 @@ pub fn query_pair_info(deps: Deps) -> StdResult<PairInfo> {
     PAIR_INFO.load(deps.storage)
 }
 
-pub fn query_pool(deps: Deps) -> StdResult<PoolResponse> {
+pub fn query_pool(deps: Deps, env: Env) -> StdResult<PoolResponse> {
     let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
-    let contract_addr = pair_info.contract_addr.clone();
-    let assets: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
+    let assets: [WeightedAsset; 2] = pair_info.query_pools(deps, &env.contract.address)?;
     let total_share: Uint128 = query_supply(deps, &pair_info.liquidity_token)?;
 
     let resp = PoolResponse {
@@ -553,13 +551,13 @@ pub fn query_pool(deps: Deps) -> StdResult<PoolResponse> {
 
 pub fn query_simulation(
     deps: Deps,
+    env: Env,
     offer_asset: Asset,
     block_time: u64,
 ) -> StdResult<SimulationResponse> {
     let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
-    let contract_addr = pair_info.contract_addr.clone();
-    let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &env.contract.address)?;
 
     let offer_pool: WeightedAsset;
     let ask_pool: WeightedAsset;
@@ -610,13 +608,13 @@ pub fn query_simulation(
 
 pub fn query_reverse_simulation(
     deps: Deps,
+    env: Env,
     ask_asset: Asset,
     block_time: u64,
 ) -> StdResult<ReverseSimulationResponse> {
     let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
 
-    let contract_addr = pair_info.contract_addr.clone();
-    let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &contract_addr)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(deps, &env.contract.address)?;
 
     let offer_pool: WeightedAsset;
     let ask_pool: WeightedAsset;

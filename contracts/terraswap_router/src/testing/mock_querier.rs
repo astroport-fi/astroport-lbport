@@ -204,7 +204,6 @@ impl WasmMockQuerier {
                 match self.terraswap_factory_querier.pairs.get(&key) {
                     Some(v) => SystemResult::Ok(
                         to_binary(&PairInfo {
-                            contract_addr: v.clone(),
                             liquidity_token: Addr::unchecked("liquidity"),
                             start_time: 0,
                             asset_infos: [

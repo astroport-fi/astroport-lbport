@@ -1,13 +1,13 @@
-use crate::asset::{Asset, AssetInfo, PairInfo, WeightedAssetInfo};
+use crate::asset::{Asset, AssetInfo};
 use crate::mock_querier::mock_dependencies;
 use crate::querier::{
     query_all_balances, query_balance, query_pair_info, query_supply, query_token_balance,
 };
 
+use crate::factory::FactoryPairInfo;
 use cosmwasm_std::testing::MOCK_CONTRACT_ADDR;
 use cosmwasm_std::{to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, Uint128, WasmMsg};
 use cw20::Cw20ExecuteMsg;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn token_balance_querier() {
@@ -251,40 +251,17 @@ fn test_asset() {
 #[test]
 fn query_terraswap_pair_contract() {
     let mut deps = mock_dependencies(&[]);
-    let start_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let end_time = start_time + 1000;
 
     deps.querier.with_terraswap_pairs(&[(
         &"asset0000uusd".to_string(),
-        &PairInfo {
-            asset_infos: [
-                WeightedAssetInfo {
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0000"),
-                    },
-                    start_weight: Uint128::from(1u128),
-                    end_weight: Uint128::from(1u128),
-                },
-                WeightedAssetInfo {
-                    info: AssetInfo::NativeToken {
-                        denom: "uusd".to_string(),
-                    },
-                    start_weight: Uint128::from(1u128),
-                    end_weight: Uint128::from(1u128),
-                },
-            ],
+        &FactoryPairInfo {
+            owner: Addr::unchecked("owner0000"),
             contract_addr: Addr::unchecked("pair0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
-            start_time,
-            end_time,
-            description: None,
         },
     )]);
 
-    let pair_info: PairInfo = query_pair_info(
+    let pair_info: FactoryPairInfo = query_pair_info(
         deps.as_ref(),
         &Addr::unchecked(MOCK_CONTRACT_ADDR),
         &[
@@ -298,6 +275,7 @@ fn query_terraswap_pair_contract() {
     )
     .unwrap();
 
-    assert_eq!(pair_info.contract_addr, Addr::unchecked("pair0000"),);
-    assert_eq!(pair_info.liquidity_token, Addr::unchecked("liquidity0000"),);
+    assert_eq!(pair_info.owner, Addr::unchecked("owner0000"));
+    assert_eq!(pair_info.contract_addr, Addr::unchecked("pair0000"));
+    assert_eq!(pair_info.liquidity_token, Addr::unchecked("liquidity0000"));
 }

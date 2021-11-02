@@ -192,7 +192,6 @@ impl AssetInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairInfo {
     pub asset_infos: [WeightedAssetInfo; 2],
-    pub contract_addr: Addr,
     pub liquidity_token: Addr,
     pub start_time: u64,
     pub end_time: u64,

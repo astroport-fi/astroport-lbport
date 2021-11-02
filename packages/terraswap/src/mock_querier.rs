@@ -6,8 +6,7 @@ use cosmwasm_std::{
 
 use std::collections::HashMap;
 
-use crate::asset::PairInfo;
-use crate::factory::QueryMsg as FactoryQueryMsg;
+use crate::factory::{FactoryPairInfo, QueryMsg as FactoryQueryMsg};
 use cw20::{BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
 
@@ -94,19 +93,21 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 
 #[derive(Clone, Default)]
 pub struct AstroportFactoryQuerier {
-    pairs: HashMap<String, PairInfo>,
+    pairs: HashMap<String, FactoryPairInfo>,
 }
 
 impl AstroportFactoryQuerier {
-    pub fn new(pairs: &[(&String, &PairInfo)]) -> Self {
+    pub fn new(pairs: &[(&String, &FactoryPairInfo)]) -> Self {
         AstroportFactoryQuerier {
             pairs: pairs_to_map(pairs),
         }
     }
 }
 
-pub(crate) fn pairs_to_map(pairs: &[(&String, &PairInfo)]) -> HashMap<String, PairInfo> {
-    let mut pairs_map: HashMap<String, PairInfo> = HashMap::new();
+pub(crate) fn pairs_to_map(
+    pairs: &[(&String, &FactoryPairInfo)],
+) -> HashMap<String, FactoryPairInfo> {
+    let mut pairs_map: HashMap<String, FactoryPairInfo> = HashMap::new();
     for (key, pair) in pairs.iter() {
         pairs_map.insert(key.to_string(), (*pair).clone());
     }
@@ -279,7 +280,7 @@ impl WasmMockQuerier {
     }
 
     // configure the terraswap pair
-    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &PairInfo)]) {
+    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &FactoryPairInfo)]) {
         self.query_handler.terraswap_factory_querier = AstroportFactoryQuerier::new(pairs);
     }
 

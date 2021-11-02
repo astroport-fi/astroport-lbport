@@ -144,9 +144,6 @@ pub fn try_create_pair(
             owner: info.sender,
             liquidity_token: Addr::unchecked(""),
             contract_addr: Addr::unchecked(""),
-            asset_infos: weighted_asset_infos.clone(),
-            start_time,
-            end_time,
         },
     )?;
 

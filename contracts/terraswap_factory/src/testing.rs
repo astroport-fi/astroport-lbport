@@ -199,26 +199,7 @@ fn create_pair() {
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
-    assert_eq!(pair_info.start_time, start_time);
-    assert_eq!(pair_info.end_time, end_time);
-    assert_eq!(pair_info.asset_infos[0].info, asset_infos[0].info);
-    assert_eq!(
-        pair_info.asset_infos[0].start_weight,
-        asset_infos[0].start_weight
-    );
-    assert_eq!(
-        pair_info.asset_infos[0].end_weight,
-        asset_infos[0].end_weight
-    );
-    assert_eq!(pair_info.asset_infos[1].info, asset_infos[1].info);
-    assert_eq!(
-        pair_info.asset_infos[1].start_weight,
-        asset_infos[1].start_weight
-    );
-    assert_eq!(
-        pair_info.asset_infos[1].end_weight,
-        asset_infos[1].end_weight
-    );
+    assert_eq!(pair_info.liquidity_token, Addr::unchecked(""));
 }
 
 #[test]
@@ -291,7 +272,6 @@ fn register() {
                     end_weight: Uint128::new(20),
                 },
             ],
-            contract_addr: Addr::unchecked("pair0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
             start_time,
             end_time,
@@ -323,9 +303,6 @@ fn register() {
             owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
-            asset_infos: asset_infos.clone(),
-            start_time,
-            end_time,
         }
     );
 
@@ -388,7 +365,6 @@ fn register() {
                     end_weight: Uint128::new(20),
                 },
             ],
-            contract_addr: Addr::unchecked("pair0001"),
             liquidity_token: Addr::unchecked("liquidity0001"),
             start_time,
             end_time,
@@ -418,17 +394,11 @@ fn register() {
                 owner: Addr::unchecked("addr0000"),
                 liquidity_token: Addr::unchecked("liquidity0000"),
                 contract_addr: Addr::unchecked("pair0000"),
-                asset_infos: asset_infos.clone(),
-                start_time,
-                end_time,
             },
             FactoryPairInfo {
                 owner: Addr::unchecked("addr0000"),
                 liquidity_token: Addr::unchecked("liquidity0001"),
-                contract_addr: Addr::unchecked("pair0001"),
-                asset_infos: asset_infos_2.clone(),
-                start_time,
-                end_time,
+                contract_addr: Addr::unchecked("pair0001")
             }
         ]
     );
@@ -446,9 +416,6 @@ fn register() {
             owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
-            asset_infos: asset_infos.clone(),
-            start_time,
-            end_time,
         }]
     );
 
@@ -465,9 +432,6 @@ fn register() {
             owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
-            asset_infos: asset_infos_2.clone(),
-            start_time,
-            end_time,
         }]
     );
 
@@ -520,9 +484,6 @@ fn register() {
             owner: Addr::unchecked("addr0000"),
             liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
-            asset_infos: asset_infos_2.clone(),
-            start_time,
-            end_time,
         }]
     );
 }
