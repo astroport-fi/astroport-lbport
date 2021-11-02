@@ -211,7 +211,6 @@ pub fn receive_cw20(
             env,
             info,
             cw20_msg.amount,
-            cw20_msg.sender,
             assets,
             slippage_tolerance,
         ),
@@ -344,13 +343,12 @@ pub fn try_provide_liquidity_by_cw20hook(
     env: Env,
     info: MessageInfo,
     token_amount: Uint128,
-    token_sender: String,
     assets: [Asset; 2],
     slippage_tolerance: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     println!("info.funds: {:?}", info.funds);
     for asset in assets.iter() {
-        //asset.assert_sent_native_token_balance(&info)?;
+        asset.assert_sent_native_token_balance(&info)?;
         asset.assert_sent_token_balance(token_amount, info.sender.to_string())?;
     }
 
@@ -399,11 +397,8 @@ pub fn try_provide_liquidity_by_cw20hook(
         // == deposit_0 * total_share / pool_0
         // 2. sqrt(deposit_1 * exchange_rate_1_to_0 * deposit_1) * (total_share / sqrt(pool_1 * pool_1))
         // == deposit_1 * total_share / pool_1
-        println!("pools[0].amount: {}", pools[0].amount);
-        println!("pools[1].amount: {}", pools[1].amount);
-        println!("pools[1].amount: {}", pools[1].info);
         std::cmp::min(
-            deposits[0].multiply_ratio(total_share, Uint128::new(1)), //pools[0].amount),
+            deposits[0].multiply_ratio(total_share, pools[0].amount),
             deposits[1].multiply_ratio(total_share, pools[1].amount),
         )
     };
@@ -423,6 +418,7 @@ pub fn try_provide_liquidity_by_cw20hook(
         gas_limit: None,
         reply_on: ReplyOn::Never,
     });
+
     Ok(Response::new()
         .add_submessages(messages)
         .add_attributes(vec![
