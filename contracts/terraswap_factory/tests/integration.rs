@@ -69,6 +69,7 @@ fn proper_initialization() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -82,7 +83,7 @@ fn proper_initialization() {
     let config_res: ConfigResponse = from_binary(&query_res).unwrap();
     assert_eq!(123u64, config_res.token_code_id);
     assert_eq!(321u64, config_res.pair_code_id);
-    assert_eq!(Addr::unchecked("addr0000"), config_res.owner);
+    assert_eq!(Addr::unchecked("owner0000"), config_res.owner);
 }
 
 #[test]
@@ -91,6 +92,7 @@ fn update_config() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -102,7 +104,7 @@ fn update_config() {
 
     // update owner
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner: Some(Addr::unchecked("addr0001")),
         pair_code_id: None,
@@ -160,9 +162,12 @@ fn create_pair() {
     let end_time = start_time + 1000;
     let mut deps = mock_instance(WASM, &[]);
 
+    let owner = "owner0000";
+
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: owner.to_string(),
         init_hook: None,
     };
 
@@ -229,7 +234,7 @@ fn create_pair() {
             code_id: 321u64,
             funds: vec![],
             label: String::from(""),
-            admin: None
+            admin: Some(owner.to_string()),
         }))]
     );
 }

@@ -6,8 +6,9 @@ Uniswap-inspired automated market-maker (AMM) protocol powered by Smart Contract
 
 | Name                                               | Description                                  |
 | -------------------------------------------------- | -------------------------------------------- |
-| [`terraswap_factory`](contracts/terraswap_factory) |                                              |
-| [`terraswap_pair`](contracts/terraswap_pair)       |                                              |
+| [`terraswap_factory`](contracts/terraswap_factory) | Pool creation factory                        |
+| [`terraswap_pair`](contracts/terraswap_pair)       | Pair with x*y=k curve                        |
+| [`terraswap_router`](contracts/terraswap_router)   | Multi-hop trade router                       |
 | [`terraswap_token`](contracts/terraswap_token)     | CW20 (ERC20 equivalent) token implementation |
 
 ## Running this contract
@@ -36,7 +37,7 @@ Or for a production-ready (compressed) build, run the following from the reposit
 docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/workspace-optimizer:0.10.2
+  cosmwasm/workspace-optimizer:0.12.3
 ```
 
 The optimized contracts are generated in the artifacts/ directory.

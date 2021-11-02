@@ -75,7 +75,7 @@ fn proper_initialization() {
     // we can just call .unwrap() to assert this was a success
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
-    let res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
     assert_eq!(
         res.messages,
         vec![

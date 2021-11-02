@@ -4,7 +4,7 @@ use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 
-use crate::state::read_pair;
+use crate::state::{read_pair, CONFIG};
 
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -22,6 +22,7 @@ fn proper_initialization() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -35,7 +36,7 @@ fn proper_initialization() {
     let config_res: ConfigResponse = from_binary(&query_res).unwrap();
     assert_eq!(123u64, config_res.token_code_id);
     assert_eq!(321u64, config_res.pair_code_id);
-    assert_eq!(Addr::unchecked("addr0000"), config_res.owner);
+    assert_eq!(Addr::unchecked("owner0000"), config_res.owner);
 }
 
 #[test]
@@ -45,6 +46,7 @@ fn update_config() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -56,7 +58,7 @@ fn update_config() {
 
     // update owner
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner: Some(Addr::unchecked("addr0001")),
         pair_code_id: None,
@@ -121,6 +123,7 @@ fn create_pair() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 
@@ -157,6 +160,7 @@ fn create_pair() {
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
+    let config = CONFIG.load(&deps.storage);
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
         res.attributes,
@@ -185,7 +189,7 @@ fn create_pair() {
             .unwrap(),
             code_id: 321u64,
             funds: vec![],
-            admin: None,
+            admin: Some(config.unwrap().owner.to_string()),
             label: String::from(""),
         }))]
     );
@@ -230,6 +234,7 @@ fn register() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        owner: "owner0000".to_string(),
         init_hook: None,
     };
 

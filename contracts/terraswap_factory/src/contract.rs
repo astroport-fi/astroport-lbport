@@ -2,11 +2,8 @@ use cosmwasm_std::{
     attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response,
     StdError, StdResult, SubMsg, WasmMsg,
 };
+use cw2::set_contract_version;
 
-use crate::querier::query_liquidity_token;
-use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
-
-use crate::error::ContractError;
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
@@ -15,15 +12,26 @@ use terraswap::factory::{
 use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
+use crate::error::ContractError;
+use crate::querier::query_liquidity_token;
+use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
+
+// version info for migration info
+const CONTRACT_NAME: &str = "terraswap-factory";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    let owner = deps.api.addr_validate(&msg.owner)?;
+
     let config = Config {
-        owner: info.sender,
+        owner,
         token_code_id: msg.token_code_id,
         pair_code_id: msg.pair_code_id,
     };
@@ -146,7 +154,7 @@ pub fn try_create_pair(
         msg: WasmMsg::Instantiate {
             code_id: config.pair_code_id,
             funds: vec![],
-            admin: None,
+            admin: Some(config.owner.to_string()),
             label: String::from(""),
             msg: to_binary(&PairInstantiateMsg {
                 asset_infos: weighted_asset_infos.clone(),
