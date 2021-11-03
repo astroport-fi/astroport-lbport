@@ -391,9 +391,6 @@ fn execute_swap_operation() {
     let env = mock_env();
     let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
-
-    format!("{}", res.messages[0].msg.);
-    // println!("{}", res.messages);
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
