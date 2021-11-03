@@ -365,9 +365,9 @@ fn execute_swap_operation() {
     deps.querier.with_terraswap_pairs(&[(
         &"assetuusd".to_string(),
         &FactoryPairInfo {
-            owner: Addr::unchecked("addr0000"),
+            owner: Addr::unchecked("owner0000"),
             contract_addr: Addr::unchecked("pair"),
-            liquidity_token: Addr::unchecked("liquidity0001"),
+            liquidity_token: Addr::unchecked("liquidity0000"),
         },
     )]);
     deps.querier.with_token_balances(&[(

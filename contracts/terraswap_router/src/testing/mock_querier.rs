@@ -208,27 +208,8 @@ impl WasmMockQuerier {
                     Some(v) => SystemResult::Ok(
                         to_binary(&FactoryPairInfo {
                             owner: Addr::unchecked("owner0000"),
-                            contract_addr: Addr::unchecked("pair0000"),
+                            contract_addr: Addr::unchecked("pair"),
                             liquidity_token: Addr::unchecked("liquidity0000"),
-                            // start_time: 0,
-                            // asset_infos: [
-                            //     WeightedAssetInfo {
-                            //         info: AssetInfo::NativeToken {
-                            //             denom: "uusd".to_string(),
-                            //         },
-                            //         start_weight: Default::default(),
-                            //         end_weight: Default::default(),
-                            //     },
-                            //     WeightedAssetInfo {
-                            //         info: AssetInfo::NativeToken {
-                            //             denom: "uusd".to_string(),
-                            //         },
-                            //         start_weight: Default::default(),
-                            //         end_weight: Default::default(),
-                            //     },
-                            // ],
-                            // end_time: 0,
-                            // description: None,
                         })
                         .into(),
                     ),
