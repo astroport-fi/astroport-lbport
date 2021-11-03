@@ -233,7 +233,7 @@ fn create_pair() {
             .unwrap(),
             code_id: 321u64,
             funds: vec![],
-            label: String::from(""),
+            label: String::from("TerraSwap pair"),
             admin: Some(owner.to_string()),
         }))]
     );

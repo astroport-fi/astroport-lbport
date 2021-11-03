@@ -154,14 +154,14 @@ fn create_pair() {
         asset_infos: asset_infos.clone(),
         start_time,
         end_time,
-        init_hook: None,
         description: Some(String::from("description")),
+        init_hook: None,
     };
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
     let config = CONFIG.load(&deps.storage);
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
@@ -169,6 +169,7 @@ fn create_pair() {
             attr("pair", "asset0000-asset0001")
         ]
     );
+
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
@@ -190,13 +191,13 @@ fn create_pair() {
             code_id: 321u64,
             funds: vec![],
             admin: Some(config.unwrap().owner.to_string()),
-            label: String::from(""),
+            label: String::from("TerraSwap pair"),
         }))]
     );
 
     let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
-
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
+
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
     assert_eq!(pair_info.start_time, start_time);
