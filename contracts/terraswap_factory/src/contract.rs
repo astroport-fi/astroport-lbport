@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response,
-    StdError, StdResult, SubMsg, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
+    ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 
@@ -36,21 +36,16 @@ pub fn instantiate(
         pair_code_id: msg.pair_code_id,
     };
     CONFIG.save(deps.storage, &config)?;
-    let mut messages: Vec<SubMsg> = vec![];
+
     if let Some(hook) = msg.init_hook {
-        messages.push(SubMsg {
-            msg: WasmMsg::Execute {
-                contract_addr: hook.contract_addr.to_string(),
-                msg: hook.msg,
-                funds: vec![],
-            }
-            .into(),
-            id: 0,
-            gas_limit: None,
-            reply_on: ReplyOn::Never,
+        let _msg1: CosmosMsg<WasmMsg> = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: hook.contract_addr.to_string(),
+            msg: hook.msg,
+            funds: vec![],
         });
     }
-    Ok(Response::new().add_submessages(messages))
+
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
