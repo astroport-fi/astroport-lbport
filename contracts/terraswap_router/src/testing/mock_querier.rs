@@ -12,7 +12,8 @@ use cw20::{BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 use terra_cosmwasm::{
     SwapResponse, TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute,
 };
-use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAssetInfo};
+use terraswap::asset::{Asset, AssetInfo};
+use terraswap::factory::FactoryPairInfo;
 use terraswap::pair::SimulationResponse;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -102,21 +103,23 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 
 #[derive(Clone, Default)]
 pub struct TerraswapFactoryQuerier {
-    pairs: HashMap<String, Addr>,
+    pairs: HashMap<String, FactoryPairInfo>,
 }
 
 impl TerraswapFactoryQuerier {
-    pub fn new(pairs: &[(&String, &Addr)]) -> Self {
+    pub fn new(pairs: &[(&String, &FactoryPairInfo)]) -> Self {
         TerraswapFactoryQuerier {
             pairs: pairs_to_map(pairs),
         }
     }
 }
 
-pub(crate) fn pairs_to_map(pairs: &[(&String, &Addr)]) -> HashMap<String, Addr> {
-    let mut pairs_map: HashMap<String, Addr> = HashMap::new();
+pub(crate) fn pairs_to_map(
+    pairs: &[(&String, &FactoryPairInfo)],
+) -> HashMap<String, FactoryPairInfo> {
+    let mut pairs_map: HashMap<String, FactoryPairInfo> = HashMap::new();
     for (key, pair) in pairs.iter() {
-        pairs_map.insert(key.to_string(), Addr::from((*pair).clone()));
+        pairs_map.insert(key.to_string(), (*pair).clone());
     }
     pairs_map
 }
@@ -203,27 +206,29 @@ impl WasmMockQuerier {
                 let key = asset_infos[0].to_string() + asset_infos[1].to_string().as_str();
                 match self.terraswap_factory_querier.pairs.get(&key) {
                     Some(v) => SystemResult::Ok(
-                        to_binary(&PairInfo {
-                            liquidity_token: Addr::unchecked("liquidity"),
-                            start_time: 0,
-                            asset_infos: [
-                                WeightedAssetInfo {
-                                    info: AssetInfo::NativeToken {
-                                        denom: "uusd".to_string(),
-                                    },
-                                    start_weight: Default::default(),
-                                    end_weight: Default::default(),
-                                },
-                                WeightedAssetInfo {
-                                    info: AssetInfo::NativeToken {
-                                        denom: "uusd".to_string(),
-                                    },
-                                    start_weight: Default::default(),
-                                    end_weight: Default::default(),
-                                },
-                            ],
-                            end_time: 0,
-                            description: None,
+                        to_binary(&FactoryPairInfo {
+                            owner: Addr::unchecked("owner0000"),
+                            contract_addr: Addr::unchecked("pair0000"),
+                            liquidity_token: Addr::unchecked("liquidity0000"),
+                            // start_time: 0,
+                            // asset_infos: [
+                            //     WeightedAssetInfo {
+                            //         info: AssetInfo::NativeToken {
+                            //             denom: "uusd".to_string(),
+                            //         },
+                            //         start_weight: Default::default(),
+                            //         end_weight: Default::default(),
+                            //     },
+                            //     WeightedAssetInfo {
+                            //         info: AssetInfo::NativeToken {
+                            //             denom: "uusd".to_string(),
+                            //         },
+                            //         start_weight: Default::default(),
+                            //         end_weight: Default::default(),
+                            //     },
+                            // ],
+                            // end_time: 0,
+                            // description: None,
                         })
                         .into(),
                     ),
@@ -320,7 +325,7 @@ impl WasmMockQuerier {
         self.tax_querier = TaxQuerier::new(rate, caps);
     }
 
-    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &Addr)]) {
+    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &FactoryPairInfo)]) {
         self.terraswap_factory_querier = TerraswapFactoryQuerier::new(pairs);
     }
 }

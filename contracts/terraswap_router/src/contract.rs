@@ -15,7 +15,7 @@ use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
 use terraswap::asset::{Asset, AssetInfo};
 use terraswap::factory::FactoryPairInfo;
 use terraswap::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
-use terraswap::querier::query_pair_info;
+use terraswap::querier::query_factory_pair_info;
 use terraswap::router::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
     SimulateSwapOperationsResponse, SwapOperation,
@@ -263,7 +263,7 @@ fn simulate_swap_operations(
                 offer_asset_info,
                 ask_asset_info,
             } => {
-                let pair_info: FactoryPairInfo = query_pair_info(
+                let pair_info: FactoryPairInfo = query_factory_pair_info(
                     deps,
                     &terraswap_factory,
                     &[offer_asset_info.clone(), ask_asset_info.clone()],

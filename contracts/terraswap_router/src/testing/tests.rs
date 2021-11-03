@@ -11,6 +11,7 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terra_cosmwasm::{create_swap_msg, create_swap_send_msg};
 use terraswap::asset::{Asset, AssetInfo};
+use terraswap::factory::FactoryPairInfo;
 use terraswap::pair::ExecuteMsg as PairExecuteMsg;
 use terraswap::router::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
@@ -300,9 +301,6 @@ fn execute_swap_operation() {
 
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env, info, msg).unwrap();
-
-    deps.querier
-        .with_terraswap_pairs(&[(&"uusdasset".to_string(), &Addr::unchecked("pair"))]);
     deps.querier.with_tax(
         Decimal::percent(5),
         &[(&"uusd".to_string(), &Uint128::new(1000000u128))],
@@ -364,8 +362,14 @@ fn execute_swap_operation() {
         ))],
     );
 
-    deps.querier
-        .with_terraswap_pairs(&[(&"assetuusd".to_string(), &Addr::unchecked("pair"))]);
+    deps.querier.with_terraswap_pairs(&[(
+        &"assetuusd".to_string(),
+        &FactoryPairInfo {
+            owner: Addr::unchecked("addr0000"),
+            contract_addr: Addr::unchecked("pair"),
+            liquidity_token: Addr::unchecked("liquidity0001"),
+        },
+    )]);
     deps.querier.with_token_balances(&[(
         &Addr::unchecked("asset"),
         &[(
@@ -387,6 +391,9 @@ fn execute_swap_operation() {
     let env = mock_env();
     let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
+
+    format!("{}", res.messages[0].msg.);
+    // println!("{}", res.messages);
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -436,14 +443,14 @@ fn query_buy_with_routes() {
         ],
     );
 
-    let mut _block_time = SystemTime::now()
+    let mut block_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
 
     let msg = QueryMsg::SimulateSwapOperations {
         offer_amount: Uint128::from(1000000u128),
-        block_time: _block_time,
+        block_time,
         operations: vec![
             SwapOperation::NativeSwap {
                 offer_denom: "uusd".to_string(),
@@ -468,8 +475,22 @@ fn query_buy_with_routes() {
         ],
     };
     deps.querier.with_terraswap_pairs(&[
-        (&"ukrwasset0000".to_string(), &Addr::unchecked("pair0000")),
-        (&"asset0000uluna".to_string(), &Addr::unchecked("pair0001")),
+        (
+            &"ukrwasset0000".to_string(),
+            &FactoryPairInfo {
+                owner: Addr::unchecked("owner0000"),
+                contract_addr: Addr::unchecked("pair0000"),
+                liquidity_token: Addr::unchecked("liquidity0000"),
+            },
+        ),
+        (
+            &"asset0000uluna".to_string(),
+            &FactoryPairInfo {
+                owner: Addr::unchecked("owner0001"),
+                contract_addr: Addr::unchecked("pair0001"),
+                liquidity_token: Addr::unchecked("liquidity0001"),
+            },
+        ),
     ]);
 
     let res: SimulateSwapOperationsResponse =
@@ -481,14 +502,14 @@ fn query_buy_with_routes() {
         }
     );
 
-    _block_time = SystemTime::now()
+    block_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
 
     let msg = QueryMsg::SimulateSwapOperations {
         offer_amount: Uint128::from(1000000u128),
-        block_time: _block_time,
+        block_time,
         operations: vec![
             SwapOperation::NativeSwap {
                 offer_denom: "uusd".to_string(),

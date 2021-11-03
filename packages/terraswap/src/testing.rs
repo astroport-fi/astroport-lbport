@@ -1,7 +1,7 @@
 use crate::asset::{Asset, AssetInfo};
 use crate::mock_querier::mock_dependencies;
 use crate::querier::{
-    query_all_balances, query_balance, query_pair_info, query_supply, query_token_balance,
+    query_all_balances, query_balance, query_factory_pair_info, query_supply, query_token_balance,
 };
 
 use crate::factory::FactoryPairInfo;
@@ -261,7 +261,7 @@ fn query_terraswap_pair_contract() {
         },
     )]);
 
-    let pair_info: FactoryPairInfo = query_pair_info(
+    let pair_info: FactoryPairInfo = query_factory_pair_info(
         deps.as_ref(),
         &Addr::unchecked(MOCK_CONTRACT_ADDR),
         &[

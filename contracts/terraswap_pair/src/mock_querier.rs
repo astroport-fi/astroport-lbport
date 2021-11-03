@@ -5,8 +5,6 @@ use cosmwasm_std::{
 };
 use std::collections::HashMap;
 
-//use terraswap::factory::FeeInfoResponse;
-//use terraswap::factory::QueryMsg::FeeInfo;
 use cw20::{BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
 
