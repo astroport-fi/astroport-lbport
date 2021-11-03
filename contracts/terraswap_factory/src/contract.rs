@@ -155,7 +155,7 @@ pub fn try_create_pair(
             code_id: config.pair_code_id,
             funds: vec![],
             admin: Some(config.owner.to_string()),
-            label: String::from(""),
+            label: String::from("terraswap liquidity pair"),
             msg: to_binary(&PairInstantiateMsg {
                 asset_infos: weighted_asset_infos.clone(),
                 token_code_id: config.token_code_id,
