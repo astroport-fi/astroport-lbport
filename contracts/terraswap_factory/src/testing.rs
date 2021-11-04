@@ -1,4 +1,6 @@
-use cosmwasm_std::{attr, from_binary, to_binary, Addr, CosmosMsg, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{
+    attr, from_binary, to_binary, Addr, CosmosMsg, ReplyOn, SubMsg, Uint128, WasmMsg,
+};
 
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
@@ -6,13 +8,12 @@ use crate::mock_querier::mock_dependencies;
 
 use crate::state::{read_pair, CONFIG};
 
-use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
+use cosmwasm_std::testing::{mock_env, mock_info};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
 };
-use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[test]
@@ -161,7 +162,7 @@ fn create_pair() {
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
     let config = CONFIG.load(&deps.storage);
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
@@ -171,27 +172,37 @@ fn create_pair() {
     );
     assert_eq!(
         res.messages,
-        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-            msg: to_binary(&PairInstantiateMsg {
-                asset_infos: asset_infos.clone(),
-                token_code_id: 123u64,
-                init_hook: Some(InitHook {
-                    contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
+        vec![
+            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
+                msg: to_binary(&PairInstantiateMsg {
+                    asset_infos: asset_infos.clone(),
+                    token_code_id: 123u64,
+                    init_hook: None,
+                    start_time,
+                    end_time,
+                    description: Some(String::from("description")),
+                })
+                .unwrap(),
+                code_id: 321u64,
+                funds: vec![],
+                admin: Some(config.unwrap().owner.to_string()),
+                label: String::from("terraswap pair"),
+            })),
+            SubMsg {
+                id: 0,
+                msg: WasmMsg::Execute {
+                    contract_addr: env.contract.address.to_string(),
                     msg: to_binary(&ExecuteMsg::Register {
                         asset_infos: asset_infos.clone()
                     })
                     .unwrap(),
-                }),
-                start_time,
-                end_time,
-                description: Some(String::from("description")),
-            })
-            .unwrap(),
-            code_id: 321u64,
-            funds: vec![],
-            admin: Some(config.unwrap().owner.to_string()),
-            label: String::from(""),
-        }))]
+                    funds: vec![],
+                }
+                .into(),
+                gas_limit: None,
+                reply_on: ReplyOn::Success,
+            }
+        ]
     );
 
     let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
