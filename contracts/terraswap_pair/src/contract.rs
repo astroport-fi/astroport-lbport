@@ -22,7 +22,7 @@ use terraswap::querier::query_supply;
 use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 /// Commission rate == 0.15%
-const COMMISSION_RATE: &str = "0.0015";
+pub const COMMISSION_RATE: &str = "0.0015";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
