@@ -93,10 +93,7 @@ fn proper_initialization() {
                             minter: MOCK_CONTRACT_ADDR.to_string(),
                             cap: None,
                         }),
-                        init_hook: Some(InitHook {
-                            msg: to_binary(&ExecuteMsg::PostInitialize {}).unwrap(),
-                            contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
-                        }),
+                        init_hook: None
                     })
                     .unwrap(),
                     funds: vec![],
@@ -116,6 +113,17 @@ fn proper_initialization() {
                 .into(),
                 gas_limit: None,
                 reply_on: ReplyOn::Never
+            },
+            SubMsg {
+                id: 1,
+                msg: WasmMsg::Execute {
+                    contract_addr: env.contract.address.to_string(),
+                    msg: to_binary(&ExecuteMsg::PostInitialize {}).unwrap(),
+                    funds: vec![],
+                }
+                .into(),
+                gas_limit: None,
+                reply_on: ReplyOn::Success
             },
         ]
     );

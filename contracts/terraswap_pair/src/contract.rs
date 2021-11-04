@@ -4,7 +4,7 @@ use crate::state::PAIR_INFO;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, entry_point, from_binary, to_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps,
-    DepsMut, Env, MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg,
+    DepsMut, Env, MessageInfo, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use terraswap::U256;
 
@@ -14,7 +14,7 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
-use terraswap::hook::InitHook;
+
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
     ReverseSimulationResponse, SimulationResponse,
@@ -28,6 +28,8 @@ const COMMISSION_RATE: &str = "0.0015";
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-pair";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const INSTANTIATE_REPLY_ID: u64 = 1;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -87,15 +89,24 @@ pub fn instantiate(
                 minter: env.contract.address.to_string(),
                 cap: None,
             }),
-            init_hook: Some(InitHook {
-                msg: to_binary(&ExecuteMsg::PostInitialize {})?,
-                contract_addr: env.contract.address,
-            }),
+            init_hook: None,
         })?,
         funds: vec![],
         admin: None,
         label: String::from("terraswap liquidity token"),
     })];
+
+    let sub_message: SubMsg = SubMsg {
+        id: INSTANTIATE_REPLY_ID,
+        msg: WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::PostInitialize {})?,
+            funds: vec![],
+        }
+        .into(),
+        gas_limit: None,
+        reply_on: ReplyOn::Success,
+    };
 
     if let Some(hook) = msg.init_hook {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -105,7 +116,9 @@ pub fn instantiate(
         }));
     }
 
-    Ok(Response::new().add_messages(messages))
+    Ok(Response::new()
+        .add_messages(messages)
+        .add_submessage(sub_message))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
