@@ -19,8 +19,8 @@
 
 use cosmwasm_std::testing::mock_info;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Coin, ContractResult, CosmosMsg, Response, SubMsg, Uint128,
-    WasmMsg,
+    attr, from_binary, to_binary, Addr, Coin, ContractResult, CosmosMsg, ReplyOn, Response, SubMsg,
+    Uint128, WasmMsg,
 };
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier,
@@ -214,27 +214,36 @@ fn create_pair() {
     );
     assert_eq!(
         res.messages,
-        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-            msg: to_binary(&PairInstantiateMsg {
-                asset_infos: asset_infos.clone(),
-                token_code_id: 123u64,
-                init_hook: Some(InitHook {
-                    contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
+        vec![
+            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
+                msg: to_binary(&PairInstantiateMsg {
+                    asset_infos: asset_infos.clone(),
+                    token_code_id: 123u64,
+                    init_hook: None,
+                    start_time,
+                    end_time,
+                    description: Some(String::from("description")),
+                })
+                .unwrap(),
+                code_id: 321u64,
+                funds: vec![],
+                admin: Some(owner.to_string()),
+                label: String::from("terraswap pair"),
+            })),
+            SubMsg {
+                id: 0,
+                msg: WasmMsg::Execute {
+                    contract_addr: env.contract.address.to_string(),
                     msg: to_binary(&ExecuteMsg::Register {
                         asset_infos: asset_infos.clone()
                     })
                     .unwrap(),
-                }),
-
-                start_time,
-                end_time,
-                description: Some(String::from("description")),
-            })
-            .unwrap(),
-            code_id: 321u64,
-            funds: vec![],
-            label: String::from(""),
-            admin: Some(owner.to_string()),
-        }))]
+                    funds: vec![],
+                }
+                .into(),
+                gas_limit: None,
+                reply_on: ReplyOn::Success,
+            }
+        ]
     );
 }
