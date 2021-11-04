@@ -204,7 +204,7 @@ fn create_pair() {
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
-    let res: Response = execute(&mut deps, env, info, msg).unwrap();
+    let res: Response = execute(&mut deps, env.clone(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
