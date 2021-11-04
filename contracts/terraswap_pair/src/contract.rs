@@ -4,7 +4,8 @@ use crate::state::PAIR_INFO;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, entry_point, from_binary, to_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps,
-    DepsMut, Env, MessageInfo, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
+    DepsMut, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128,
+    WasmMsg,
 };
 use terraswap::U256;
 
@@ -14,6 +15,7 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
+use terraswap::hook::InitHook;
 
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
@@ -78,6 +80,20 @@ pub fn instantiate(
     PAIR_INFO.save(deps.storage, pair_info)?;
 
     // Create LP token
+    let init_hook_lp_token = InitHook {
+        msg: to_binary(&SubMsg {
+            id: INSTANTIATE_REPLY_ID,
+            msg: WasmMsg::Execute {
+                contract_addr: env.contract.address.to_string(),
+                msg: to_binary(&ExecuteMsg::PostInitialize {})?,
+                funds: vec![],
+            },
+            gas_limit: None,
+            reply_on: ReplyOn::Success,
+        })?,
+        contract_addr: env.contract.address,
+    };
+
     let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
         code_id: msg.token_code_id,
         msg: to_binary(&TokenInstantiateMsg {
@@ -89,24 +105,12 @@ pub fn instantiate(
                 minter: env.contract.address.to_string(),
                 cap: None,
             }),
-            init_hook: None,
+            init_hook: Some(init_hook_lp_token),
         })?,
         funds: vec![],
         admin: None,
         label: String::from("terraswap liquidity token"),
     })];
-
-    let sub_message: SubMsg = SubMsg {
-        id: INSTANTIATE_REPLY_ID,
-        msg: WasmMsg::Execute {
-            contract_addr: env.contract.address.to_string(),
-            msg: to_binary(&ExecuteMsg::PostInitialize {})?,
-            funds: vec![],
-        }
-        .into(),
-        gas_limit: None,
-        reply_on: ReplyOn::Success,
-    };
 
     if let Some(hook) = msg.init_hook {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -116,9 +120,37 @@ pub fn instantiate(
         }));
     }
 
-    Ok(Response::new()
-        .add_messages(messages)
-        .add_submessage(sub_message))
+    Ok(Response::new().add_messages(messages))
+}
+
+/// This just stores the result for future query
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+    // let tmp_pair_info = TMP_PAIR_INFO.load(deps.storage)?;
+    //
+    // let res: MsgInstantiateContractResponse =
+    //     Message::parse_from_bytes(msg.result.unwrap().data.unwrap().as_slice()).map_err(|_| {
+    //         StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+    //     })?;
+    //
+    // let pair_contract = res.get_contract_address();
+    // let liquidity_token = query_liquidity_token(deps.as_ref(), Addr::unchecked(pair_contract))?;
+    //
+    // PAIRS.save(
+    //     deps.storage,
+    //     &tmp_pair_info.pair_key,
+    //     &PairInfoRaw {
+    //         liquidity_token: deps.api.addr_canonicalize(liquidity_token.as_str())?,
+    //         contract_addr: deps.api.addr_canonicalize(pair_contract)?,
+    //         asset_infos: tmp_pair_info.asset_infos,
+    //     },
+    // )?;
+    //
+    // Ok(Response::new().add_attributes(vec![
+    //     ("pair_contract_addr", pair_contract),
+    //     ("liquidity_token_addr", liquidity_token.as_str()),
+    // ]))
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -130,7 +162,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
-        ExecuteMsg::PostInitialize {} => try_post_initialize(deps, info),
+        //ExecuteMsg::PostInitialize {} => try_post_initialize(deps, info),
         ExecuteMsg::ProvideLiquidity {
             assets,
             slippage_tolerance,
