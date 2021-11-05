@@ -2,11 +2,11 @@ use crate::contract::{
     assert_max_spread, compute_swap, execute, instantiate, query_pair_info, query_pool,
     query_reverse_simulation, query_simulation, COMMISSION_RATE,
 };
-use crate::math::FixedFloat;
 use crate::mock_querier::mock_dependencies;
 use proptest::prelude::*;
 
 use crate::error::ContractError;
+use crate::math::uint2dec;
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
@@ -1620,9 +1620,9 @@ fn test_weight_calculations() {
 #[test]
 fn compute_swap_rounding() {
     let offer_pool = Uint128::from(5_000_000_000_000_000_u128);
-    let offer_weight = FixedFloat::from_num(1);
+    let offer_weight = Decimal256::one();
     let ask_pool = Uint128::from(1_000_000_000_000_u128);
-    let ask_weight = FixedFloat::from_num(1);
+    let ask_weight = Decimal256::one();
     let offer_amount = Uint128::from(1_u128);
 
     let return_amount = Uint128::from(0_u128);
@@ -1638,16 +1638,17 @@ fn compute_swap_rounding() {
 proptest! {
     #[test]
     fn compute_swap_test(
-        offer_pool in 1_000000..9_000_000_000_000_000000u128,
+        offer_pool in 1_000_000..9_000_000_000_000_000_000u128,
+        ask_pool in 1_000_000..9_000_000_000_000_000_000u128,
         offer_weight in 1..50u128,
-        ask_pool in 1_000000..9_000_000_000_000_000000u128,
         ask_weight in 1..50u128,
         offer_amount in 1..100_000_000000u128,
     ) {
+
         let offer_pool = Uint128::from(offer_pool);
-        let offer_weight = FixedFloat::from_num(offer_weight);
         let ask_pool = Uint128::from(ask_pool);
-        let ask_weight = FixedFloat::from_num(ask_weight);
+        let offer_weight = uint2dec(Uint128::from(offer_weight));
+        let ask_weight = uint2dec(Uint128::from(ask_weight));
         let offer_amount = Uint128::from(offer_amount);
 
 
