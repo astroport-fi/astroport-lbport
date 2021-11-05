@@ -1,6 +1,6 @@
 use crate::contract::{
     assert_max_spread, compute_swap, execute, instantiate, query_pair_info, query_pool,
-    query_reverse_simulation, query_simulation, COMMISSION_RATE, reply
+    query_reverse_simulation, query_simulation, reply, COMMISSION_RATE,
 };
 use crate::mock_querier::mock_dependencies;
 use proptest::prelude::*;
