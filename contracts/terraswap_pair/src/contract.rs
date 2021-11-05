@@ -15,7 +15,6 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
-use terraswap::hook::InitHook;
 
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
@@ -80,77 +79,58 @@ pub fn instantiate(
     PAIR_INFO.save(deps.storage, pair_info)?;
 
     // Create LP token
-    let init_hook_lp_token = InitHook {
-        msg: to_binary(&SubMsg {
-            id: INSTANTIATE_REPLY_ID,
-            msg: WasmMsg::Execute {
-                contract_addr: env.contract.address.to_string(),
-                msg: to_binary(&ExecuteMsg::PostInitialize {})?,
-                funds: vec![],
-            },
-            gas_limit: None,
-            reply_on: ReplyOn::Success,
-        })?,
-        contract_addr: env.contract.address,
-    };
-
-    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
-        code_id: msg.token_code_id,
-        msg: to_binary(&TokenInstantiateMsg {
-            name: "terraswap liquidity token".to_string(),
-            symbol: "uLP".to_string(),
-            decimals: 6,
-            initial_balances: vec![],
-            mint: Some(MinterResponse {
-                minter: env.contract.address.to_string(),
-                cap: None,
-            }),
-            init_hook: Some(init_hook_lp_token),
-        })?,
-        funds: vec![],
-        admin: None,
-        label: String::from("terraswap liquidity token"),
-    })];
+    let messages: Vec<SubMsg> = vec![SubMsg {
+        id: INSTANTIATE_REPLY_ID,
+        msg: WasmMsg::Instantiate {
+            code_id: msg.token_code_id,
+            msg: to_binary(&TokenInstantiateMsg {
+                name: "terraswap liquidity token".to_string(),
+                symbol: "uLP".to_string(),
+                decimals: 6,
+                initial_balances: vec![],
+                mint: Some(MinterResponse {
+                    minter: env.contract.address.to_string(),
+                    cap: None,
+                }),
+                init_hook: None,
+            })?,
+            funds: vec![],
+            admin: None,
+            label: String::from("terraswap liquidity token"),
+        }
+        .into(),
+        gas_limit: None,
+        reply_on: ReplyOn::Success,
+    }];
 
     if let Some(hook) = msg.init_hook {
-        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: hook.contract_addr.to_string(),
-            msg: hook.msg,
-            funds: vec![],
-        }));
+        Ok(Response::new()
+            .add_submessages(messages)
+            .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: hook.contract_addr.to_string(),
+                msg: hook.msg,
+                funds: vec![],
+            })))
+    } else {
+        Ok(Response::new().add_submessages(messages))
     }
-
-    Ok(Response::new().add_messages(messages))
 }
 
-/// This just stores the result for future query
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
-    // let tmp_pair_info = TMP_PAIR_INFO.load(deps.storage)?;
-    //
-    // let res: MsgInstantiateContractResponse =
-    //     Message::parse_from_bytes(msg.result.unwrap().data.unwrap().as_slice()).map_err(|_| {
-    //         StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
-    //     })?;
-    //
-    // let pair_contract = res.get_contract_address();
-    // let liquidity_token = query_liquidity_token(deps.as_ref(), Addr::unchecked(pair_contract))?;
-    //
-    // PAIRS.save(
-    //     deps.storage,
-    //     &tmp_pair_info.pair_key,
-    //     &PairInfoRaw {
-    //         liquidity_token: deps.api.addr_canonicalize(liquidity_token.as_str())?,
-    //         contract_addr: deps.api.addr_canonicalize(pair_contract)?,
-    //         asset_infos: tmp_pair_info.asset_infos,
-    //     },
-    // )?;
-    //
-    // Ok(Response::new().add_attributes(vec![
-    //     ("pair_contract_addr", pair_contract),
-    //     ("liquidity_token_addr", liquidity_token.as_str()),
-    // ]))
-    Ok(Response::new())
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    let config: PairInfo = PAIR_INFO.load(deps.storage)?;
+
+    // permission check
+    if config.liquidity_token != Addr::unchecked("") {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    println!("msg: {}", msg.id);
+    println!("liquidity token: {}", config.liquidity_token.to_string());
+    //config.liquidity_token = info.sender.clone();
+
+    PAIR_INFO.save(deps.storage, &config)?;
+    Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token.to_string()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -162,7 +142,6 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
-        //ExecuteMsg::PostInitialize {} => try_post_initialize(deps, info),
         ExecuteMsg::ProvideLiquidity {
             assets,
             slippage_tolerance,
