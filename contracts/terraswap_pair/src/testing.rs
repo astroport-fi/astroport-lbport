@@ -867,7 +867,7 @@ fn try_native_to_token() {
         expected_commission_amount.u128() as u128 - simulation_res.commission_amount.u128() as u128;
     let spread_diff = simulation_res.spread_amount.u128() as u128 - expected_spread_amount.u128();
 
-    let diff_tolerance = offer_amount.u128() * 10 / DECIMAL_FRACTIONAL.u128();
+    let diff_tolerance = 10u128;
 
     assert_eq!(amount_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -896,7 +896,6 @@ fn try_native_to_token() {
     let spread_diff =
         reverse_simulation_res.spread_amount.u128() as u128 - expected_spread_amount.u128() as u128;
 
-    let diff_tolerance = diff_tolerance * 2; // calculating 2nd time which leads to error mul by 2
     assert_eq!(offer_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
     assert_eq!(spread_diff < diff_tolerance, true);
