@@ -1,11 +1,12 @@
 use crate::contract::{
-    assert_max_spread, execute, instantiate, query_pair_info, query_pool, query_reverse_simulation,
-    query_simulation,
+    assert_max_spread, compute_swap, execute, instantiate, query_pair_info, query_pool,
+    query_reverse_simulation, query_simulation, COMMISSION_RATE,
 };
-use crate::math::DECIMAL_FRACTIONAL;
 use crate::mock_querier::mock_dependencies;
+use proptest::prelude::*;
 
 use crate::error::ContractError;
+use crate::math::uint2dec;
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
@@ -13,6 +14,7 @@ use cosmwasm_std::{
     SubMsg, Timestamp, Uint128, WasmMsg,
 };
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
 use terraswap::hook::InitHook;
@@ -24,6 +26,7 @@ use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 const COMMISSION_AMOUNT: u128 = 15;
 const COMMISSION_RATIO: u128 = 10000;
+const DECIMAL_FRACTIONAL: Uint128 = Uint128::new(1_000_000_000u128);
 
 fn mock_env_with_block_time(time: u64) -> Env {
     let mut env = mock_env();
@@ -859,14 +862,12 @@ fn try_native_to_token() {
     .unwrap();
 
     let amount_diff =
-        (expected_return_amount.u128() as i128 - simulation_res.return_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128
-        - simulation_res.commission_amount.u128() as i128)
-        .abs();
-    let spread_diff =
-        (expected_spread_amount.u128() as i128 - simulation_res.spread_amount.u128() as i128).abs();
+        expected_return_amount.u128() as u128 - simulation_res.return_amount.u128() as u128;
+    let commission_diff =
+        expected_commission_amount.u128() as u128 - simulation_res.commission_amount.u128() as u128;
+    let spread_diff = simulation_res.spread_amount.u128() as u128 - expected_spread_amount.u128();
 
-    let diff_tolerance = 10i128;
+    let diff_tolerance = 10u128;
 
     assert_eq!(amount_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -889,13 +890,11 @@ fn try_native_to_token() {
     .unwrap();
 
     let offer_diff =
-        (offer_amount.u128() as i128 - reverse_simulation_res.offer_amount.u128() as i128).abs();
-    let commission_diff = (expected_commission_amount.u128() as i128
-        - reverse_simulation_res.commission_amount.u128() as i128)
-        .abs();
-    let spread_diff = (expected_spread_amount.u128() as i128
-        - reverse_simulation_res.spread_amount.u128() as i128)
-        .abs();
+        reverse_simulation_res.offer_amount.u128() as u128 - offer_amount.u128() as u128;
+    let commission_diff = reverse_simulation_res.commission_amount.u128() as u128
+        - expected_commission_amount.u128() as u128;
+    let spread_diff =
+        reverse_simulation_res.spread_amount.u128() as u128 - expected_spread_amount.u128() as u128;
 
     assert_eq!(offer_diff < diff_tolerance, true);
     assert_eq!(commission_diff < diff_tolerance, true);
@@ -1265,15 +1264,15 @@ fn test_spread() {
                 info: AssetInfo::Token {
                     contract_addr: tkn_contract.clone(),
                 },
-                start_weight: Uint128::from(49u128),
-                end_weight: Uint128::from(20u128),
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
             },
             WeightedAssetInfo {
                 info: AssetInfo::Token {
                     contract_addr: usdc_contract.clone(),
                 },
                 start_weight: Uint128::from(1u128),
-                end_weight: Uint128::from(30u128),
+                end_weight: Uint128::from(1u128),
             },
         ],
         token_code_id: 10u64,
@@ -1346,17 +1345,21 @@ fn test_spread() {
     .unwrap();
 
     // Spot price: (ask_pool / ask_weight) / (offer_pool / offer_weight) * offer_amount
-    // (50_000_000 / 49) / ( 250_000 / 1) * 1 * DECIMAL_FRACTIONAL = 40816326530
-    let spot_price = Uint128::from(40816326530_u128);
-    let return_before_comission = simulation_res.return_amount + simulation_res.commission_amount;
+    // (50000000 / 1) / ( 250000 / 1) * 10 * DECIMAL_PRECISION  = 2000000000000
+    let spot_price = Uint128::new(2000000000000);
+
+    // return_amount: ask_pool * (1 - (offer_pool / (offer_pool + offer_amount)) ^ (offer_weight / ask_weight))
+    // 50000000000000000 * (1 - (250000000000000 / 250010000000000)) = 1999920003199
+    let return_amount = Uint128::new(1999920003199);
+    let commission_amount: Uint128 = return_amount * Decimal::from_str(COMMISSION_RATE).unwrap();
+    let return_amount_without_commission = return_amount - commission_amount;
+
     assert_eq!(
         simulation_res.return_amount,
-        Uint128::from(40754882156_u128)
+        return_amount_without_commission
     );
-    assert_eq!(
-        simulation_res.spread_amount,
-        spot_price.checked_sub(return_before_comission).unwrap()
-    );
+
+    assert_eq!(simulation_res.spread_amount, spot_price - return_amount);
 }
 
 #[test]
@@ -1610,5 +1613,51 @@ fn test_weight_calculations() {
                 &t.expected_offer_weight
             );
         }
+    }
+}
+
+#[test]
+fn compute_swap_rounding() {
+    let offer_pool = Uint128::from(5_000_000_000_000_000_u128);
+    let offer_weight = Decimal256::one();
+    let ask_pool = Uint128::from(1_000_000_000_000_u128);
+    let ask_weight = Decimal256::one();
+    let offer_amount = Uint128::from(1_u128);
+
+    let return_amount = Uint128::from(0_u128);
+    let spread_amount = Uint128::from(0_u128);
+    let commission_amount = Uint128::from(0_u128);
+
+    assert_eq!(
+        compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount),
+        Ok((return_amount, spread_amount, commission_amount))
+    );
+}
+
+proptest! {
+    #[test]
+    fn compute_swap_test(
+        offer_pool in 1_000_000..9_000_000_000_000_000_000u128,
+        ask_pool in 1_000_000..9_000_000_000_000_000_000u128,
+        offer_weight in 1..50u128,
+        ask_weight in 1..50u128,
+        offer_amount in 1..100_000_000000u128,
+    ) {
+
+        let offer_pool = Uint128::from(offer_pool);
+        let ask_pool = Uint128::from(ask_pool);
+        let offer_weight = uint2dec(Uint128::from(offer_weight));
+        let ask_weight = uint2dec(Uint128::from(ask_weight));
+        let offer_amount = Uint128::from(offer_amount);
+
+
+        // Make sure there are no overflows
+        compute_swap(
+            offer_pool,
+            offer_weight,
+            ask_pool,
+            ask_weight,
+            offer_amount,
+        ).unwrap();
     }
 }

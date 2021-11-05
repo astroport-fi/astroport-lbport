@@ -1,4 +1,4 @@
-use crate::math::{calc_in_given_out, calc_out_given_in, FixedFloat};
+use crate::math::{calc_in_given_out, calc_out_given_in, uint2dec};
 use crate::state::PAIR_INFO;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -23,7 +23,7 @@ use terraswap::querier::query_supply;
 use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 /// Commission rate == 0.15%
-const COMMISSION_RATE: &str = "0.0015";
+pub const COMMISSION_RATE: &str = "0.0015";
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-pair";
@@ -673,24 +673,30 @@ pub fn amount_of(coins: &[Coin], denom: String) -> Uint128 {
 
 fn get_ask_by_spot_price(
     offer_pool: Uint128,
-    offer_weight: FixedFloat,
+    offer_weight: Decimal256,
     ask_pool: Uint128,
-    ask_weight: FixedFloat,
+    ask_weight: Decimal256,
     offer_amount: Uint128,
 ) -> Uint128 {
-    let ratio = FixedFloat::from_num(ask_pool.u128())
-        .div(ask_weight)
-        .div(FixedFloat::from_num(offer_pool.u128()).div(offer_weight))
-        .mul(FixedFloat::from_num(offer_amount.u128()));
+    let ask_pool: Uint256 = ask_pool.into();
+    let offer_pool: Uint256 = offer_pool.into();
+    let offer_amount: Uint256 = offer_amount.into();
 
-    Uint128::from(ratio.to_num::<u128>())
+    let ask_ratio = Decimal256::from_uint256(ask_pool)
+        .div(Decimal256::from_str(&ask_weight.to_string()).unwrap());
+    let offer_ratio = Decimal256::from_uint256(offer_pool)
+        .div(Decimal256::from_str(&offer_weight.to_string()).unwrap());
+
+    let ask_amount = ask_ratio.div(offer_ratio).mul(offer_amount);
+
+    ask_amount.into()
 }
 
-fn compute_swap(
+pub fn compute_swap(
     offer_pool: Uint128,
-    offer_weight: FixedFloat,
+    offer_weight: Decimal256,
     ask_pool: Uint128,
-    ask_weight: FixedFloat,
+    ask_weight: Decimal256,
     offer_amount: Uint128,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // offer => ask
@@ -715,9 +721,9 @@ fn compute_swap(
 
 fn compute_offer_amount(
     offer_pool: Uint128,
-    offer_weight: FixedFloat,
+    offer_weight: Decimal256,
     ask_pool: Uint128,
-    ask_weight: FixedFloat,
+    ask_weight: Decimal256,
     ask_amount: Uint128,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // ask => offer
@@ -819,7 +825,7 @@ fn get_current_weight(
     start_time: u64,
     end_time: u64,
     block_time: u64,
-) -> StdResult<FixedFloat> {
+) -> StdResult<Decimal256> {
     if block_time < start_time {
         return Err(StdError::generic_err("Sale has not started yet"));
     }
@@ -828,20 +834,20 @@ fn get_current_weight(
         return Err(StdError::generic_err("Sale has already finished"));
     }
 
-    let start_weight_fixed = FixedFloat::from_num(start_weight.u128());
-    let time_diff = FixedFloat::from_num(end_time - start_time);
+    let start_weight_fixed = uint2dec(start_weight);
+    let time_diff = uint2dec(Uint128::from(end_time - start_time));
 
     if end_weight > start_weight {
-        let ratio = FixedFloat::from_num(
+        let ratio = uint2dec(Uint128::from(
             (end_weight.u128() - start_weight.u128()) * (block_time - start_time) as u128,
-        )
+        ))
         .div(time_diff);
 
         Ok(start_weight_fixed.add(ratio))
     } else {
-        let ratio = FixedFloat::from_num(
+        let ratio = uint2dec(Uint128::from(
             (start_weight.u128() - end_weight.u128()) * (block_time - start_time) as u128,
-        )
+        ))
         .div(time_diff);
 
         Ok(start_weight_fixed.sub(ratio))
