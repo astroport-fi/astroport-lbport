@@ -138,7 +138,7 @@ fn proper_initialization() {
     let info = mock_info("liquidity0001", &[]);
     let _res = execute(deps.as_mut(), env, info, msg).unwrap_err();
 
-    // // it worked, let's query the state
+    // it worked, let's query the state
     let pair_info: PairInfo = query_pair_info(deps.as_ref()).unwrap();
     assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!(

@@ -1,5 +1,9 @@
-use cosmwasm_std::{attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg, from_binary};
+use cosmwasm_std::{
+    attr, entry_point, from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
+};
 use cw2::set_contract_version;
+use protobuf::Message;
 
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::{
@@ -11,6 +15,7 @@ use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_liquidity_token;
+use crate::response::MsgInstantiateContractResponse;
 use crate::state::{
     pair_key, read_pair, read_pairs, Config, TmpPairInfo, CONFIG, PAIRS, TMP_PAIR_INFO,
 };
@@ -78,7 +83,6 @@ pub fn execute(
             description,
             init_hook,
         ),
-        ExecuteMsg::Register { asset_infos } => try_register(deps, info, asset_infos),
         ExecuteMsg::Unregister { asset_infos } => try_unregister(deps, env, info, asset_infos),
     }
 }
@@ -137,7 +141,6 @@ pub fn try_create_pair(
     TMP_PAIR_INFO.save(
         deps.storage,
         &TmpPairInfo {
-            pair_key: pair_key.clone(),
             asset_infos: weighted_asset_infos.clone(),
         },
     )?;
@@ -190,23 +193,26 @@ pub fn try_create_pair(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    // permission check
-    // if config.liquidity_token != Addr::unchecked("") {
-    //     return Err(ContractError::Unauthorized {});
-    // }
+    let tmp = TMP_PAIR_INFO.load(deps.storage)?;
 
-    // let res = from_binary(&msg.result.unwrap().data.unwrap())?;
+    let data = msg.result.unwrap().data.unwrap();
+    let res: MsgInstantiateContractResponse =
+        Message::parse_from_bytes(data.as_slice()).map_err(|_| {
+            StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+        })?;
 
-    println!("msg: {} {}", msg.id, msg.result.unwrap().events[0].ty);
+    let pair_contract_addr = deps.api.addr_validate(res.get_contract_address())?;
 
-    // try_register(deps,)
-    Ok(Response::new())
+    Ok(try_register(deps, pair_contract_addr, tmp.asset_infos)?)
+    // Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token))
+
+    // Ok(Response::new())
 }
 
 /// create pair execute this message
 pub fn try_register(
     deps: DepsMut,
-    info: MessageInfo,
+    pair_contract: Addr,
     weighted_asset_infos: [WeightedAssetInfo; 2],
 ) -> Result<Response, ContractError> {
     let asset_infos = [
@@ -218,7 +224,6 @@ pub fn try_register(
         return Err(ContractError::PairWasRegistered {});
     }
 
-    let pair_contract = info.sender;
     let liquidity_token = query_liquidity_token(deps.as_ref(), pair_contract.clone())?;
     PAIRS.save(
         deps.storage,

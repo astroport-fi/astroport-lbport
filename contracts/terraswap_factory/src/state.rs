@@ -17,7 +17,6 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TmpPairInfo {
-    pub pair_key: Vec<u8>,
     pub asset_infos: [WeightedAssetInfo; 2],
 }
 

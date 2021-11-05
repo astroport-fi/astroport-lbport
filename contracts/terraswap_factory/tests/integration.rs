@@ -17,7 +17,10 @@
 //!      });
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
-use cosmwasm_std::testing::mock_info;
+use cosmwasm_std::testing::{
+    mock_info, MockApi as MockApi_std, MockQuerier as MockQuerier_std,
+    MockStorage as MockStorage_std,
+};
 use cosmwasm_std::{
     attr, from_binary, to_binary, Addr, Coin, ContractResult, CosmosMsg, Response, SubMsg, Uint128,
     WasmMsg,
@@ -30,7 +33,7 @@ use cosmwasm_vm::{Instance, InstanceOptions};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use terraswap::factory::{ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, QueryMsg};
 use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
@@ -158,9 +161,24 @@ fn update_config() {
 fn mock_app() -> App {
     let env = mock_env_std();
     let api = MockApi_std::default();
-    let bank = BankKeeper {};
+    let bank = BankKeeper::new();
+    let storage = MockStorage::new();
+    let terra_mock_querier = TerraMockQuerier::new(MockQuerier_std::new(&[]));
 
-    App::new(api, env.block, bank, MockStorage_std::new(), TerraMockQuerier::new())
+    App::new(api, env.block, bank, storage, terra_mock_querier)
+}
+
+fn store_factory_code(app: &mut App) -> u64 {
+    let pair_contract = Box::new(
+        ContractWrapper::new(
+            terraswap_factory::contract::execute,
+            terraswap_factory::contract::instantiate,
+            terraswap_factory::contract::query,
+        )
+        .with_reply(terraswap_factory::contract::reply),
+    );
+
+    app.store_code(pair_contract)
 }
 
 fn store_pair_code(app: &mut App) -> u64 {
@@ -168,22 +186,92 @@ fn store_pair_code(app: &mut App) -> u64 {
         terraswap_pair::contract::execute,
         terraswap_pair::contract::instantiate,
         terraswap_pair::contract::query,
-    ).with_reply(terraswap_pair::contract::reply));
+    ));
 
     app.store_code(pair_contract)
 }
 
-fn create_and_register_pair_with_reply(app: &mut App, owner: Addr, pair_code_id: u64) -> Addr {
-    let pair_code_id = store_pair_code(app);
+#[test]
+fn create_and_register_pair_with_reply() {
+    let mut app = mock_app();
 
-    // .........
-    // let init_msg =
+    let factory_code_id = store_factory_code(&mut app);
+    let pair_code_id = store_pair_code(&mut app);
 
-    let pair_instance = app
-        .instantiate_contract(pair_code_id, owner, &init_msg, &[], "label", None)
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+    let mut deps = mock_instance(WASM, &[]);
+
+    let owner = "owner0000";
+
+    let msg = InstantiateMsg {
+        pair_code_id: 321u64,
+        token_code_id: 123u64,
+        owner: owner.to_string(),
+        init_hook: None,
+    };
+
+    // we can just call .unwrap() to assert this was a success
+    let factory_instance = app
+        .instantiate_contract(
+            factory_code_id,
+            Addr::unchecked(owner),
+            &init_msg,
+            &[],
+            "TerraSwapFactory",
+            None,
+        )
         .unwrap();
 
-    return pair_instance;
+    let asset_infos = [
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: Addr::unchecked("asset0000"),
+            },
+            start_weight: Uint128::new(1),
+            end_weight: Uint128::new(1),
+        },
+        WeightedAssetInfo {
+            info: AssetInfo::Token {
+                contract_addr: Addr::unchecked("asset0001"),
+            },
+            start_weight: Uint128::new(1),
+            end_weight: Uint128::new(1),
+        },
+    ];
+
+    let msg = ExecuteMsg::CreatePair {
+        asset_infos: asset_infos.clone(),
+        start_time,
+        end_time,
+        init_hook: None,
+        description: Some(String::from("description")),
+    };
+    app.execute_contract(
+        Addr::unchecked("addr0000"),
+        factory_instance.clone(),
+        &msg,
+        &[],
+    )
+    .unwrap();
+
+    // let pair_instance = app
+    //     .instantiate_contract(pair_code_id, Addr::unchecked(owner), &init_msg, &[], "TerraSwapPair", None)
+    //     .unwrap();
+
+    let res: FactoryPairInfo = app
+        .wrap()
+        .query_wasm_smart(
+            pair_instance.clone(),
+            &QueryMsg::Pair {
+                asset_infos: AssetInfo[asset_infos[0].info.clone()],
+            },
+        )
+        .unwrap();
+    assert_eq!("Contract #0", res.contract_addr);
 }
 
 #[test]
