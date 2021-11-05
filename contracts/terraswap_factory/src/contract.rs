@@ -1,7 +1,4 @@
-use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Response, StdError, StdResult, WasmMsg,
-};
+use cosmwasm_std::{attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, WasmMsg, SubMsg, ReplyOn, Reply};
 use cw2::set_contract_version;
 
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
@@ -147,7 +144,7 @@ pub fn try_create_pair(
         },
     )?;
 
-    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
+    let mut messages: Vec<SubMsg> = vec![SubMsg(WasmMsg::Instantiate {
         admin: Some(config.owner.to_string()),
         code_id: config.pair_code_id,
         msg: to_binary(&PairInstantiateMsg {
@@ -165,20 +162,37 @@ pub fn try_create_pair(
         })?,
         funds: vec![],
         label: "TerraSwap pair".to_string(),
-    })];
+    })
+    .into(),
+    gas_limit: None,
+    reply_on: ReplyOn::Success,
+];
 
-    if let Some(hook) = init_hook {
-        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: hook.contract_addr.to_string(),
-            msg: hook.msg,
-            funds: vec![],
-        }));
-    }
+if let Some(hook) = msg.init_hook {
+Ok(Response::new()
+.add_submessages(messages)
+.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+contract_addr: hook.contract_addr.to_string(),
+msg: hook.msg,
+funds: vec![],
+})))
+} else {
+Ok(Response::new().add_submessages(messages))
+}
+}
 
-    Ok(Response::new().add_messages(messages).add_attributes(vec![
-        attr("action", "create_pair"),
-        attr("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),
-    ]))
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+
+    // permission check
+    // if config.liquidity_token != Addr::unchecked("") {
+    //     return Err(ContractError::Unauthorized {});
+    // }
+
+    println!("msg: {}", msg.id);
+
+    // try_register(deps,)
+    Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token.to_string()))
 }
 
 /// create pair execute this message
