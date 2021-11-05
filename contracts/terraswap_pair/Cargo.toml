@@ -55,3 +55,4 @@ cosmwasm-schema = "0.16.0"
 terra-cosmwasm = { version = "2.2.0" }
 terraswap-token = {path = "../terraswap_token"}
 cw-multi-test = "0.8.0"
+terra-multi-test = {git = "https://github.com/astroport-fi/terra-plus.git"}

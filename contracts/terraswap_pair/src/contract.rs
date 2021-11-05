@@ -12,10 +12,10 @@ use terraswap::U256;
 use crate::error::ContractError;
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
+
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
-
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
     ReverseSimulationResponse, SimulationResponse,
@@ -118,7 +118,7 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    let config: PairInfo = PAIR_INFO.load(deps.storage)?;
+    let mut config: PairInfo = PAIR_INFO.load(deps.storage)?;
 
     // permission check
     if config.liquidity_token != Addr::unchecked("") {
@@ -127,7 +127,9 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
 
     println!("msg: {}", msg.id);
     println!("liquidity token: {}", config.liquidity_token.to_string());
-    //config.liquidity_token = info.sender.clone();
+    let data = msg.result.unwrap().data.unwrap();
+
+    config.liquidity_token = _env.contract.address.clone();
 
     PAIR_INFO.save(deps.storage, &config)?;
     Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token.to_string()))
