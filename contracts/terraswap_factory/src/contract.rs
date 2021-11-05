@@ -1,4 +1,4 @@
-use cosmwasm_std::{attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, WasmMsg, SubMsg, ReplyOn, Reply};
+use cosmwasm_std::{attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg, from_binary};
 use cw2::set_contract_version;
 
 use terraswap::asset::{AssetInfo, WeightedAssetInfo};
@@ -11,7 +11,9 @@ use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_liquidity_token;
-use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
+use crate::state::{
+    pair_key, read_pair, read_pairs, Config, TmpPairInfo, CONFIG, PAIRS, TMP_PAIR_INFO,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-factory";
@@ -112,7 +114,7 @@ pub fn try_update_config(
 // Anyone can execute it to create swap pair
 pub fn try_create_pair(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
@@ -131,9 +133,17 @@ pub fn try_create_pair(
             "Pair already exists",
         )));
     }
+    let pair_key = pair_key(&asset_infos);
+    TMP_PAIR_INFO.save(
+        deps.storage,
+        &TmpPairInfo {
+            pair_key: pair_key.clone(),
+            asset_infos: weighted_asset_infos.clone(),
+        },
+    )?;
     PAIRS.save(
         deps.storage,
-        &pair_key(&asset_infos),
+        &pair_key,
         &FactoryPairInfo {
             owner: info.sender,
             liquidity_token: Addr::unchecked(""),
@@ -144,55 +154,53 @@ pub fn try_create_pair(
         },
     )?;
 
-    let mut messages: Vec<SubMsg> = vec![SubMsg(WasmMsg::Instantiate {
-        admin: Some(config.owner.to_string()),
-        code_id: config.pair_code_id,
-        msg: to_binary(&PairInstantiateMsg {
-            asset_infos: weighted_asset_infos.clone(),
-            token_code_id: config.token_code_id,
-            init_hook: Some(InitHook {
-                contract_addr: env.contract.address,
-                msg: to_binary(&ExecuteMsg::Register {
-                    asset_infos: weighted_asset_infos,
-                })?,
-            }),
-            start_time,
-            end_time,
-            description,
-        })?,
-        funds: vec![],
-        label: "TerraSwap pair".to_string(),
-    })
-    .into(),
-    gas_limit: None,
-    reply_on: ReplyOn::Success,
-];
+    let messages: Vec<SubMsg> = vec![SubMsg {
+        id: 0,
+        msg: WasmMsg::Instantiate {
+            admin: Some(config.owner.to_string()),
+            code_id: config.pair_code_id,
+            msg: to_binary(&PairInstantiateMsg {
+                asset_infos: weighted_asset_infos,
+                token_code_id: config.token_code_id,
+                init_hook: None,
+                start_time,
+                end_time,
+                description,
+            })?,
+            funds: vec![],
+            label: "TerraSwap pair".to_string(),
+        }
+        .into(),
+        gas_limit: None,
+        reply_on: ReplyOn::Success,
+    }];
 
-if let Some(hook) = msg.init_hook {
-Ok(Response::new()
-.add_submessages(messages)
-.add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-contract_addr: hook.contract_addr.to_string(),
-msg: hook.msg,
-funds: vec![],
-})))
-} else {
-Ok(Response::new().add_submessages(messages))
-}
+    if let Some(hook) = init_hook {
+        Ok(Response::new()
+            .add_submessages(messages)
+            .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: hook.contract_addr.to_string(),
+                msg: hook.msg,
+                funds: vec![],
+            })))
+    } else {
+        Ok(Response::new().add_submessages(messages))
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-
     // permission check
     // if config.liquidity_token != Addr::unchecked("") {
     //     return Err(ContractError::Unauthorized {});
     // }
 
-    println!("msg: {}", msg.id);
+    // let res = from_binary(&msg.result.unwrap().data.unwrap())?;
+
+    println!("msg: {} {}", msg.id, msg.result.unwrap().events[0].ty);
 
     // try_register(deps,)
-    Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token.to_string()))
+    Ok(Response::new())
 }
 
 /// create pair execute this message

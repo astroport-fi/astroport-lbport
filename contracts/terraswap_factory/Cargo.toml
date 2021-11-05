@@ -45,3 +45,4 @@ thiserror = { version = "1.0.20" }
 [dev-dependencies]
 cosmwasm-vm = { version = "0.16.1", default-features = false, features = ["iterator"] }
 cosmwasm-schema = "0.16.0"
+terra-multi-test = {git = "https://github.com/astroport-fi/terra-plus.git", branch = "main"}

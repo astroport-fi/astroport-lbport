@@ -406,7 +406,7 @@ dependencies = [
 [[package]]
 name = "cw-storage-plus"
 version = "0.8.0"
-source = "git+https://github.com/astroport-fi/terra-plus.git#b3991b9b109accf445fec086ce9792b197be6ca4"
+source = "git+https://github.com/astroport-fi/terra-plus.git?branch=main#b3991b9b109accf445fec086ce9792b197be6ca4"
 dependencies = [
  "cosmwasm-std",
  "schemars",
@@ -427,7 +427,7 @@ dependencies = [
 [[package]]
 name = "cw0"
 version = "0.8.0"
-source = "git+https://github.com/astroport-fi/terra-plus.git#b3991b9b109accf445fec086ce9792b197be6ca4"
+source = "git+https://github.com/astroport-fi/terra-plus.git?branch=main#b3991b9b109accf445fec086ce9792b197be6ca4"
 dependencies = [
  "cosmwasm-std",
  "schemars",
@@ -1535,7 +1535,7 @@ dependencies = [
 [[package]]
 name = "terra-multi-test"
 version = "0.8.0"
-source = "git+https://github.com/astroport-fi/terra-plus.git#b3991b9b109accf445fec086ce9792b197be6ca4"
+source = "git+https://github.com/astroport-fi/terra-plus.git?branch=main#b3991b9b109accf445fec086ce9792b197be6ca4"
 dependencies = [
  "anyhow",
  "cosmwasm-std",
@@ -1575,6 +1575,7 @@ dependencies = [
  "cw2",
  "schemars",
  "serde",
+ "terra-multi-test",
  "terraswap",
  "thiserror",
 ]
@@ -1597,7 +1598,6 @@ dependencies = [
  "serde",
  "substrate-fixed",
  "terra-cosmwasm",
- "terra-multi-test",
  "terraswap",
  "terraswap-token",
  "thiserror",

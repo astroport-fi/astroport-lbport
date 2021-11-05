@@ -34,6 +34,8 @@ use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
+use terra_multi_test::{next_block, App, BankKeeper, ContractWrapper, Executor, TerraMockQuerier};
+
 // This line will test the output of cargo wasm
 static WASM: &[u8] =
     include_bytes!("../../../target/wasm32-unknown-unknown/release/terraswap_factory.wasm");
@@ -151,6 +153,37 @@ fn update_config() {
 
     let res: ContractResult<Response> = execute(&mut deps, env, info, msg);
     assert_eq!(res.unwrap_err(), "Unauthorized");
+}
+
+fn mock_app() -> App {
+    let env = mock_env_std();
+    let api = MockApi_std::default();
+    let bank = BankKeeper {};
+
+    App::new(api, env.block, bank, MockStorage_std::new(), TerraMockQuerier::new())
+}
+
+fn store_pair_code(app: &mut App) -> u64 {
+    let pair_contract = Box::new(ContractWrapper::new(
+        terraswap_pair::contract::execute,
+        terraswap_pair::contract::instantiate,
+        terraswap_pair::contract::query,
+    ).with_reply(terraswap_pair::contract::reply));
+
+    app.store_code(pair_contract)
+}
+
+fn create_and_register_pair_with_reply(app: &mut App, owner: Addr, pair_code_id: u64) -> Addr {
+    let pair_code_id = store_pair_code(app);
+
+    // .........
+    // let init_msg =
+
+    let pair_instance = app
+        .instantiate_contract(pair_code_id, owner, &init_msg, &[], "label", None)
+        .unwrap();
+
+    return pair_instance;
 }
 
 #[test]
