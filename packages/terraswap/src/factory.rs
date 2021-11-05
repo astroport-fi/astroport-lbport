@@ -73,13 +73,20 @@ pub struct MigrateMsg {}
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairsResponse {
-    pub pairs: Vec<FactoryPairInfo>,
+    pub pairs: Vec<ExtendedFactoryPairInfo>,
 }
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FactoryPairInfo {
     pub owner: Addr,
+    pub contract_addr: Addr,
+}
+
+// We define a custom struct for each query response
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ExtendedFactoryPairInfo {
+    pub asset_infos: [AssetInfo; 2],
     pub contract_addr: Addr,
     pub liquidity_token: Addr,
 }

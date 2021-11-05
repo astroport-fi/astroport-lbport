@@ -199,7 +199,6 @@ fn create_pair() {
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
-    assert_eq!(pair_info.liquidity_token, Addr::unchecked(""));
 }
 
 #[test]
@@ -301,7 +300,6 @@ fn register() {
         pair_res,
         FactoryPairInfo {
             owner: Addr::unchecked("addr0000"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
         }
     );
@@ -392,12 +390,10 @@ fn register() {
         vec![
             FactoryPairInfo {
                 owner: Addr::unchecked("addr0000"),
-                liquidity_token: Addr::unchecked("liquidity0000"),
                 contract_addr: Addr::unchecked("pair0000"),
             },
             FactoryPairInfo {
                 owner: Addr::unchecked("addr0000"),
-                liquidity_token: Addr::unchecked("liquidity0001"),
                 contract_addr: Addr::unchecked("pair0001")
             }
         ]
@@ -414,7 +410,6 @@ fn register() {
         pairs_res.pairs,
         vec![FactoryPairInfo {
             owner: Addr::unchecked("addr0000"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
             contract_addr: Addr::unchecked("pair0000"),
         }]
     );
@@ -430,7 +425,6 @@ fn register() {
         pairs_res.pairs,
         vec![FactoryPairInfo {
             owner: Addr::unchecked("addr0000"),
-            liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
         }]
     );
@@ -482,7 +476,6 @@ fn register() {
         pairs_res.pairs,
         vec![FactoryPairInfo {
             owner: Addr::unchecked("addr0000"),
-            liquidity_token: Addr::unchecked("liquidity0001"),
             contract_addr: Addr::unchecked("pair0001"),
         }]
     );
