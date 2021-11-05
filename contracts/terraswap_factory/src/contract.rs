@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, entry_point, from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env,
-    MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
+    ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 use protobuf::Message;
@@ -178,17 +178,22 @@ pub fn try_create_pair(
         reply_on: ReplyOn::Success,
     }];
 
+    let mut regular_msg: Vec<CosmosMsg> = vec![];
     if let Some(hook) = init_hook {
-        Ok(Response::new()
-            .add_submessages(messages)
-            .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: hook.contract_addr.to_string(),
-                msg: hook.msg,
-                funds: vec![],
-            })))
-    } else {
-        Ok(Response::new().add_submessages(messages))
+        regular_msg.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: hook.contract_addr.to_string(),
+            msg: hook.msg,
+            funds: vec![],
+        }));
     }
+
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_messages(regular_msg)
+        .add_attributes(vec![
+            attr("action", "create_pair"),
+            attr("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),
+        ]))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -203,10 +208,7 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
 
     let pair_contract_addr = deps.api.addr_validate(res.get_contract_address())?;
 
-    Ok(try_register(deps, pair_contract_addr, tmp.asset_infos)?)
-    // Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token))
-
-    // Ok(Response::new())
+    try_register(deps, pair_contract_addr, tmp.asset_infos)
 }
 
 /// create pair execute this message

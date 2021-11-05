@@ -47,3 +47,5 @@ thiserror = { version = "1.0.20" }
 cosmwasm-vm = { version = "0.16.1", default-features = false, features = ["iterator"] }
 cosmwasm-schema = "0.16.0"
 terra-multi-test = {git = "https://github.com/astroport-fi/terra-plus.git"}
+terraswap-pair = {path = "../terraswap_pair"}
+terraswap-token = {path = "../terraswap_token"}
