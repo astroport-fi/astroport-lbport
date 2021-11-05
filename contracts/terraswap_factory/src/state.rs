@@ -5,7 +5,7 @@ use cosmwasm_std::{Addr, Deps, Order, StdError};
 
 use crate::error::ContractError;
 use cw_storage_plus::{Bound, Item, Map};
-use terraswap::asset::AssetInfo;
+use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::FactoryPairInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -14,6 +14,13 @@ pub struct Config {
     pub pair_code_id: u64,
     pub token_code_id: u64,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TmpPairInfo {
+    pub asset_infos: [WeightedAssetInfo; 2],
+}
+
+pub const TMP_PAIR_INFO: Item<TmpPairInfo> = Item::new("tmp_pair_info");
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const PAIRS: Map<&[u8], FactoryPairInfo> = Map::new("pair_info");

@@ -33,10 +33,6 @@ pub enum ExecuteMsg {
         /// Init hook for after works
         init_hook: Option<InitHook>,
     },
-    /// Register is invoked from created pair contract after initialization
-    Register {
-        asset_infos: [WeightedAssetInfo; 2],
-    },
     Unregister {
         asset_infos: [AssetInfo; 2],
     },

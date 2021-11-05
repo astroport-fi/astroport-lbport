@@ -139,7 +139,7 @@ fn proper_initialization() {
     // store liquidity token
     store_liquidity_token(deps.as_mut());
 
-    // // it worked, let's query the state
+    // it worked, let's query the state
     let pair_info: PairInfo = query_pair_info(deps.as_ref()).unwrap();
     assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!(

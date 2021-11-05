@@ -1573,8 +1573,10 @@ dependencies = [
  "cosmwasm-vm",
  "cw-storage-plus 0.8.1",
  "cw2",
+ "protobuf",
  "schemars",
  "serde",
+ "terra-multi-test",
  "terraswap",
  "thiserror",
 ]
