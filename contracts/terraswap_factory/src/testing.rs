@@ -1,6 +1,6 @@
 use cosmwasm_std::{attr, from_binary, to_binary, Addr, CosmosMsg, SubMsg, Uint128, WasmMsg};
 
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{execute, instantiate, query, try_register};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 

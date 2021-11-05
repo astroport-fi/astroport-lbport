@@ -267,7 +267,7 @@ fn create_and_register_pair_with_reply() {
         .query_wasm_smart(
             pair_instance.clone(),
             &QueryMsg::Pair {
-                asset_infos: AssetInfo[asset_infos[0].info.clone()],
+                asset_infos: [asset_infos[0].info.clone(), asset_infos[1].info.clone()],
             },
         )
         .unwrap();
@@ -339,13 +339,7 @@ fn create_pair() {
             msg: to_binary(&PairInstantiateMsg {
                 asset_infos: asset_infos.clone(),
                 token_code_id: 123u64,
-                init_hook: Some(InitHook {
-                    contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
-                    msg: to_binary(&ExecuteMsg::Register {
-                        asset_infos: asset_infos.clone()
-                    })
-                    .unwrap(),
-                }),
+                init_hook: None,
 
                 start_time,
                 end_time,
