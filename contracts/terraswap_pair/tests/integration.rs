@@ -19,19 +19,16 @@
 
 use cosmwasm_std::{
     testing::{mock_env, MockApi, MockQuerier, MockStorage},
-    Addr, Coin, Uint128,
+    Addr, Uint128,
 };
 
-use cw20::{Cw20Coin, Cw20ExecuteMsg};
 use terra_multi_test::{App, BankKeeper, ContractWrapper, Executor, TerraMockQuerier};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::pair::{InstantiateMsg, QueryMsg};
-use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 const OWNER: &str = "Owner";
-const TOKEN_INITIAL_AMOUNT: Uint128 = Uint128::new(1000000_00000);
 
 fn mock_app() -> App {
     let env = mock_env();
@@ -51,25 +48,6 @@ fn store_token_code(app: &mut App) -> u64 {
     ));
 
     app.store_code(terra_swap_token_contract)
-}
-
-fn instantiate_token(app: &mut App, token_code_id: u64, name: &str) -> Addr {
-    let name = String::from(name);
-
-    let msg = TokenInstantiateMsg {
-        name: name.clone(),
-        symbol: name.clone(),
-        decimals: 6,
-        initial_balances: vec![Cw20Coin {
-            address: OWNER.to_string(),
-            amount: TOKEN_INITIAL_AMOUNT,
-        }],
-        mint: None,
-        init_hook: None,
-    };
-
-    app.instantiate_contract(token_code_id, Addr::unchecked(OWNER), &msg, &[], name, None)
-        .unwrap()
 }
 
 fn store_pair_code(app: &mut App) -> u64 {
@@ -103,26 +81,7 @@ fn instantiate_pair(app: &mut App, pair_code_id: u64, msg: &InstantiateMsg, name
 fn multi_initialize() {
     let mut app = mock_app();
 
-    let owner = Addr::unchecked(OWNER);
     let token_code_id = store_token_code(&mut app);
-
-    app.init_bank_balance(
-        &owner.clone(),
-        vec![
-            Coin {
-                denom: "uluna".to_string(),
-                amount: Uint128::new(200_00000),
-            },
-            Coin {
-                denom: "uusd".to_string(),
-                amount: Uint128::new(200_00000),
-            },
-        ],
-    )
-    .unwrap();
-
-    //let lp_token_instance = instantiate_token(&mut app, token_code_id, "uluna-uusd");
-
     let pair_code_id = store_pair_code(&mut app);
 
     let start_time = SystemTime::now()
@@ -161,19 +120,6 @@ fn multi_initialize() {
         .wrap()
         .query_wasm_smart(pair_instance.clone(), &QueryMsg::Pair {})
         .unwrap();
-    assert_eq!(start_time, res.start_time);
-
-    let msg_token_increase = Cw20ExecuteMsg::IncreaseAllowance {
-        spender: pair_instance.to_string(),
-        expires: None,
-        amount: TOKEN_INITIAL_AMOUNT + TOKEN_INITIAL_AMOUNT,
-    };
-
-    // app.execute_contract(
-    //     owner.clone(),
-    //     lp_token_instance.clone(),
-    //     &msg_token_increase,
-    //     &[],
-    // )
-    // .unwrap();
+    assert_eq!("Contract #0", res.contract_addr);
+    assert_eq!("Contract #1", res.liquidity_token);
 }

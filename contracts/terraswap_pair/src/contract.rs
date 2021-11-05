@@ -1,4 +1,5 @@
 use crate::math::{calc_in_given_out, calc_out_given_in, FixedFloat};
+use crate::response::MsgInstantiateContractResponse;
 use crate::state::PAIR_INFO;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -12,6 +13,7 @@ use terraswap::U256;
 use crate::error::ContractError;
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
+use protobuf::Message;
 
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
@@ -125,14 +127,16 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
         return Err(ContractError::Unauthorized {});
     }
 
-    println!("msg: {}", msg.id);
-    println!("liquidity token: {}", config.liquidity_token.to_string());
     let data = msg.result.unwrap().data.unwrap();
+    let res: MsgInstantiateContractResponse =
+        Message::parse_from_bytes(data.as_slice()).map_err(|_| {
+            StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+        })?;
 
-    config.liquidity_token = _env.contract.address.clone();
+    config.liquidity_token = deps.api.addr_validate(res.get_contract_address())?;
 
     PAIR_INFO.save(deps.storage, &config)?;
-    Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token.to_string()))
+    Ok(Response::new().add_attribute("liquidity_token_addr", config.liquidity_token))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
