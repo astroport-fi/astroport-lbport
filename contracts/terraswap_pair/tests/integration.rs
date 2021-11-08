@@ -21,7 +21,7 @@ use cosmwasm_std::testing::mock_info;
 use cosmwasm_std::{from_binary, Addr, Coin, Response, Uint128};
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier,
-    MockStorage, MOCK_CONTRACT_ADDR,
+    MockStorage,
 };
 use cosmwasm_vm::{Instance, InstanceOptions};
 
@@ -104,7 +104,6 @@ fn proper_initialization() {
     // it worked, let's query the state
     let res = query(&mut deps, env, QueryMsg::Pair {}).unwrap();
     let pair_info: PairInfo = from_binary(&res).unwrap();
-    assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
     assert_eq!(
         [
             WeightedAssetInfo {
