@@ -119,7 +119,7 @@ pub fn try_update_config(
 pub fn try_create_pair(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
@@ -142,7 +142,10 @@ pub fn try_create_pair(
         deps.storage,
         &TmpPairInfo {
             pair_key,
+            owner: info.sender,
             asset_infos: weighted_asset_infos.clone(),
+            start_time,
+            end_time,
         },
     )?;
 
@@ -195,17 +198,11 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
             StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
         })?;
 
-    let asset_infos = [
-        tmp.asset_infos[0].info.clone(),
-        tmp.asset_infos[1].info.clone(),
-    ];
-
-    let pair_info: FactoryPairInfo = read_pair(deps.as_ref(), &asset_infos)?;
-    if pair_info.contract_addr != Addr::unchecked("") {
+    let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
+    if pair_contract != Addr::unchecked("") {
         return Err(ContractError::PairWasRegistered {});
     }
 
-    let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
     let liquidity_token =
         query_liquidity_token(deps.as_ref(), Addr::unchecked(pair_contract.clone()))?;
 
@@ -213,10 +210,12 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
         deps.storage,
         &tmp.pair_key,
         &FactoryPairInfo {
+            owner: tmp.owner,
             liquidity_token: deps.api.addr_validate(liquidity_token.as_str())?,
             contract_addr: pair_contract.clone(),
             asset_infos: tmp.asset_infos,
-            ..pair_info
+            start_time: tmp.start_time,
+            end_time: tmp.end_time
         },
     )?;
 

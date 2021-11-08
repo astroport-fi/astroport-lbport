@@ -18,7 +18,10 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TmpPairInfo {
     pub pair_key: Vec<u8>,
+    pub owner: Addr,
     pub asset_infos: [WeightedAssetInfo; 2],
+    pub start_time: u64,
+    pub end_time: u64,
 }
 
 pub const TMP_PAIR_INFO: Item<TmpPairInfo> = Item::new("tmp_pair_info");
