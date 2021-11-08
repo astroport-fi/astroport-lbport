@@ -65,6 +65,7 @@ pub fn instantiate(
     }
 
     let pair_info: &PairInfo = &PairInfo {
+        contract_addr: env.contract.address.clone(),
         liquidity_token: Addr::unchecked(""),
         asset_infos: [msg.asset_infos[0].clone(), msg.asset_infos[1].clone()],
         start_time: msg.start_time,

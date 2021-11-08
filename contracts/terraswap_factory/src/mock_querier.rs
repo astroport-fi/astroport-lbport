@@ -6,6 +6,8 @@ use cosmwasm_std::{
 use std::collections::HashMap;
 use terraswap::asset::PairInfo;
 use terraswap::pair::QueryMsg;
+use terraswap::factory::{QueryMsg as FactoryQueryMsg};
+use terraswap::factory::FactoryPairInfo;
 
 /// mock_dependencies is a drop-in replacement for cosmwasm_std::testing::mock_dependencies
 /// this uses our CustomQuerier.
@@ -24,6 +26,7 @@ pub fn mock_dependencies(
 
 pub struct WasmMockQuerier {
     base: MockQuerier<Empty>,
+    terraswap_factory_pairs_querier: TerraswapFactoryPairsQuerier,
     terraswap_pair_querier: TerraswapPairQuerier,
 }
 
@@ -68,9 +71,9 @@ impl WasmMockQuerier {
     pub fn handle_query(&self, request: &QueryRequest<Empty>) -> QuerierResult {
         match &request {
             QueryRequest::Wasm(WasmQuery::Smart {contract_addr, msg})// => {
-                => match from_binary(&msg).unwrap() {
-                    QueryMsg::Pair {} => {
-                       let pair_info: PairInfo =
+            => match from_binary(&msg).unwrap() {
+                QueryMsg::Pair {} => {
+                    let pair_info: PairInfo =
                         match self.terraswap_pair_querier.pairs.get(&Addr::unchecked(contract_addr)) {
                             Some(v) => v.clone(),
                             None => {
@@ -80,9 +83,26 @@ impl WasmMockQuerier {
                             }
                         };
 
-                        SystemResult::Ok(to_binary(&pair_info).into())
-                    }
-                    _ => panic!("DO NOT ENTER HERE")
+                    SystemResult::Ok(to_binary(&pair_info).into())
+                }
+                _ => panic!("DO NOT ENTER HERE")
+            },
+            QueryRequest::Wasm(WasmQuery::Smart {contract_addr, msg})
+            => match from_binary(&msg).unwrap() {
+                FactoryQueryMsg::Pair {asset_infos} => {
+                    let pair_info: FactoryPairInfo =
+                        match self.terraswap_factory_pairs_querier.pairs.get(&Addr::unchecked(contract_addr)) {
+                            Some(v) => v.clone(),
+                            None => {
+                                return SystemResult::Err(SystemError::NoSuchContract {
+                                    addr: contract_addr.clone(),
+                                })
+                            }
+                        };
+
+                    SystemResult::Ok(to_binary(&pair_info).into())
+                }
+                _ => panic!("DO NOT ENTER HERE")
             }
             _ => self.base.handle_query(request),
         }
@@ -94,6 +114,7 @@ impl WasmMockQuerier {
         WasmMockQuerier {
             base,
             terraswap_pair_querier: TerraswapPairQuerier::default(),
+            terraswap_factory_pairs_querier: TerraswapFactoryPairsQuerier::default(),
         }
     }
 
@@ -102,9 +123,35 @@ impl WasmMockQuerier {
         self.terraswap_pair_querier = TerraswapPairQuerier::new(pairs);
     }
 
+    // configure the terraswap factory
+    pub fn with_terraswap_factory_pairs(&mut self, pairs: &[(&Addr, &FactoryPairInfo)]) {
+        self.terraswap_factory_pairs_querier = TerraswapFactoryPairsQuerier::new(pairs);
+    }
     // pub fn with_balance(&mut self, balances: &[(&Addr, &[Coin])]) {
     //     for (addr, balance) in balances {
     //         self.base.update_balance(addr, balance.to_vec());
     //     }
     // }
+}
+
+
+#[derive(Clone, Default)]
+pub struct TerraswapFactoryPairsQuerier {
+    pairs: HashMap<Addr, FactoryPairInfo>,
+}
+
+impl TerraswapFactoryPairsQuerier {
+    pub fn new(pairs: &[(&Addr, &FactoryPairInfo)]) -> Self {
+        TerraswapFactoryPairsQuerier {
+            pairs: factory_pairs_to_map(pairs),
+        }
+    }
+}
+
+pub(crate) fn factory_pairs_to_map(pairs: &[(&Addr, &FactoryPairInfo)]) -> HashMap<Addr, FactoryPairInfo> {
+    let mut pairs_map: HashMap<Addr, FactoryPairInfo> = HashMap::new();
+    for (key, pair) in pairs.iter() {
+        pairs_map.insert((*key).clone(), (*pair).clone());
+    }
+    pairs_map
 }

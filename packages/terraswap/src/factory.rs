@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetInfo, WeightedAssetInfo};
+use crate::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use crate::hook::InitHook;
 use cosmwasm_std::Addr;
 
@@ -73,7 +73,7 @@ pub struct MigrateMsg {}
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairsResponse {
-    pub pairs: Vec<ExtendedFactoryPairInfo>,
+    pub pairs: Vec<PairInfo>,
 }
 
 // We define a custom struct for each query response
@@ -81,12 +81,4 @@ pub struct PairsResponse {
 pub struct FactoryPairInfo {
     pub owner: Addr,
     pub contract_addr: Addr,
-}
-
-// We define a custom struct for each query response
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct ExtendedFactoryPairInfo {
-    pub asset_infos: [AssetInfo; 2],
-    pub contract_addr: Addr,
-    pub liquidity_token: Addr,
 }
