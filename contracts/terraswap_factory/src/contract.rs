@@ -146,7 +146,7 @@ pub fn try_create_pair(
         },
     )?;
 
-    let messages: Vec<SubMsg> = vec![SubMsg {
+    let sub_message: SubMsg = SubMsg {
         id: 0,
         msg: WasmMsg::Instantiate {
             admin: Some(config.owner.to_string()),
@@ -165,7 +165,7 @@ pub fn try_create_pair(
         .into(),
         gas_limit: None,
         reply_on: ReplyOn::Success,
-    }];
+    };
 
     let mut regular_msg: Vec<CosmosMsg> = vec![];
     if let Some(hook) = init_hook {
@@ -177,7 +177,7 @@ pub fn try_create_pair(
     }
 
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_submessage(sub_message)
         .add_messages(regular_msg)
         .add_attributes(vec![
             attr("action", "create_pair"),
