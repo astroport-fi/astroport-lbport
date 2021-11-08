@@ -119,7 +119,7 @@ pub fn try_update_config(
 pub fn try_create_pair(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
@@ -141,19 +141,8 @@ pub fn try_create_pair(
     TMP_PAIR_INFO.save(
         deps.storage,
         &TmpPairInfo {
+            pair_key,
             asset_infos: weighted_asset_infos.clone(),
-        },
-    )?;
-    PAIRS.save(
-        deps.storage,
-        &pair_key,
-        &FactoryPairInfo {
-            owner: info.sender,
-            liquidity_token: Addr::unchecked(""),
-            contract_addr: Addr::unchecked(""),
-            asset_infos: weighted_asset_infos.clone(),
-            start_time,
-            end_time,
         },
     )?;
 
@@ -206,39 +195,34 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
             StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
         })?;
 
-    let pair_contract_addr = deps.api.addr_validate(res.get_contract_address())?;
-
-    try_register(deps, pair_contract_addr, tmp.asset_infos)
-}
-
-/// create pair execute this message
-pub fn try_register(
-    deps: DepsMut,
-    pair_contract: Addr,
-    weighted_asset_infos: [WeightedAssetInfo; 2],
-) -> Result<Response, ContractError> {
     let asset_infos = [
-        weighted_asset_infos[0].info.clone(),
-        weighted_asset_infos[1].info.clone(),
+        tmp.asset_infos[0].info.clone(),
+        tmp.asset_infos[1].info.clone(),
     ];
+
     let pair_info: FactoryPairInfo = read_pair(deps.as_ref(), &asset_infos)?;
     if pair_info.contract_addr != Addr::unchecked("") {
         return Err(ContractError::PairWasRegistered {});
     }
 
-    let liquidity_token = query_liquidity_token(deps.as_ref(), pair_contract.clone())?;
+    let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
+    let liquidity_token =
+        query_liquidity_token(deps.as_ref(), Addr::unchecked(pair_contract.clone()))?;
+
     PAIRS.save(
         deps.storage,
-        &pair_key(&asset_infos),
+        &tmp.pair_key,
         &FactoryPairInfo {
+            liquidity_token: deps.api.addr_validate(liquidity_token.as_str())?,
             contract_addr: pair_contract.clone(),
-            liquidity_token,
+            asset_infos: tmp.asset_infos,
             ..pair_info
         },
     )?;
+
     Ok(Response::new().add_attributes(vec![
-        attr("action", "register"),
-        attr("pair_contract_addr", pair_contract),
+        ("pair_contract_addr", pair_contract),
+        ("liquidity_token_addr", liquidity_token),
     ]))
 }
 
