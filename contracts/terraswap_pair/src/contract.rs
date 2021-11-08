@@ -232,19 +232,6 @@ pub fn receive_cw20(
     }
 }
 
-// Must token contract execute it
-pub fn try_post_initialize(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
-    let mut config: PairInfo = PAIR_INFO.load(deps.storage)?;
-
-    // permission check
-    if config.liquidity_token != Addr::unchecked("") {
-        return Err(ContractError::Unauthorized {});
-    }
-    config.liquidity_token = info.sender.clone();
-    PAIR_INFO.save(deps.storage, &config)?;
-    Ok(Response::new().add_attribute("liquidity_token_addr", info.sender.as_str()))
-}
-
 /// CONTRACT - should approve contract to use the amount of token
 pub fn try_provide_liquidity(
     deps: DepsMut,
