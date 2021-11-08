@@ -4,17 +4,16 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 
-use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
+use terraswap::asset::{AssetInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, ExtendedFactoryPairInfo, FactoryPairInfo, InstantiateMsg,
     MigrateMsg, PairsResponse, QueryMsg,
 };
 use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
-use terraswap::querier::query_pair_info;
 
 use crate::error::ContractError;
-use crate::querier::query_liquidity_token;
+use crate::querier::{query_liquidity_token, query_pair_info};
 use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
 
 // version info for migration info
@@ -211,13 +210,12 @@ pub fn try_register(
     }
 
     let pair_contract = info.sender;
-    let liquidity_token = query_liquidity_token(deps.as_ref(), pair_contract.clone())?;
     PAIRS.save(
         deps.storage,
         &pair_key(&asset_infos),
         &FactoryPairInfo {
             contract_addr: pair_contract.clone(),
-            ..pair_info
+            owner: pair_info.owner,
         },
     )?;
     Ok(Response::new().add_attributes(vec![
@@ -277,7 +275,7 @@ pub fn query_pair(deps: Deps, asset_infos: [AssetInfo; 2]) -> StdResult<Extended
     Ok(ExtendedFactoryPairInfo {
         asset_infos,
         contract_addr: pair_addr.clone(),
-        liquidity_token: query_pair_info(deps.clone(), &pair_addr)?.liquidity_token,
+        liquidity_token: query_liquidity_token(deps, pair_addr)?,
     })
 }
 
@@ -291,7 +289,7 @@ pub fn query_pairs(
     let pairs: Vec<FactoryPairInfo> = read_pairs(deps, start_after, limit);
     let mut extended_pair_infos: Vec<ExtendedFactoryPairInfo> = vec![];
     for pair in pairs {
-        let pair_info = query_pair_info(deps.clone(), &pair.clone().contract_addr)?;
+        let pair_info = query_pair_info(deps, &pair.clone().contract_addr)?;
         let asset_infos: [AssetInfo; 2] = [
             pair_info.asset_infos[0].clone().info,
             pair_info.asset_infos[1].clone().info,

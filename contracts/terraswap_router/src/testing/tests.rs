@@ -367,7 +367,6 @@ fn execute_swap_operation() {
         &FactoryPairInfo {
             owner: Addr::unchecked("owner0000"),
             contract_addr: Addr::unchecked("pair"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
         },
     )]);
     deps.querier.with_token_balances(&[(
@@ -477,7 +476,6 @@ fn query_buy_with_routes() {
             &FactoryPairInfo {
                 owner: Addr::unchecked("owner0000"),
                 contract_addr: Addr::unchecked("pair0000"),
-                liquidity_token: Addr::unchecked("liquidity0000"),
             },
         ),
         (
@@ -485,7 +483,6 @@ fn query_buy_with_routes() {
             &FactoryPairInfo {
                 owner: Addr::unchecked("owner0001"),
                 contract_addr: Addr::unchecked("pair0001"),
-                liquidity_token: Addr::unchecked("liquidity0001"),
             },
         ),
     ]);

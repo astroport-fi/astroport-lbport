@@ -257,7 +257,6 @@ fn query_terraswap_pair_contract() {
         &FactoryPairInfo {
             owner: Addr::unchecked("owner0000"),
             contract_addr: Addr::unchecked("pair0000"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
         },
     )]);
 
@@ -277,5 +276,4 @@ fn query_terraswap_pair_contract() {
 
     assert_eq!(pair_info.owner, Addr::unchecked("owner0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked("pair0000"));
-    assert_eq!(pair_info.liquidity_token, Addr::unchecked("liquidity0000"));
 }

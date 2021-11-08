@@ -1,4 +1,4 @@
-use crate::asset::{Asset, AssetInfo, PairInfo};
+use crate::asset::{Asset, AssetInfo};
 use crate::factory::{FactoryPairInfo, QueryMsg as FactoryQueryMsg};
 use crate::pair::{QueryMsg as PairQueryMsg, ReverseSimulationResponse, SimulationResponse};
 
@@ -53,13 +53,6 @@ pub fn query_supply(deps: Deps, contract_addr: &Addr) -> StdResult<Uint128> {
     }))?;
 
     Ok(res.total_supply)
-}
-
-pub fn query_pair_info(deps: Deps, pair_contract: &Addr) -> StdResult<PairInfo> {
-    deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: pair_contract.to_string(),
-        msg: to_binary(&PairQueryMsg::Pair {})?,
-    }))
 }
 
 pub fn query_factory_pair_info(

@@ -208,7 +208,6 @@ impl WasmMockQuerier {
                         to_binary(&FactoryPairInfo {
                             owner: Addr::unchecked("owner0000"),
                             contract_addr: Addr::unchecked("pair"),
-                            liquidity_token: Addr::unchecked("liquidity0000"),
                         })
                         .into(),
                     ),

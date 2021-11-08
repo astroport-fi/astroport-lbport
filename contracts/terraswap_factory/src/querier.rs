@@ -3,10 +3,12 @@ use terraswap::asset::PairInfo;
 use terraswap::pair::QueryMsg;
 
 pub fn query_liquidity_token(deps: Deps, contract_addr: Addr) -> StdResult<Addr> {
-    let res: PairInfo = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-        contract_addr: contract_addr.to_string(),
-        msg: to_binary(&QueryMsg::Pair {})?,
-    }))?;
+    Ok(query_pair_info(deps, &contract_addr)?.liquidity_token)
+}
 
-    Ok(res.liquidity_token)
+pub fn query_pair_info(deps: Deps, pair_contract: &Addr) -> StdResult<PairInfo> {
+    deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: pair_contract.to_string(),
+        msg: to_binary(&QueryMsg::Pair {})?,
+    }))
 }
