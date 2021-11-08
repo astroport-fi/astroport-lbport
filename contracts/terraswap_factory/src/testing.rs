@@ -9,10 +9,11 @@ use crate::state::{read_pair, CONFIG};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg, FactoryPairInfo};
+use terraswap::factory::{
+    ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
+};
 use terraswap::hook::InitHook;
-use terraswap::pair::{InstantiateMsg as PairInstantiateMsg, QueryMsg as PairQueryMsg};
-use crate::querier::query_pair_info;
+use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[test]
 fn proper_initialization() {
@@ -179,13 +180,13 @@ fn create_pair() {
                     msg: to_binary(&ExecuteMsg::Register {
                         asset_infos: asset_infos.clone()
                     })
-                        .unwrap(),
+                    .unwrap(),
                 }),
                 start_time,
                 end_time,
                 description: Some(String::from("description")),
             })
-                .unwrap(),
+            .unwrap(),
             code_id: 321u64,
             funds: vec![],
             admin: Some(config.unwrap().owner.to_string()),
@@ -250,37 +251,20 @@ fn register() {
     let info = mock_info("addr0000", &[]);
     let _res = execute(deps.as_mut(), env, info, msg).unwrap();
 
-    // register terraswap factory, pair querier
-    deps.querier.with_terraswap_factory_pairs(&[(
-        &Addr::unchecked("pair0000"),
-        &FactoryPairInfo { owner: Addr::unchecked("owner0001"), contract_addr: Addr::unchecked("pair0000") }
-    )]);
-    deps.querier.with_terraswap_pairs(&[(
-        &Addr::unchecked("pair0000"),
-        &PairInfo {
-            asset_infos: [
-                WeightedAssetInfo {
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0000"),
-                    },
-                    start_weight: Uint128::new(30),
-                    end_weight: Uint128::new(20),
-                },
-                WeightedAssetInfo {
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0001"),
-                    },
-                    start_weight: Uint128::new(30),
-                    end_weight: Uint128::new(20),
-                },
-            ],
-            contract_addr: Addr::unchecked("pair0000"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
-            start_time,
-            end_time,
-            description: Some(String::from("description")),
-        },
-    )]);
+    let pair0_addr = Addr::unchecked("pair0000");
+    let pair0_info = PairInfo {
+        asset_infos: asset_infos.clone(),
+        contract_addr: Addr::unchecked("pair0000"),
+        liquidity_token: Addr::unchecked("liquidity0000"),
+        start_time,
+        end_time,
+        description: Some(String::from("description")),
+    };
+
+    let mut deployed_pairs = vec![(&pair0_addr, &pair0_info)];
+
+    // register terraswap pair querier
+    deps.querier.with_terraswap_pairs(&deployed_pairs);
 
     let msg = ExecuteMsg::Register {
         asset_infos: asset_infos.clone(),
@@ -297,19 +281,19 @@ fn register() {
             asset_infos: [asset_infos[0].info.clone(), asset_infos[1].info.clone()],
         },
     )
-        .unwrap();
+    .unwrap();
 
     let pair_res: PairInfo = from_binary(&query_res).unwrap();
     assert_eq!(
         pair_res,
         PairInfo {
-                liquidity_token: Addr::unchecked("liquidity0000"),
-                contract_addr: Addr::unchecked("pair0000"),
-                asset_infos: asset_infos.clone(),
-                start_time,
-                end_time,
-                description: Some("description".to_string())
-            }
+            liquidity_token: Addr::unchecked("liquidity0000"),
+            contract_addr: Addr::unchecked("pair0000"),
+            asset_infos: asset_infos.clone(),
+            start_time,
+            end_time,
+            description: Some(String::from("description")),
+        }
     );
 
     let msg = ExecuteMsg::Register {
@@ -350,37 +334,21 @@ fn register() {
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
     let _res = execute(deps.as_mut(), env, info, msg).unwrap();
-// register terraswap factory, pair querier
-    deps.querier.with_terraswap_factory_pairs(&[(
-        &Addr::unchecked("pair0001"),
-        &FactoryPairInfo { owner: Addr::unchecked("owner0002"), contract_addr: Addr::unchecked("pair0001") }
-    )]);
-    deps.querier.with_terraswap_pairs(&[(
-        &Addr::unchecked("pair0001"),
-        &PairInfo {
-            asset_infos: [
-                WeightedAssetInfo {
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0000"),
-                    },
-                    start_weight: Uint128::new(30),
-                    end_weight: Uint128::new(20),
-                },
-                WeightedAssetInfo {
-                    info: AssetInfo::Token {
-                        contract_addr: Addr::unchecked("asset0001"),
-                    },
-                    start_weight: Uint128::new(30),
-                    end_weight: Uint128::new(20),
-                },
-            ],
-            contract_addr: Addr::unchecked("pair0001"),
-            liquidity_token: Addr::unchecked("liquidity0000"),
-            start_time,
-            end_time,
-            description: Some(String::from("description")),
-        },
-    )]);
+
+    // register terraswap pair querier
+    let pair1_addr = Addr::unchecked("pair0001");
+    let pair1_info = PairInfo {
+        asset_infos: asset_infos_2.clone(),
+        contract_addr: Addr::unchecked("pair0001"),
+        liquidity_token: Addr::unchecked("liquidity0001"),
+        start_time,
+        end_time,
+        description: Some(String::from("description")),
+    };
+
+    deployed_pairs.push((&pair1_addr, &pair1_info));
+
+    deps.querier.with_terraswap_pairs(&deployed_pairs);
 
     let msg = ExecuteMsg::Register {
         asset_infos: asset_infos_2.clone(),
@@ -399,24 +367,7 @@ fn register() {
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(
         pairs_res.pairs,
-        vec![
-            PairInfo {
-                liquidity_token: Addr::unchecked("liquidity0000"),
-                contract_addr: Addr::unchecked("pair0000"),
-                asset_infos: asset_infos.clone(),
-                start_time,
-                end_time,
-                description: None
-            },
-            PairInfo {
-                liquidity_token: Addr::unchecked("liquidity0001"),
-                contract_addr: Addr::unchecked("pair0001"),
-                asset_infos: asset_infos_2.clone(),
-                start_time,
-                end_time,
-                description: None
-            }
-        ]
+        vec![pair0_info.clone(), pair1_info.clone()]
     );
 
     let query_msg = QueryMsg::Pairs {
@@ -426,17 +377,7 @@ fn register() {
 
     let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
-    assert_eq!(
-        pairs_res.pairs,
-        vec![PairInfo {
-            liquidity_token: Addr::unchecked("liquidity0000"),
-            contract_addr: Addr::unchecked("pair0000"),
-            asset_infos: asset_infos.clone(),
-            start_time,
-            end_time,
-            description: None
-        }]
-    );
+    assert_eq!(pairs_res.pairs, vec![pair0_info]);
 
     let query_msg = QueryMsg::Pairs {
         start_after: Some([asset_infos[0].info.clone(), asset_infos[1].info.clone()]),
@@ -445,17 +386,7 @@ fn register() {
 
     let res = query(deps.as_ref(), env, query_msg).unwrap();
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
-    assert_eq!(
-        pairs_res.pairs,
-        vec![PairInfo {
-            liquidity_token: Addr::unchecked("liquidity0001"),
-            contract_addr: Addr::unchecked("pair0001"),
-            asset_infos: asset_infos_2.clone(),
-            start_time,
-            end_time,
-            description: None
-        }]
-    );
+    assert_eq!(pairs_res.pairs, vec![pair1_info.clone()]);
 
     // try unregister
     let msg = ExecuteMsg::Unregister {
@@ -500,15 +431,5 @@ fn register() {
     let res = query(deps.as_ref(), env, query_msg).unwrap();
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
 
-    assert_eq!(
-        pairs_res.pairs,
-        vec![PairInfo {
-            liquidity_token: Addr::unchecked("liquidity0001"),
-            contract_addr: Addr::unchecked("pair0001"),
-            asset_infos: asset_infos_2.clone(),
-            start_time,
-            end_time,
-            description: None
-        }]
-    );
+    assert_eq!(pairs_res.pairs, vec![pair1_info]);
 }
