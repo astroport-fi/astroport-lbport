@@ -170,9 +170,9 @@ pub fn try_create_pair(
         reply_on: ReplyOn::Success,
     };
 
-    let mut regular_msg: Vec<CosmosMsg> = vec![];
+    let mut msg: Vec<CosmosMsg> = vec![];
     if let Some(hook) = init_hook {
-        regular_msg.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        msg.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: hook.contract_addr.to_string(),
             msg: hook.msg,
             funds: vec![],
@@ -181,7 +181,7 @@ pub fn try_create_pair(
 
     Ok(Response::new()
         .add_submessage(sub_message)
-        .add_messages(regular_msg)
+        .add_messages(msg)
         .add_attributes(vec![
             attr("action", "create_pair"),
             attr("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),
