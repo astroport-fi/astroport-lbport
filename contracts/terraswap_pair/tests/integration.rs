@@ -136,6 +136,8 @@ fn proper_initialization() {
     let pair_info: PairInfo = from_binary(&res).unwrap();
 
     assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
+    // why pair_info.liquidity_token is empty ?
+    assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!(asset_infos, pair_info.asset_infos);
     assert_eq!(start_time, pair_info.start_time);
     assert_eq!(end_time, pair_info.end_time);
