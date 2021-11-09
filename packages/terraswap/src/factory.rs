@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetInfo, WeightedAssetInfo};
+use crate::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use crate::hook::InitHook;
 use cosmwasm_std::Addr;
 
@@ -27,10 +27,13 @@ pub enum ExecuteMsg {
     CreatePair {
         /// Asset infos
         asset_infos: [WeightedAssetInfo; 2],
+        /// LBP start time
         start_time: u64,
+        /// LBP end time
         end_time: u64,
+        /// Pair description
         description: Option<String>,
-        /// Init hook for after works
+        /// Init hook for post initialization
         init_hook: Option<InitHook>,
     },
     Unregister {
@@ -66,16 +69,12 @@ pub struct MigrateMsg {}
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairsResponse {
-    pub pairs: Vec<FactoryPairInfo>,
+    pub pairs: Vec<PairInfo>,
 }
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FactoryPairInfo {
-    pub asset_infos: [WeightedAssetInfo; 2],
     pub owner: Addr,
     pub contract_addr: Addr,
-    pub liquidity_token: Addr,
-    pub start_time: u64,
-    pub end_time: u64,
 }

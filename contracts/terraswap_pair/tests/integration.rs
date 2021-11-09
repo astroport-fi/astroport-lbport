@@ -154,7 +154,7 @@ fn proper_initialization() {
     );
 
     assert_eq!("description", pair_info.description.unwrap());
-    // assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
+    assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
 }
 
 fn mock_app() -> App {

@@ -6,8 +6,7 @@ use cosmwasm_std::{
 
 use std::collections::HashMap;
 
-use crate::asset::PairInfo;
-use crate::factory::QueryMsg as FactoryQueryMsg;
+use crate::factory::{FactoryPairInfo, QueryMsg as FactoryQueryMsg};
 use cw20::{BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
 
@@ -93,20 +92,22 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 }
 
 #[derive(Clone, Default)]
-pub struct AstroportFactoryQuerier {
-    pairs: HashMap<String, PairInfo>,
+pub struct TerraswapFactoryQuerier {
+    pairs: HashMap<String, FactoryPairInfo>,
 }
 
-impl AstroportFactoryQuerier {
-    pub fn new(pairs: &[(&String, &PairInfo)]) -> Self {
-        AstroportFactoryQuerier {
+impl TerraswapFactoryQuerier {
+    pub fn new(pairs: &[(&String, &FactoryPairInfo)]) -> Self {
+        TerraswapFactoryQuerier {
             pairs: pairs_to_map(pairs),
         }
     }
 }
 
-pub(crate) fn pairs_to_map(pairs: &[(&String, &PairInfo)]) -> HashMap<String, PairInfo> {
-    let mut pairs_map: HashMap<String, PairInfo> = HashMap::new();
+pub(crate) fn pairs_to_map(
+    pairs: &[(&String, &FactoryPairInfo)],
+) -> HashMap<String, FactoryPairInfo> {
+    let mut pairs_map: HashMap<String, FactoryPairInfo> = HashMap::new();
     for (key, pair) in pairs.iter() {
         pairs_map.insert(key.to_string(), (*pair).clone());
     }
@@ -201,7 +202,7 @@ impl CW20QueryHandler {
 struct DefaultQueryHandler {
     base: MockQuerier<TerraQueryWrapper>,
     tax_querier: TaxQuerier,
-    terraswap_factory_querier: AstroportFactoryQuerier,
+    terraswap_factory_querier: TerraswapFactoryQuerier,
 }
 
 impl DefaultQueryHandler {
@@ -259,7 +260,7 @@ impl WasmMockQuerier {
             query_handler: DefaultQueryHandler {
                 base,
                 tax_querier: TaxQuerier::default(),
-                terraswap_factory_querier: AstroportFactoryQuerier::default(),
+                terraswap_factory_querier: TerraswapFactoryQuerier::default(),
             },
             cw20_query_handler: CW20QueryHandler {
                 token_querier: TokenQuerier::default(),
@@ -279,8 +280,8 @@ impl WasmMockQuerier {
     }
 
     // configure the terraswap pair
-    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &PairInfo)]) {
-        self.query_handler.terraswap_factory_querier = AstroportFactoryQuerier::new(pairs);
+    pub fn with_terraswap_pairs(&mut self, pairs: &[(&String, &FactoryPairInfo)]) {
+        self.query_handler.terraswap_factory_querier = TerraswapFactoryQuerier::new(pairs);
     }
 
     pub fn with_default_query_handler(&mut self) {

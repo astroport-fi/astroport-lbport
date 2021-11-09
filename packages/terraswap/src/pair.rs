@@ -13,13 +13,13 @@ pub struct InstantiateMsg {
     pub asset_infos: [WeightedAssetInfo; 2],
     /// Token contract code id for initialization
     pub token_code_id: u64,
-    /// Hook for post initalization
+    /// Hook for post initialization
     pub init_hook: Option<InitHook>,
-    // LBP start time
+    /// LBP start time
     pub start_time: u64,
-    // LBP end time
+    /// LBP end time
     pub end_time: u64,
-    // Pair description
+    /// Pair description
     pub description: Option<String>,
 }
 

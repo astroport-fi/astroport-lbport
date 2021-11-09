@@ -5,7 +5,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use protobuf::Message;
 
-use terraswap::asset::{AssetInfo, WeightedAssetInfo};
+use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
     QueryMsg,
@@ -14,7 +14,7 @@ use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
-use crate::querier::query_liquidity_token;
+use crate::querier::query_pair_info;
 use crate::response::MsgInstantiateContractResponse;
 use crate::state::{
     pair_key, read_pair, read_pairs, Config, TmpPairInfo, CONFIG, PAIRS, TMP_PAIR_INFO,
@@ -191,6 +191,17 @@ pub fn try_create_pair(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     let tmp = TMP_PAIR_INFO.load(deps.storage)?;
+    let registered_pair_addr = PAIRS
+        .load(deps.storage, &tmp.pair_key)
+        .unwrap_or(FactoryPairInfo {
+            owner: Addr::unchecked(""),
+            contract_addr: Addr::unchecked(""),
+        })
+        .contract_addr;
+
+    if registered_pair_addr != Addr::unchecked("") {
+        return Err(ContractError::PairWasRegistered {});
+    }
 
     let data = msg.result.unwrap().data.unwrap();
     let res: MsgInstantiateContractResponse =
@@ -199,30 +210,17 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
         })?;
 
     let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
-    if pair_contract != Addr::unchecked("") {
-        return Err(ContractError::PairWasRegistered {});
-    }
-
-    let liquidity_token =
-        query_liquidity_token(deps.as_ref(), Addr::unchecked(pair_contract.clone()))?;
 
     PAIRS.save(
         deps.storage,
         &tmp.pair_key,
         &FactoryPairInfo {
             owner: tmp.owner,
-            liquidity_token: deps.api.addr_validate(liquidity_token.as_str())?,
             contract_addr: pair_contract.clone(),
-            asset_infos: tmp.asset_infos,
-            start_time: tmp.start_time,
-            end_time: tmp.end_time
         },
     )?;
 
-    Ok(Response::new().add_attributes(vec![
-        ("pair_contract_addr", pair_contract),
-        ("liquidity_token_addr", liquidity_token),
-    ]))
+    Ok(Response::new().add_attributes(vec![("pair_contract_addr", pair_contract)]))
 }
 
 /// remove from list of pairs
@@ -269,8 +267,12 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(resp)
 }
 
-pub fn query_pair(deps: Deps, asset_infos: [AssetInfo; 2]) -> StdResult<FactoryPairInfo> {
-    PAIRS.load(deps.storage, &pair_key(&asset_infos))
+pub fn query_pair(deps: Deps, asset_infos: [AssetInfo; 2]) -> StdResult<PairInfo> {
+    let pair_addr = PAIRS
+        .load(deps.storage, &pair_key(&asset_infos))?
+        .contract_addr;
+    let pair_info = query_pair_info(deps, &pair_addr)?;
+    Ok(pair_info)
 }
 
 pub fn query_pairs(
@@ -280,9 +282,13 @@ pub fn query_pairs(
 ) -> StdResult<PairsResponse> {
     let start_after =
         start_after.map(|start_after| [start_after[0].clone(), start_after[1].clone()]);
-    let pairs: Vec<FactoryPairInfo> = read_pairs(deps, start_after, limit);
-    let resp = PairsResponse { pairs };
-    Ok(resp)
+
+    let pairs: Vec<PairInfo> = read_pairs(deps, start_after, limit)
+        .iter()
+        .map(|pair| query_pair_info(deps, &pair.contract_addr).unwrap())
+        .collect();
+
+    Ok(PairsResponse { pairs })
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
