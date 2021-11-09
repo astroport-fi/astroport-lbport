@@ -143,9 +143,6 @@ pub fn try_create_pair(
         &TmpPairInfo {
             pair_key,
             owner: info.sender,
-            asset_infos: weighted_asset_infos.clone(),
-            start_time,
-            end_time,
         },
     )?;
 
@@ -191,15 +188,7 @@ pub fn try_create_pair(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     let tmp = TMP_PAIR_INFO.load(deps.storage)?;
-    let registered_pair_addr = PAIRS
-        .load(deps.storage, &tmp.pair_key)
-        .unwrap_or(FactoryPairInfo {
-            owner: Addr::unchecked(""),
-            contract_addr: Addr::unchecked(""),
-        })
-        .contract_addr;
-
-    if registered_pair_addr != Addr::unchecked("") {
+    if PAIRS.may_load(deps.storage, &tmp.pair_key)?.is_some() {
         return Err(ContractError::PairWasRegistered {});
     }
 

@@ -5,7 +5,7 @@ use cosmwasm_std::{Addr, Deps, Order, StdError};
 
 use crate::error::ContractError;
 use cw_storage_plus::{Bound, Item, Map};
-use terraswap::asset::{AssetInfo, WeightedAssetInfo};
+use terraswap::asset::AssetInfo;
 use terraswap::factory::FactoryPairInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -19,9 +19,6 @@ pub struct Config {
 pub struct TmpPairInfo {
     pub pair_key: Vec<u8>,
     pub owner: Addr,
-    pub asset_infos: [WeightedAssetInfo; 2],
-    pub start_time: u64,
-    pub end_time: u64,
 }
 
 pub const TMP_PAIR_INFO: Item<TmpPairInfo> = Item::new("tmp_pair_info");

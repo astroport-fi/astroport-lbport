@@ -196,9 +196,6 @@ fn create_pair() {
     let pair_info = read_tmp_pair(deps.as_ref()).unwrap();
 
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
-    assert_eq!(pair_info.asset_infos, asset_infos);
-    assert_eq!(pair_info.start_time, start_time);
-    assert_eq!(pair_info.end_time, end_time);
 }
 
 #[test]
