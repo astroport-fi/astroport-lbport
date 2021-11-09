@@ -14,6 +14,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg};
 
+use crate::response::MsgInstantiateContractResponse;
+use protobuf::Message;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[test]
@@ -263,11 +265,20 @@ fn register() {
     // register terraswap pair querier
     deps.querier.with_terraswap_pairs(&deployed_pairs);
 
+    let data = MsgInstantiateContractResponse {
+        contract_address: String::from("pair0000"),
+        data: vec![],
+        unknown_fields: Default::default(),
+        cached_size: Default::default(),
+    }
+    .write_to_bytes()
+    .unwrap();
+
     let reply_msg = Reply {
         id: 1,
         result: ContractResult::Ok(SubMsgExecutionResponse {
             events: vec![],
-            data: Some(vec![10, 8, 112, 97, 105, 114, 48, 48, 48, 48].into()),
+            data: Some(data.into()),
         }),
     };
 
@@ -343,11 +354,20 @@ fn register() {
 
     deps.querier.with_terraswap_pairs(&deployed_pairs);
 
+    let data = MsgInstantiateContractResponse {
+        contract_address: String::from("pair0001"),
+        data: vec![],
+        unknown_fields: Default::default(),
+        cached_size: Default::default(),
+    }
+    .write_to_bytes()
+    .unwrap();
+
     let reply_msg_2 = Reply {
         id: 1,
         result: ContractResult::Ok(SubMsgExecutionResponse {
             events: vec![],
-            data: Some(vec![10, 8, 112, 97, 105, 114, 48, 48, 48, 49].into()),
+            data: Some(data.into()),
         }),
     };
 
