@@ -1,18 +1,21 @@
-use cosmwasm_std::{attr, from_binary, to_binary, Addr, CosmosMsg, SubMsg, Uint128, WasmMsg};
+use cosmwasm_std::{
+    attr, from_binary, to_binary, Addr, ContractResult, CosmosMsg, Reply, SubMsg,
+    SubMsgExecutionResponse, Uint128, WasmMsg,
+};
 
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{execute, instantiate, query, reply};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 
 use crate::state::{read_pair, CONFIG};
 
-use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
+use cosmwasm_std::testing::{mock_env, mock_info};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
 };
-use terraswap::hook::InitHook;
+
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 #[test]
@@ -154,14 +157,14 @@ fn create_pair() {
         asset_infos: asset_infos.clone(),
         start_time,
         end_time,
-        init_hook: None,
         description: Some(String::from("description")),
+        init_hook: None,
     };
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
     let config = CONFIG.load(&deps.storage);
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
@@ -169,34 +172,32 @@ fn create_pair() {
             attr("pair", "asset0000-asset0001")
         ]
     );
+
     assert_eq!(
         res.messages,
-        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-            msg: to_binary(&PairInstantiateMsg {
-                asset_infos: asset_infos.clone(),
-                token_code_id: 123u64,
-                init_hook: Some(InitHook {
-                    contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
-                    msg: to_binary(&ExecuteMsg::Register {
-                        asset_infos: asset_infos.clone()
-                    })
-                    .unwrap(),
-                }),
-                start_time,
-                end_time,
-                description: Some(String::from("description")),
-            })
-            .unwrap(),
-            code_id: 321u64,
-            funds: vec![],
-            admin: Some(config.unwrap().owner.to_string()),
-            label: String::from(""),
-        }))]
+        vec![SubMsg::reply_on_success(
+            CosmosMsg::Wasm(WasmMsg::Instantiate {
+                msg: to_binary(&PairInstantiateMsg {
+                    asset_infos: asset_infos.clone(),
+                    token_code_id: 123u64,
+                    init_hook: None,
+                    start_time,
+                    end_time,
+                    description: Some(String::from("description")),
+                })
+                .unwrap(),
+                code_id: 321u64,
+                funds: vec![],
+                admin: Some(config.unwrap().owner.to_string()),
+                label: String::from("TerraSwap pair"),
+            }),
+            0
+        )]
     );
 
     let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
-
     let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
+
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
     assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
 }
@@ -249,7 +250,7 @@ fn register() {
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
-    let _res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     let pair0_addr = Addr::unchecked("pair0000");
     let pair0_info = PairInfo {
@@ -266,17 +267,19 @@ fn register() {
     // register terraswap pair querier
     deps.querier.with_terraswap_pairs(&deployed_pairs);
 
-    let msg = ExecuteMsg::Register {
-        asset_infos: asset_infos.clone(),
+    let reply_msg = Reply {
+        id: 1,
+        result: ContractResult::Ok(SubMsgExecutionResponse {
+            events: vec![],
+            data: Some(vec![10, 8, 112, 97, 105, 114, 48, 48, 48, 48].into()),
+        }),
     };
 
-    let env = mock_env();
-    let info = mock_info("pair0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let _res = reply(deps.as_mut(), mock_env(), reply_msg.clone()).unwrap();
 
     let query_res = query(
         deps.as_ref(),
-        env,
+        env.clone(),
         QueryMsg::Pair {
             asset_infos: [asset_infos[0].info.clone(), asset_infos[1].info.clone()],
         },
@@ -296,16 +299,10 @@ fn register() {
         }
     );
 
-    let msg = ExecuteMsg::Register {
-        asset_infos: [asset_infos[1].clone(), asset_infos[0].clone()],
-    };
-
-    let env = mock_env();
-    let info = mock_info("pair0000", &[]);
-    let res = execute(deps.as_mut(), env, info, msg).unwrap_err();
+    // check pair was registered
+    let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap_err();
     assert_eq!(res, ContractError::PairWasRegistered {});
 
-    // Store one more item to test query pairs
     let asset_infos_2 = [
         WeightedAssetInfo {
             info: AssetInfo::Token {
@@ -333,7 +330,7 @@ fn register() {
 
     let env = mock_env();
     let info = mock_info("addr0000", &[]);
-    let _res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     // register terraswap pair querier
     let pair1_addr = Addr::unchecked("pair0001");
@@ -350,13 +347,15 @@ fn register() {
 
     deps.querier.with_terraswap_pairs(&deployed_pairs);
 
-    let msg = ExecuteMsg::Register {
-        asset_infos: asset_infos_2.clone(),
+    let reply_msg_2 = Reply {
+        id: 1,
+        result: ContractResult::Ok(SubMsgExecutionResponse {
+            events: vec![],
+            data: Some(vec![10, 8, 112, 97, 105, 114, 48, 48, 48, 49].into()),
+        }),
     };
 
-    let env = mock_env();
-    let info = mock_info("pair0001", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let _res = reply(deps.as_mut(), mock_env(), reply_msg_2.clone()).unwrap();
 
     let query_msg = QueryMsg::Pairs {
         start_after: None,
@@ -384,7 +383,7 @@ fn register() {
         limit: None,
     };
 
-    let res = query(deps.as_ref(), env, query_msg).unwrap();
+    let res = query(deps.as_ref(), env.clone(), query_msg).unwrap();
     let pairs_res: PairsResponse = from_binary(&res).unwrap();
     assert_eq!(pairs_res.pairs, vec![pair1_info.clone()]);
 

@@ -17,17 +17,25 @@
 //!      });
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
-use cosmwasm_std::testing::mock_info;
-use cosmwasm_std::{from_binary, Addr, Coin, Response, Uint128};
+use cosmwasm_std::testing::{
+    mock_env as mock_env_std, mock_info, MockApi as MockApiStd, MockQuerier as MockQuerierStd,
+    MockStorage as MockStorageStd,
+};
+use cosmwasm_std::{
+    from_binary, to_binary, Addr, Coin, CosmosMsg, Response, SubMsg, Uint128, WasmMsg,
+};
 use cosmwasm_vm::testing::{
-    execute, instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier,
-    MockStorage,
+    instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier, MockStorage,
+    MOCK_CONTRACT_ADDR,
 };
 use cosmwasm_vm::{Instance, InstanceOptions};
+use terra_multi_test::{App, BankKeeper, ContractWrapper, Executor, TerraMockQuerier};
 
+use cw20::MinterResponse;
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::pair::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use terraswap::pair::{InstantiateMsg, QueryMsg};
+use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 // This line will test the output of cargo wasm
 static WASM: &[u8] =
@@ -36,6 +44,7 @@ static WASM: &[u8] =
 // static WASM: &[u8] = include_bytes!("../contract.wasm");
 
 const DEFAULT_GAS_LIMIT: u64 = 500_000;
+const OWNER: &str = "Owner";
 
 pub fn mock_instance(
     wasm: &[u8],
@@ -94,16 +103,36 @@ fn proper_initialization() {
     let info = mock_info("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    let _res: Response = instantiate(&mut deps, env.clone(), info, msg).unwrap();
-
-    // cannot change it after post intialization
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res: Response = execute(&mut deps, env.clone(), info, msg).unwrap();
+    let res: Response = instantiate(&mut deps, env.clone(), info, msg).unwrap();
+    assert_eq!(
+        res.messages,
+        vec![SubMsg::reply_on_success(
+            CosmosMsg::Wasm(WasmMsg::Instantiate {
+                msg: to_binary(&TokenInstantiateMsg {
+                    name: "terraswap liquidity token".to_string(),
+                    symbol: "uLP".to_string(),
+                    decimals: 6,
+                    initial_balances: vec![],
+                    mint: Some(MinterResponse {
+                        minter: env.contract.address.to_string(),
+                        cap: None,
+                    }),
+                    init_hook: None,
+                })
+                .unwrap(),
+                code_id: 10u64,
+                funds: vec![],
+                admin: None,
+                label: String::from("terraswap liquidity token"),
+            }),
+            1
+        )]
+    );
 
     // it worked, let's query the state
     let res = query(&mut deps, env, QueryMsg::Pair {}).unwrap();
     let pair_info: PairInfo = from_binary(&res).unwrap();
+    assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
     assert_eq!(
         [
             WeightedAssetInfo {
@@ -124,6 +153,100 @@ fn proper_initialization() {
         pair_info.asset_infos
     );
 
-    assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!("description", pair_info.description.unwrap());
+    // assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
+}
+
+fn mock_app() -> App {
+    let env = mock_env_std();
+    let api = MockApiStd::default();
+    let bank = BankKeeper::new();
+    let storage = MockStorageStd::new();
+    let terra_mock_querier = TerraMockQuerier::new(MockQuerierStd::new(&[]));
+
+    App::new(api, env.block, bank, storage, terra_mock_querier)
+}
+
+fn store_token_code(app: &mut App) -> u64 {
+    let terra_swap_token_contract = Box::new(ContractWrapper::new(
+        terraswap_token::contract::execute,
+        terraswap_token::contract::instantiate,
+        terraswap_token::contract::query,
+    ));
+
+    app.store_code(terra_swap_token_contract)
+}
+
+fn store_pair_code(app: &mut App) -> u64 {
+    let pair_contract = Box::new(
+        ContractWrapper::new(
+            terraswap_pair::contract::execute,
+            terraswap_pair::contract::instantiate,
+            terraswap_pair::contract::query,
+        )
+        .with_reply(terraswap_pair::contract::reply),
+    );
+
+    app.store_code(pair_contract)
+}
+
+fn instantiate_pair(app: &mut App, pair_code_id: u64, msg: &InstantiateMsg, name: &str) -> Addr {
+    let name = String::from(name);
+
+    app.instantiate_contract(
+        pair_code_id,
+        Addr::unchecked(OWNER),
+        &msg,
+        &[],
+        name.clone(),
+        None,
+    )
+    .unwrap()
+}
+
+#[test]
+fn multi_initialize() {
+    let mut app = mock_app();
+
+    let token_code_id = store_token_code(&mut app);
+    let pair_code_id = store_pair_code(&mut app);
+
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let end_time = start_time + 1000;
+
+    let msg = InstantiateMsg {
+        asset_infos: [
+            WeightedAssetInfo {
+                info: AssetInfo::NativeToken {
+                    denom: "uluna".to_string(),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            },
+            WeightedAssetInfo {
+                info: AssetInfo::NativeToken {
+                    denom: "uusd".to_string(),
+                },
+                start_weight: Uint128::from(1u128),
+                end_weight: Uint128::from(1u128),
+            },
+        ],
+        token_code_id,
+        init_hook: None,
+        start_time,
+        end_time,
+        description: None,
+    };
+
+    let pair_instance = instantiate_pair(&mut app, pair_code_id, &msg, "TerraSwapPair");
+
+    let res: PairInfo = app
+        .wrap()
+        .query_wasm_smart(pair_instance.clone(), &QueryMsg::Pair {})
+        .unwrap();
+    assert_eq!("Contract #0", res.contract_addr);
+    assert_eq!("Contract #1", res.liquidity_token);
 }
