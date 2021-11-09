@@ -7,14 +7,12 @@ use crate::contract::{execute, instantiate, query, reply};
 use crate::error::ContractError;
 use crate::mock_querier::mock_dependencies;
 
-use crate::state::{read_pair, CONFIG};
+use crate::state::{read_tmp_pair, CONFIG};
 
 use cosmwasm_std::testing::{mock_env, mock_info};
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::factory::{
-    ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
-};
+use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, PairsResponse, QueryMsg};
 
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
@@ -195,11 +193,12 @@ fn create_pair() {
         )]
     );
 
-    let raw_infos = [asset_infos[0].info.clone(), asset_infos[1].info.clone()];
-    let pair_info = read_pair(deps.as_ref(), &raw_infos).unwrap();
+    let pair_info = read_tmp_pair(deps.as_ref()).unwrap();
 
     assert_eq!(pair_info.owner, Addr::unchecked("addr0000"));
-    assert_eq!(pair_info.contract_addr, Addr::unchecked(""));
+    assert_eq!(pair_info.asset_infos, asset_infos);
+    assert_eq!(pair_info.start_time, start_time);
+    assert_eq!(pair_info.end_time, end_time);
 }
 
 #[test]

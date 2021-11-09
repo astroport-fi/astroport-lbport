@@ -191,6 +191,17 @@ pub fn try_create_pair(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     let tmp = TMP_PAIR_INFO.load(deps.storage)?;
+    let registered_pair_addr = PAIRS
+        .load(deps.storage, &tmp.pair_key)
+        .unwrap_or(FactoryPairInfo {
+            owner: Addr::unchecked(""),
+            contract_addr: Addr::unchecked(""),
+        })
+        .contract_addr;
+
+    if registered_pair_addr != Addr::unchecked("") {
+        return Err(ContractError::PairWasRegistered {});
+    }
 
     let data = msg.result.unwrap().data.unwrap();
     let res: MsgInstantiateContractResponse =
@@ -199,16 +210,13 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
         })?;
 
     let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
-    if pair_contract != Addr::unchecked("") {
-        return Err(ContractError::PairWasRegistered {});
-    }
 
     PAIRS.save(
         deps.storage,
         &tmp.pair_key,
         &FactoryPairInfo {
-            contract_addr: pair_contract.clone(),
             owner: tmp.owner,
+            contract_addr: pair_contract.clone(),
         },
     )?;
 

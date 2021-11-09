@@ -32,8 +32,8 @@ use cosmwasm_vm::testing::{
 use cosmwasm_vm::{Instance, InstanceOptions};
 
 use std::time::{SystemTime, UNIX_EPOCH};
-use terraswap::asset::{AssetInfo, WeightedAssetInfo};
-use terraswap::factory::{ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, QueryMsg};
+use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
+use terraswap::factory::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
@@ -271,7 +271,7 @@ fn create_and_register_pair_with_reply() {
     )
     .unwrap();
 
-    let res: FactoryPairInfo = app
+    let res: PairInfo = app
         .wrap()
         .query_wasm_smart(
             factory_instance.clone(),
