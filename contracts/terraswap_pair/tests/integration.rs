@@ -18,129 +18,17 @@
 //! 4. Anywhere you see query(&deps, ...) you must replace it with query(&mut deps, ...)
 
 use cosmwasm_std::testing::{
-    mock_env as mock_env_std, mock_info, MockApi as MockApiStd, MockQuerier as MockQuerierStd,
+    mock_env as mock_env_std, MockApi as MockApiStd, MockQuerier as MockQuerierStd,
     MockStorage as MockStorageStd,
 };
-use cosmwasm_std::{
-    from_binary, to_binary, Addr, Coin, CosmosMsg, Response, SubMsg, Uint128, WasmMsg,
-};
-use cosmwasm_vm::testing::{
-    instantiate, mock_backend_with_balances, mock_env, query, MockApi, MockQuerier, MockStorage,
-    MOCK_CONTRACT_ADDR,
-};
-use cosmwasm_vm::{Instance, InstanceOptions};
+use cosmwasm_std::{Addr, Uint128};
 use terra_multi_test::{App, BankKeeper, ContractWrapper, Executor, TerraMockQuerier};
 
-use cw20::MinterResponse;
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::pair::{InstantiateMsg, QueryMsg};
-use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
-// This line will test the output of cargo wasm
-static WASM: &[u8] =
-    include_bytes!("../../../target/wasm32-unknown-unknown/release/terraswap_pair.wasm");
-// You can uncomment this line instead to test productionified build from rust-optimizer
-// static WASM: &[u8] = include_bytes!("../contract.wasm");
-
-const DEFAULT_GAS_LIMIT: u64 = 500_000;
 const OWNER: &str = "Owner";
-
-pub fn mock_instance(
-    wasm: &[u8],
-    contract_balance: &[(&str, &[Coin])],
-) -> Instance<MockApi, MockStorage, MockQuerier> {
-    // TODO: check_wasm is not exported from cosmwasm_vm
-    // let terra_features = features_from_csv("staking,terra");
-    // check_wasm(wasm, &terra_features).unwrap();
-    let backend = mock_backend_with_balances(contract_balance);
-    Instance::from_code(
-        wasm,
-        backend,
-        InstanceOptions {
-            gas_limit: DEFAULT_GAS_LIMIT,
-            print_debug: false,
-        },
-        None,
-    )
-    .unwrap()
-}
-
-#[test]
-fn proper_initialization() {
-    let mut deps = mock_instance(WASM, &[]);
-    let start_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let end_time = start_time + 1000;
-
-    let asset_infos = [
-        WeightedAssetInfo {
-            info: AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
-            },
-            start_weight: Uint128::from(1u128),
-            end_weight: Uint128::from(1u128),
-        },
-        WeightedAssetInfo {
-            info: AssetInfo::Token {
-                contract_addr: Addr::unchecked("asset0000"),
-            },
-            start_weight: Uint128::from(1u128),
-            end_weight: Uint128::from(1u128),
-        },
-    ];
-
-    let msg = InstantiateMsg {
-        asset_infos: asset_infos.clone(),
-        token_code_id: 10u64,
-        init_hook: None,
-        start_time: start_time.clone(),
-        end_time: end_time.clone(),
-        description: Some(String::from("description")),
-    };
-
-    let env = mock_env();
-    let info = mock_info("addr0000", &[]);
-
-    // we can just call .unwrap() to assert this was a success
-    let res: Response = instantiate(&mut deps, env.clone(), info, msg).unwrap();
-    assert_eq!(
-        res.messages,
-        vec![SubMsg::reply_on_success(
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                msg: to_binary(&TokenInstantiateMsg {
-                    name: "terraswap liquidity token".to_string(),
-                    symbol: "uLP".to_string(),
-                    decimals: 6,
-                    initial_balances: vec![],
-                    mint: Some(MinterResponse {
-                        minter: env.contract.address.to_string(),
-                        cap: None,
-                    }),
-                    init_hook: None,
-                })
-                .unwrap(),
-                code_id: 10u64,
-                funds: vec![],
-                admin: None,
-                label: String::from("terraswap liquidity token"),
-            }),
-            1
-        )]
-    );
-
-    // it worked, let's query the state
-    let res = query(&mut deps, env, QueryMsg::Pair {}).unwrap();
-    let pair_info: PairInfo = from_binary(&res).unwrap();
-
-    assert_eq!(MOCK_CONTRACT_ADDR, pair_info.contract_addr.as_str());
-    assert_eq!(asset_infos, pair_info.asset_infos);
-    assert_eq!(start_time, pair_info.start_time);
-    assert_eq!(end_time, pair_info.end_time);
-    assert_eq!("description", pair_info.description.unwrap().as_str());
-}
 
 fn mock_app() -> App {
     let env = mock_env_std();
