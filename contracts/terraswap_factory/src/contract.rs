@@ -1,8 +1,9 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response,
-    StdError, StdResult, SubMsg, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
+    ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
+use protobuf::Message;
 
 use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
 use terraswap::factory::{
@@ -14,7 +15,10 @@ use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_pair_info;
-use crate::state::{pair_key, read_pair, read_pairs, Config, CONFIG, PAIRS};
+use crate::response::MsgInstantiateContractResponse;
+use crate::state::{
+    pair_key, read_pair, read_pairs, Config, TmpPairInfo, CONFIG, PAIRS, TMP_PAIR_INFO,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-factory";
@@ -36,21 +40,18 @@ pub fn instantiate(
         pair_code_id: msg.pair_code_id,
     };
     CONFIG.save(deps.storage, &config)?;
-    let mut messages: Vec<SubMsg> = vec![];
+
     if let Some(hook) = msg.init_hook {
-        messages.push(SubMsg {
-            msg: WasmMsg::Execute {
+        Ok(
+            Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: hook.contract_addr.to_string(),
                 msg: hook.msg,
                 funds: vec![],
-            }
-            .into(),
-            id: 0,
-            gas_limit: None,
-            reply_on: ReplyOn::Never,
-        });
+            })),
+        )
+    } else {
+        Ok(Response::new())
     }
-    Ok(Response::new().add_submessages(messages))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -82,7 +83,6 @@ pub fn execute(
             description,
             init_hook,
         ),
-        ExecuteMsg::Register { asset_infos } => try_register(deps, info, asset_infos),
         ExecuteMsg::Unregister { asset_infos } => try_unregister(deps, env, info, asset_infos),
     }
 }
@@ -118,7 +118,7 @@ pub fn try_update_config(
 // Anyone can execute it to create swap pair
 pub fn try_create_pair(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
@@ -137,85 +137,79 @@ pub fn try_create_pair(
             "Pair already exists",
         )));
     }
-    PAIRS.save(
+    let pair_key = pair_key(&asset_infos);
+    TMP_PAIR_INFO.save(
         deps.storage,
-        &pair_key(&asset_infos),
-        &FactoryPairInfo {
+        &TmpPairInfo {
+            pair_key,
             owner: info.sender,
-            contract_addr: Addr::unchecked(""),
         },
     )?;
 
-    let mut messages: Vec<SubMsg> = vec![SubMsg {
+    let sub_message: SubMsg = SubMsg {
+        id: 0,
         msg: WasmMsg::Instantiate {
-            code_id: config.pair_code_id,
-            funds: vec![],
             admin: Some(config.owner.to_string()),
-            label: String::from(""),
+            code_id: config.pair_code_id,
             msg: to_binary(&PairInstantiateMsg {
-                asset_infos: weighted_asset_infos.clone(),
+                asset_infos: weighted_asset_infos,
                 token_code_id: config.token_code_id,
-                init_hook: Some(InitHook {
-                    contract_addr: env.contract.address,
-                    msg: to_binary(&ExecuteMsg::Register {
-                        asset_infos: weighted_asset_infos,
-                    })?,
-                }),
+                init_hook: None,
                 start_time,
                 end_time,
                 description,
             })?,
+            funds: vec![],
+            label: "TerraSwap pair".to_string(),
         }
         .into(),
-        id: 0,
         gas_limit: None,
-        reply_on: ReplyOn::Never,
-    }];
+        reply_on: ReplyOn::Success,
+    };
 
+    let mut msg: Vec<CosmosMsg> = vec![];
     if let Some(hook) = init_hook {
-        messages.push(SubMsg {
-            msg: WasmMsg::Execute {
-                contract_addr: hook.contract_addr.to_string(),
-                msg: hook.msg,
-                funds: vec![],
-            }
-            .into(),
-            id: 0,
-            gas_limit: None,
-            reply_on: ReplyOn::Never,
-        });
+        msg.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: hook.contract_addr.to_string(),
+            msg: hook.msg,
+            funds: vec![],
+        }));
     }
 
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_submessage(sub_message)
+        .add_messages(msg)
         .add_attributes(vec![
             attr("action", "create_pair"),
             attr("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),
         ]))
 }
 
-/// create pair execute this message
-pub fn try_register(
-    deps: DepsMut,
-    info: MessageInfo,
-    weighted_asset_infos: [WeightedAssetInfo; 2],
-) -> Result<Response, ContractError> {
-    let asset_infos = [
-        weighted_asset_infos[0].info.clone(),
-        weighted_asset_infos[1].info.clone(),
-    ];
-    let mut pair_info: FactoryPairInfo = read_pair(deps.as_ref(), &asset_infos)?;
-    if pair_info.contract_addr != Addr::unchecked("") {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    let tmp = TMP_PAIR_INFO.load(deps.storage)?;
+    if PAIRS.may_load(deps.storage, &tmp.pair_key)?.is_some() {
         return Err(ContractError::PairWasRegistered {});
     }
 
-    pair_info.contract_addr = info.sender;
+    let data = msg.result.unwrap().data.unwrap();
+    let res: MsgInstantiateContractResponse =
+        Message::parse_from_bytes(data.as_slice()).map_err(|_| {
+            StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+        })?;
 
-    PAIRS.save(deps.storage, &pair_key(&asset_infos), &pair_info)?;
-    Ok(Response::new().add_attributes(vec![
-        attr("action", "register"),
-        attr("pair_contract_addr", pair_info.contract_addr),
-    ]))
+    let pair_contract = deps.api.addr_validate(res.get_contract_address())?;
+
+    PAIRS.save(
+        deps.storage,
+        &tmp.pair_key,
+        &FactoryPairInfo {
+            owner: tmp.owner,
+            contract_addr: pair_contract.clone(),
+        },
+    )?;
+
+    Ok(Response::new().add_attributes(vec![("pair_contract_addr", pair_contract)]))
 }
 
 /// remove from list of pairs

@@ -1,6 +1,6 @@
 use crate::contract::{
     assert_max_spread, compute_swap, execute, instantiate, query_pair_info, query_pool,
-    query_reverse_simulation, query_simulation, COMMISSION_RATE,
+    query_reverse_simulation, query_simulation, reply, COMMISSION_RATE,
 };
 use crate::mock_querier::mock_dependencies;
 use proptest::prelude::*;
@@ -10,8 +10,8 @@ use crate::math::uint2dec;
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, BlockInfo, Coin, Decimal, Env, ReplyOn, Response, StdError,
-    SubMsg, Timestamp, Uint128, WasmMsg,
+    attr, to_binary, Addr, BankMsg, BlockInfo, Coin, ContractResult, Decimal, DepsMut, Env, Reply,
+    ReplyOn, Response, StdError, SubMsg, SubMsgExecutionResponse, Timestamp, Uint128, WasmMsg,
 };
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::str::FromStr;
@@ -36,6 +36,25 @@ fn mock_env_with_block_time(time: u64) -> Env {
         chain_id: "columbus".to_string(),
     };
     env
+}
+
+fn store_liquidity_token(deps: DepsMut) {
+    // store liquidity token by name: liquidity0000
+
+    let reply_msg = Reply {
+        id: 1,
+        result: ContractResult::Ok(SubMsgExecutionResponse {
+            events: vec![],
+            data: Some(
+                vec![
+                    10, 13, 108, 105, 113, 117, 105, 100, 105, 116, 121, 48, 48, 48, 48,
+                ]
+                .into(),
+            ),
+        }),
+    };
+
+    reply(deps, mock_env(), reply_msg).unwrap();
 }
 
 #[test]
@@ -83,7 +102,7 @@ fn proper_initialization() {
         res.messages,
         vec![
             SubMsg {
-                id: 0,
+                id: 1,
                 msg: WasmMsg::Instantiate {
                     admin: None,
                     code_id: 10u64,
@@ -96,10 +115,7 @@ fn proper_initialization() {
                             minter: MOCK_CONTRACT_ADDR.to_string(),
                             cap: None,
                         }),
-                        init_hook: Some(InitHook {
-                            msg: to_binary(&ExecuteMsg::PostInitialize {}).unwrap(),
-                            contract_addr: Addr::unchecked(MOCK_CONTRACT_ADDR),
-                        }),
+                        init_hook: None
                     })
                     .unwrap(),
                     funds: vec![],
@@ -107,7 +123,7 @@ fn proper_initialization() {
                 }
                 .into(),
                 gas_limit: None,
-                reply_on: ReplyOn::Never
+                reply_on: ReplyOn::Success
             },
             SubMsg {
                 id: 0,
@@ -123,17 +139,10 @@ fn proper_initialization() {
         ]
     );
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
-    // cannot change it after post intialization
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0001", &[]);
-    let _res = execute(deps.as_mut(), env, info, msg).unwrap_err();
-
-    // // it worked, let's query the state
+    // it worked, let's query the state
     let pair_info: PairInfo = query_pair_info(deps.as_ref()).unwrap();
     assert_eq!("liquidity0000", pair_info.liquidity_token.as_str());
     assert_eq!(
@@ -205,10 +214,8 @@ fn provide_liquidity() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
     // successfully provide liquidity for the exist pool
     let msg = ExecuteMsg::ProvideLiquidity {
@@ -653,10 +660,8 @@ fn withdraw_liquidity() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
     // withdraw liquidity
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
@@ -798,10 +803,8 @@ fn try_native_to_token() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
     // normal swap
     let msg = ExecuteMsg::Swap {
@@ -1007,10 +1010,8 @@ fn try_token_to_native() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
     // unauthorized access; can not execute swap directy for token swap
     let msg = ExecuteMsg::Swap {
@@ -1291,10 +1292,8 @@ fn test_spread() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
 
     // successfully provide liquidity for the exist pool
     let msg = ExecuteMsg::ProvideLiquidity {
@@ -1451,10 +1450,9 @@ fn test_query_pool() {
     // we can just call .unwrap() to assert this was a success
     let _res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
 
-    // post initalize
-    let msg = ExecuteMsg::PostInitialize {};
-    let info = mock_info("liquidity0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    // store liquidity token
+    store_liquidity_token(deps.as_mut());
+
     let res: PoolResponse = query_pool(deps.as_ref(), env).unwrap();
     assert_eq!(
         res.assets,
