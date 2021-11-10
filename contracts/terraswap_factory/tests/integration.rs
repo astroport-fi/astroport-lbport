@@ -133,8 +133,9 @@ fn create_and_register_pair_with_reply() {
         )
         .unwrap();
 
-    assert_ne!("", res.contract_addr.to_string());
-    assert_ne!("", res.liquidity_token.to_string());
+    assert_eq!("Contract #0", factory_instance.to_string());
+    assert_eq!("Contract #1", res.contract_addr.to_string());
+    assert_eq!("Contract #2", res.liquidity_token.to_string());
     assert_eq!(start_time, res.start_time);
     assert_eq!(end_time, res.end_time);
     assert_eq!(asset_infos, res.asset_infos);
