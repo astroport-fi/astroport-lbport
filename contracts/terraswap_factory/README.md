@@ -9,10 +9,6 @@ The factory contract can perform creation of terraswap pair contract and also be
   "pair_code_id": "123",
   "token_code_id": "123",
   "owner": "terra...",
-  "init_hook": {
-    "msg": "123",
-    "contract_addr": "terra..."
-  }
 }
 ```
 
@@ -121,7 +117,6 @@ Register verified pair contract and token contract for pair contract creation. T
     /// Pair contract code ID, which is used to
     pub pair_code_id: u64,
     pub token_code_id: u64,
-    pub init_hook: Option<InitHook>,
 }
 ```
 
@@ -141,7 +136,7 @@ The factory contract owner can change relevant code IDs for future pair contract
 
 ### Create Pair
 
-When a user execute `CreatePair` operation, it creates `Pair` contract and `LP(liquidity provider)` token contract. It also creates not fully initialized `PairInfo`, which will be initialized with `Register` operation from the pair contract's `InitHook`.
+When a user execute `CreatePair` operation, it creates `Pair` contract and `LP(liquidity provider)` token contract. It also creates not fully initialized `PairInfo`
 
 ```json
 {
@@ -164,7 +159,7 @@ When a user execute `CreatePair` operation, it creates `Pair` contract and `LP(l
 
 ### Register
 
-When a user executes `CreatePair` operation, it passes `InitHook` to `Pair` contract and `Pair` contract will invoke passed `InitHook` registering created `Pair` contract to the factory. This operation is only allowed for a pair, which is not fully initialized.
+When a user executes `CreatePair` operation, it passes `SubMsg` to `Pair` contract and `Pair` contract will invoke passed `SubMsg` registering created `Pair` contract to the factory. This operation is only allowed for a pair, which is not fully initialized.
 
 Once a `Pair` contract invokes it, the sender address is registered as `Pair` contract address for the given asset_infos.
 

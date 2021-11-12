@@ -11,11 +11,15 @@ It creates liquidity token contract as init response, and execute init hook to r
 ```rust
 {
     /// Asset infos
-    pub asset_infos: [AssetInfo; 2],
-    /// Token code ID for liqudity token creation
+    pub asset_infos: [WeightedAssetInfo; 2],
+    /// Token contract code id for initialization
     pub token_code_id: u64,
-    /// Hook for post initialization
-    pub init_hook: Option<InitHook>,
+    /// LBP start time
+    pub start_time: u64,
+    /// LBP end time
+    pub end_time: u64,
+    /// Pair description
+    pub description: Option<String>,
 }
 ```
 
