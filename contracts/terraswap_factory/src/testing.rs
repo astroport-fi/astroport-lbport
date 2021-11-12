@@ -26,7 +26,6 @@ fn proper_initialization() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
-        init_hook: None,
     };
 
     let env = mock_env();
@@ -50,7 +49,6 @@ fn update_config() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
-        init_hook: None,
     };
 
     let env = mock_env();
@@ -127,7 +125,6 @@ fn create_pair() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
-        init_hook: None,
     };
 
     let env = mock_env();
@@ -158,7 +155,6 @@ fn create_pair() {
         start_time,
         end_time,
         description: Some(String::from("description")),
-        init_hook: None,
     };
 
     let env = mock_env();
@@ -180,7 +176,6 @@ fn create_pair() {
                 msg: to_binary(&PairInstantiateMsg {
                     asset_infos: asset_infos.clone(),
                     token_code_id: 123u64,
-                    init_hook: None,
                     start_time,
                     end_time,
                     description: Some(String::from("description")),
@@ -214,7 +209,6 @@ fn register() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
-        init_hook: None,
     };
 
     let env = mock_env();
@@ -240,7 +234,6 @@ fn register() {
 
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos.clone(),
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -329,7 +322,6 @@ fn register() {
 
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos_2.clone(),
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),

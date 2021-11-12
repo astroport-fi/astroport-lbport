@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
-    ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, ReplyOn,
+    Response, StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 use protobuf::Message;
@@ -10,7 +10,6 @@ use terraswap::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
     QueryMsg,
 };
-use terraswap::hook::InitHook;
 use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
@@ -41,17 +40,7 @@ pub fn instantiate(
     };
     CONFIG.save(deps.storage, &config)?;
 
-    if let Some(hook) = msg.init_hook {
-        Ok(
-            Response::new().add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: hook.contract_addr.to_string(),
-                msg: hook.msg,
-                funds: vec![],
-            })),
-        )
-    } else {
-        Ok(Response::new())
-    }
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -72,7 +61,6 @@ pub fn execute(
             start_time,
             end_time,
             description,
-            init_hook,
         } => try_create_pair(
             deps,
             env,
@@ -81,7 +69,6 @@ pub fn execute(
             start_time,
             end_time,
             description,
-            init_hook,
         ),
         ExecuteMsg::Unregister { asset_infos } => try_unregister(deps, env, info, asset_infos),
     }
@@ -124,7 +111,6 @@ pub fn try_create_pair(
     start_time: u64,
     end_time: u64,
     description: Option<String>,
-    init_hook: Option<InitHook>,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
 
@@ -146,39 +132,26 @@ pub fn try_create_pair(
         },
     )?;
 
-    let sub_message: SubMsg = SubMsg {
-        id: 0,
-        msg: WasmMsg::Instantiate {
-            admin: Some(config.owner.to_string()),
-            code_id: config.pair_code_id,
-            msg: to_binary(&PairInstantiateMsg {
-                asset_infos: weighted_asset_infos,
-                token_code_id: config.token_code_id,
-                init_hook: None,
-                start_time,
-                end_time,
-                description,
-            })?,
-            funds: vec![],
-            label: "TerraSwap pair".to_string(),
-        }
-        .into(),
-        gas_limit: None,
-        reply_on: ReplyOn::Success,
-    };
-
-    let mut msg: Vec<CosmosMsg> = vec![];
-    if let Some(hook) = init_hook {
-        msg.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: hook.contract_addr.to_string(),
-            msg: hook.msg,
-            funds: vec![],
-        }));
-    }
-
     Ok(Response::new()
-        .add_submessage(sub_message)
-        .add_messages(msg)
+        .add_submessage(SubMsg {
+            id: 0,
+            msg: WasmMsg::Instantiate {
+                admin: Some(config.owner.to_string()),
+                code_id: config.pair_code_id,
+                msg: to_binary(&PairInstantiateMsg {
+                    asset_infos: weighted_asset_infos,
+                    token_code_id: config.token_code_id,
+                    start_time,
+                    end_time,
+                    description,
+                })?,
+                funds: vec![],
+                label: "TerraSwap pair".to_string(),
+            }
+            .into(),
+            gas_limit: None,
+            reply_on: ReplyOn::Success,
+        })
         .add_attributes(vec![
             attr("action", "create_pair"),
             attr("pair", format!("{}-{}", asset_infos[0], asset_infos[1])),

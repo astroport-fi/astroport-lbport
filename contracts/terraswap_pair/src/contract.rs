@@ -81,8 +81,8 @@ pub fn instantiate(
 
     PAIR_INFO.save(deps.storage, pair_info)?;
 
-    // Create LP token
-    let messages: Vec<SubMsg> = vec![SubMsg {
+    Ok(Response::new().add_submessage(SubMsg {
+        // Create LP token
         id: INSTANTIATE_REPLY_ID,
         msg: WasmMsg::Instantiate {
             code_id: msg.token_code_id,
@@ -95,7 +95,6 @@ pub fn instantiate(
                     minter: env.contract.address.to_string(),
                     cap: None,
                 }),
-                init_hook: None,
             })?,
             funds: vec![],
             admin: None,
@@ -104,19 +103,7 @@ pub fn instantiate(
         .into(),
         gas_limit: None,
         reply_on: ReplyOn::Success,
-    }];
-
-    if let Some(hook) = msg.init_hook {
-        Ok(Response::new()
-            .add_submessages(messages)
-            .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: hook.contract_addr.to_string(),
-                msg: hook.msg,
-                funds: vec![],
-            })))
-    } else {
-        Ok(Response::new().add_submessages(messages))
-    }
+    }))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

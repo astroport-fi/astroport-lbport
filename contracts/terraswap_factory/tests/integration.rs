@@ -75,7 +75,6 @@ fn create_and_register_pair_with_reply() {
         pair_code_id,
         token_code_id,
         owner: owner.to_string(),
-        init_hook: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -111,7 +110,6 @@ fn create_and_register_pair_with_reply() {
         asset_infos: asset_infos.clone(),
         start_time,
         end_time,
-        init_hook: None,
         description: Some(String::from("description")),
     };
 
@@ -156,7 +154,6 @@ fn update_config() {
         pair_code_id,
         token_code_id,
         owner: owner.to_string(),
-        init_hook: None,
     };
 
     // we can just call .unwrap() to assert this was a success

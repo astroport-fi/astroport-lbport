@@ -9,7 +9,7 @@
     "pairs": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/FactoryPairInfo"
+        "$ref": "#/definitions/PairInfo"
       }
     }
   },
@@ -62,14 +62,13 @@
         }
       ]
     },
-    "FactoryPairInfo": {
+    "PairInfo": {
       "type": "object",
       "required": [
         "asset_infos",
         "contract_addr",
         "end_time",
         "liquidity_token",
-        "owner",
         "start_time"
       ],
       "properties": {
@@ -84,15 +83,18 @@
         "contract_addr": {
           "$ref": "#/definitions/Addr"
         },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "end_time": {
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "liquidity_token": {
-          "$ref": "#/definitions/Addr"
-        },
-        "owner": {
           "$ref": "#/definitions/Addr"
         },
         "start_time": {
