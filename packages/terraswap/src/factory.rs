@@ -2,7 +2,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use crate::hook::InitHook;
 use cosmwasm_std::Addr;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -11,7 +10,6 @@ pub struct InstantiateMsg {
     pub pair_code_id: u64,
     pub token_code_id: u64,
     pub owner: String,
-    pub init_hook: Option<InitHook>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -33,8 +31,6 @@ pub enum ExecuteMsg {
         end_time: u64,
         /// Pair description
         description: Option<String>,
-        /// Init hook for post initialization
-        init_hook: Option<InitHook>,
     },
     Unregister {
         asset_infos: [AssetInfo; 2],

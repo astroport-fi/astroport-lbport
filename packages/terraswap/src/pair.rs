@@ -2,7 +2,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{Asset, WeightedAsset, WeightedAssetInfo};
-use crate::hook::InitHook;
 
 use cosmwasm_std::{Addr, Decimal, Uint128};
 use cw20::Cw20ReceiveMsg;
@@ -13,8 +12,6 @@ pub struct InstantiateMsg {
     pub asset_infos: [WeightedAssetInfo; 2],
     /// Token contract code id for initialization
     pub token_code_id: u64,
-    /// Hook for post initialization
-    pub init_hook: Option<InitHook>,
     /// LBP start time
     pub start_time: u64,
     /// LBP end time

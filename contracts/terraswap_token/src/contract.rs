@@ -1,6 +1,5 @@
 use cosmwasm_std::{
     entry_point, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult,
-    WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -56,15 +55,7 @@ pub fn instantiate(
 
     TOKEN_INFO.save(deps.storage, &data)?;
 
-    if let Some(hook) = msg.init_hook {
-        Ok(Response::new().add_message(WasmMsg::Execute {
-            contract_addr: hook.contract_addr.to_string(),
-            msg: hook.msg,
-            funds: vec![],
-        }))
-    } else {
-        Ok(Response::default())
-    }
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

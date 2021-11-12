@@ -108,7 +108,6 @@ fn multi_initialize() {
             },
         ],
         token_code_id,
-        init_hook: None,
         start_time,
         end_time,
         description: None,

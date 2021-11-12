@@ -17,7 +17,6 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset, WeightedAssetInfo};
-use terraswap::hook::InitHook;
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, PoolResponse, ReverseSimulationResponse,
     SimulationResponse,
@@ -85,10 +84,6 @@ fn proper_initialization() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: Some(InitHook {
-            contract_addr: Addr::unchecked("factory0000"),
-            msg: to_binary(&Uint128::from(1000000u128)).unwrap(),
-        }),
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -100,43 +95,29 @@ fn proper_initialization() {
     let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
     assert_eq!(
         res.messages,
-        vec![
-            SubMsg {
-                id: 1,
-                msg: WasmMsg::Instantiate {
-                    admin: None,
-                    code_id: 10u64,
-                    msg: to_binary(&TokenInstantiateMsg {
-                        name: "terraswap liquidity token".to_string(),
-                        symbol: "uLP".to_string(),
-                        decimals: 6,
-                        initial_balances: vec![],
-                        mint: Some(MinterResponse {
-                            minter: MOCK_CONTRACT_ADDR.to_string(),
-                            cap: None,
-                        }),
-                        init_hook: None
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                    label: String::from("terraswap liquidity token"),
-                }
-                .into(),
-                gas_limit: None,
-                reply_on: ReplyOn::Success
-            },
-            SubMsg {
-                id: 0,
-                msg: WasmMsg::Execute {
-                    contract_addr: "factory0000".to_string(),
-                    msg: to_binary(&Uint128::from(1000000u128)).unwrap(),
-                    funds: vec![],
-                }
-                .into(),
-                gas_limit: None,
-                reply_on: ReplyOn::Never
-            },
-        ]
+        vec![SubMsg {
+            id: 1,
+            msg: WasmMsg::Instantiate {
+                admin: None,
+                code_id: 10u64,
+                msg: to_binary(&TokenInstantiateMsg {
+                    name: "terraswap liquidity token".to_string(),
+                    symbol: "uLP".to_string(),
+                    decimals: 6,
+                    initial_balances: vec![],
+                    mint: Some(MinterResponse {
+                        minter: MOCK_CONTRACT_ADDR.to_string(),
+                        cap: None,
+                    }),
+                })
+                .unwrap(),
+                funds: vec![],
+                label: String::from("terraswap liquidity token"),
+            }
+            .into(),
+            gas_limit: None,
+            reply_on: ReplyOn::Success
+        },]
     );
 
     // store liquidity token
@@ -203,7 +184,6 @@ fn provide_liquidity() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -649,7 +629,6 @@ fn withdraw_liquidity() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -792,7 +771,6 @@ fn try_native_to_token() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -999,7 +977,6 @@ fn try_token_to_native() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -1281,7 +1258,6 @@ fn test_spread() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -1439,7 +1415,6 @@ fn test_query_pool() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
@@ -1530,7 +1505,6 @@ fn test_weight_calculations() {
             },
         ],
         token_code_id: 10u64,
-        init_hook: None,
         start_time,
         end_time,
         description: Some(String::from("description")),
