@@ -2,7 +2,7 @@ import 'dotenv/config'
 import {
     Coins,
     isTxError,
-    LCDClient,
+    LCDClient, LocalTerra,
     MnemonicKey,
     Msg,
     MsgExecuteContract,
@@ -28,11 +28,18 @@ export interface Client {
 
 export function newClient(): Client {
     const client = <Client>{}
-    client.terra = new LCDClient({
-        URL: String(process.env.NODE),
-        chainID: String(process.env.CHAIN_ID)
-    })
-    client.wallet = recover(client.terra, String(process.env.WALLET_MNEMONIC!))
+
+    if (process.env.WALLET_MNEMONIC) {
+        client.terra = new LCDClient({
+            URL: String(process.env.NODE),
+            chainID: String(process.env.CHAIN_ID)
+        })
+        client.wallet = recover(client.terra, String(process.env.WALLET_MNEMONIC!))
+    } else {
+        client.terra = new LocalTerra()
+        client.wallet = (client.terra as LocalTerra).wallets.test1
+    }
+
     return client
 }
 

@@ -13,22 +13,33 @@ import {
     readdirSync,
 } from 'fs'
 
-async function uploadContracts(cl: Client) {
-    const artifacts = readdirSync(process.env.ARTIFACTS_PATH!);
-    const networkConfig = readNetworkConfig(cl.terra.config.chainID);
+const ARTIFACT_PATH = String(process.env.ARTIFACTS_PATH! || String("../artifacts"))
+const ARTIFACT_EXTENSIONS = String(process.env.ARTIFACTS_EXTENSIONS! || String("wasm"))
 
-    for(let i=0; i<artifacts.length; i++){
-        if (artifacts[i].split('.').pop() == process.env.ARTIFACTS_EXTENSIONS!) {
-            let codeID = await uploadContract(cl.terra, cl.wallet,
-                join(process.env.ARTIFACTS_PATH!, artifacts[i])
-            );
-            console.log(`Contract: ${artifacts[i].split('.')[0]} was uploaded.\nStore code: ${codeID}`);
-            networkConfig[`${artifacts[i].split('.')[0].split('_').pop()}`] = {}
-            networkConfig[`${artifacts[i].split('.')[0].split('_').pop()}`][`ID`] = codeID;
+async function uploadContracts(cl: Client) {
+    const artifacts = readdirSync(ARTIFACT_PATH);
+
+    for(let i=0; i<artifacts.length; i++) {
+        if (artifacts[i].split('.').pop() == ARTIFACT_EXTENSIONS) {
+            await uploadContractByName(cl, artifacts[i]);
         }
     }
-    writeNetworkConfig(networkConfig, cl.terra.config.chainID)
     console.log('upload contracts ---> FINISH')
+}
+
+async function uploadContractByName(cl: Client, file_name: string) {
+    const networkConfig = readNetworkConfig(cl.terra.config.chainID);
+    let key = file_name.split('.')[0];
+
+    if (!networkConfig[`${key}`]) {
+        let codeID = await uploadContract(cl.terra, cl.wallet, join(ARTIFACT_PATH, file_name));
+        networkConfig[`${key}`] = {}
+        networkConfig[`${key}`][`ID`] = codeID;
+        writeNetworkConfig(networkConfig, cl.terra.config.chainID)
+        console.log(`Contract: ${key} was uploaded.\nStore code: ${codeID}`);
+    } else {
+        console.log('Contract is already stored. StoreID: ', networkConfig[`${key}`].ID)
+    }
 }
 
 async function setupToken(cl: Client, cfg: Config) {
@@ -64,7 +75,7 @@ async function setupToken(cl: Client, cfg: Config) {
 async function setupTerraSwapPair(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.pair.Addr) {
+    if (!networkConfig.terraswap_pair.Addr) {
         cfg.terraswapPairConfig.configInitMsg.asset_infos = [
             {
                 info:{
@@ -87,66 +98,72 @@ async function setupTerraSwapPair(cl: Client, cfg: Config) {
         ]
 
         let currTime = new Date().getTime() / 1000;
-        console.log("curr time: ", Math.round(currTime));
+
         cfg.terraswapPairConfig.configInitMsg.end_time = Math.round(currTime) + 1000;
         cfg.terraswapPairConfig.configInitMsg.start_time = Math.round(currTime);
-        cfg.terraswapPairConfig.configInitMsg.token_code_id = networkConfig.token.ID
+        cfg.terraswapPairConfig.configInitMsg.token_code_id = networkConfig.terraswap_token.ID;
 
-        networkConfig.pair.Addr = await instantiateContract(
+        networkConfig.terraswap_pair.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.pair.ID,
+            networkConfig.terraswap_pair.ID,
             cfg.terraswapPairConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
-        console.log('setup factory ---> FINISH')
+        console.log('setup pair ---> FINISH')
+    } else {
+        console.log('Pair is already exists.\nAddr: ', networkConfig.terraswap_pair.Addr);
     }
 }
 
 async function setupTerraSwapFactory(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.factory.Addr) {
+    if (!networkConfig.terraswap_factory.Addr) {
         cfg.terraswapFactoryConfig.configInitMsg.owner = process.env.FACTORY_OWNER! || cl.wallet.key.accAddress;
-        cfg.terraswapFactoryConfig.configInitMsg.token_code_id = networkConfig.token.ID
-        cfg.terraswapFactoryConfig.configInitMsg.pair_code_id = networkConfig.pair.ID
+        cfg.terraswapFactoryConfig.configInitMsg.token_code_id = networkConfig.terraswap_token.ID;
+        cfg.terraswapFactoryConfig.configInitMsg.pair_code_id = networkConfig.terraswap_pair.ID;
 
-        networkConfig.factory.Addr = await instantiateContract(
+        networkConfig.terraswap_factory.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.factory.ID,
+            networkConfig.terraswap_factory.ID,
             cfg.terraswapFactoryConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup factory ---> FINISH')
+    } else {
+        console.log('Factory is already exists.\nAddr: ', networkConfig.terraswap_factory.Addr);
     }
 }
 
 async function setupTerraSwapRouter(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.router.Addr) {
-        cfg.terraswapRouterConfig.configInitMsg.terraswap_factory = networkConfig.factory.Addr
+    if (!networkConfig.terraswap_router.Addr) {
+        cfg.terraswapRouterConfig.configInitMsg.terraswap_factory = networkConfig.terraswap_factory.Addr;
 
-        networkConfig.router.Addr = await instantiateContract(
+        networkConfig.terraswap_router.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.router.ID,
+            networkConfig.terraswap_router.ID,
             cfg.terraswapRouterConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup router ---> FINISH')
+    } else {
+        console.log('Router is already exists.\nAddr: ', networkConfig.terraswap_router.Addr);
     }
 }
 
 async function main() {
     const client = newClient();
-    let config: Config = configDefault
+    let config: Config = configDefault;
 
     await uploadContracts(client);
     await setupTerraSwapFactory(client, config);
     await setupTerraSwapRouter(client, config);
-    // await setupToken(client, config);
-    // await setupTerraSwapPair(client, config);
+    //await setupTerraSwapPair(client, config);
+    //await setupToken(client, config);
 }
 main().catch(console.log)
