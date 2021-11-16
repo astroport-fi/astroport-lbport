@@ -45,7 +45,7 @@ async function uploadContractByName(cl: Client, file_name: string) {
 async function setupToken(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.token.Addr) {
+    if (!networkConfig.terraswap_token.Addr) {
         if (!cfg.tokenConfig.configInitMsg.initial_balances[0].address) {
             cfg.tokenConfig.configInitMsg.initial_balances[0].address = cl.wallet.key.accAddress
         }
@@ -54,21 +54,17 @@ async function setupToken(cl: Client, cfg: Config) {
             cfg.tokenConfig.configInitMsg.mint.minter = cl.wallet.key.accAddress
         }
 
-        networkConfig.token.Addr = await instantiateContract(
+        networkConfig.terraswap_token.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.token.ID,
+            networkConfig.terraswap_token.ID,
             cfg.tokenConfig.configInitMsg
         );
 
-        let balance = await queryContract(cl.terra, networkConfig.token.Addr, {
-            balance: {address: cl.wallet.key.accAddress}
-        })
-
-        // Validate token balance
-        strictEqual(balance.balance, process.env.TOKEN_INITIAL_AMOUNT!)
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup token ---> FINISH')
+    } else {
+        console.log('Token is already exists.\nAddr: ', networkConfig.terraswap_token.Addr);
     }
 }
 
@@ -163,7 +159,7 @@ async function main() {
     await uploadContracts(client);
     await setupTerraSwapFactory(client, config);
     await setupTerraSwapRouter(client, config);
-    //await setupTerraSwapPair(client, config);
-    //await setupToken(client, config);
+    await setupTerraSwapPair(client, config);
+    await setupToken(client, config);
 }
 main().catch(console.log)

@@ -1,25 +1,15 @@
 {
-  "factory": {
-    "ID": 20051
-  },
-  "pair": {
-    "ID": 20052
-  },
-  "router": {
-    "ID": 20053
-  },
-  "token": {
-    "ID": 20054
-  },
   "terraswap_token": {
-    "ID": 20116
+    "ID": 20116,
+    "Addr": "terra1tkq9t7uveh8w97w3gukst6x0eyls7xemu3lc7f"
   },
   "terraswap_factory": {
     "ID": 20117,
     "Addr": "terra1yknkheg3daqs3ugfppcsprsl09shxgju2rajw3"
   },
   "terraswap_pair": {
-    "ID": 20118
+    "ID": 20118,
+    "Addr": "terra10tundj5757wtjzvs3g4h48kcvvpw59s6jsyvet"
   },
   "terraswap_router": {
     "ID": 20119,

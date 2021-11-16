@@ -18,20 +18,20 @@
 * As a result, we will get a data file `<chain-id>.json` located in the root folder by default.
   ```json
   {
-    "factory": {
-      "ID": 176,
-      "Addr": "terra1njg0ed835rzt2ee9yw0ek0kezadzv5zzqrwad6"
+    "terraswap_token": {
+      "ID": 20116,
+      "Addr": "terra1tkq9t7uveh8w97w3gukst6x0eyls7xemu3lc7f"
     },
-    "pair": {
-      "ID": 181
+    "terraswap_factory": {
+      "ID": 20117,
+      "Addr": "terra1yknkheg3daqs3ugfppcsprsl09shxgju2rajw3"
     },
-    "router": {
-      "ID": 183,
-      "Addr": "terra12nz0lf4sg8lu8agxej8tjfmmecy5hy562kp9h4"
+    "terraswap_pair": {
+      "ID": 20118,
+      "Addr": "terra10tundj5757wtjzvs3g4h48kcvvpw59s6jsyvet"
     },
-    "token": {
-      "ID": 185,
-      "Addr": "terra1tv73ust2prgnp9njmzhy0g94sly2y5956ttm3m"
+    "terraswap_router": {
+      "ID": 20119,
+      "Addr": "terra1a8gkkxfzxdhazyaxnyj8taknkmumknd7c3u3w4"
     }
-  }
-  ```
+  }```
