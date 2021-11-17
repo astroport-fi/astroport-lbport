@@ -3,6 +3,7 @@ members = ["packages/*",
 "contracts/terraswap_factory",
 "contracts/terraswap_pair",
 "contracts/terraswap_token",
+"contracts/terraswap_router",
 "contracts/mocks/cw20-token"
 ]
 

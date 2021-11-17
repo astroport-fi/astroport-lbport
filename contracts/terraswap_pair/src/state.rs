@@ -2,7 +2,7 @@ use cosmwasm_std::{Addr, Uint128};
 use cw_storage_plus::Item;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use terraswap_lbp::asset::PairInfo;
+use astroport_lbp::asset::PairInfo;
 
 pub const PAIR_INFO: Item<PairInfo> = Item::new("pair_info");
 pub const MIGRATION_INFO: Item<MigrationInfo> = Item::new("migration_info");

@@ -58,6 +58,18 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "claim_new_shares"
+      ],
+      "properties": {
+        "claim_new_shares": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {

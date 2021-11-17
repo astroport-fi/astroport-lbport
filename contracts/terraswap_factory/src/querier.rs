@@ -1,6 +1,6 @@
 use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
-use terraswap_lbp::asset::PairInfo;
-use terraswap_lbp::pair::QueryMsg;
+use astroport_lbp::asset::PairInfo;
+use astroport_lbp::pair::QueryMsg;
 
 pub fn query_pair_info(deps: Deps, pair_contract: &Addr) -> StdResult<PairInfo> {
     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {

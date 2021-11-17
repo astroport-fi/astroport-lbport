@@ -7,13 +7,13 @@ use crate::querier::compute_tax;
 use crate::state::{Config, CONFIG};
 
 use crate::error::ContractError;
+use astroport_lbp::asset::{Asset, AssetInfo};
+use astroport_lbp::factory::FactoryPairInfo;
+use astroport_lbp::pair::ExecuteMsg as PairExecuteMsg;
+use astroport_lbp::querier::{query_balance, query_factory_pair_info, query_token_balance};
+use astroport_lbp::router::SwapOperation;
 use cw20::Cw20ExecuteMsg;
 use terra_cosmwasm::{create_swap_msg, create_swap_send_msg, TerraMsgWrapper};
-use terraswap::asset::{Asset, AssetInfo};
-use terraswap::factory::FactoryPairInfo;
-use terraswap::pair::ExecuteMsg as PairExecuteMsg;
-use terraswap::querier::{query_balance, query_factory_pair_info, query_token_balance};
-use terraswap::router::SwapOperation;
 
 /// Execute swap operation
 /// swap all offer asset to ask asset

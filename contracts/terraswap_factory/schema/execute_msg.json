@@ -55,6 +55,7 @@
           "required": [
             "asset_infos",
             "end_time",
+            "owner",
             "start_time"
           ],
           "properties": {
@@ -79,6 +80,10 @@
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
+            },
+            "owner": {
+              "description": "Owner (address which can migrate liquidity)",
+              "type": "string"
             },
             "start_time": {
               "description": "LBP start time",

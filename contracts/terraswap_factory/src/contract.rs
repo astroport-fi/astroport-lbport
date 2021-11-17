@@ -5,12 +5,12 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use protobuf::Message;
 
-use terraswap_lbp::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap_lbp::factory::{
+use astroport_lbp::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
+use astroport_lbp::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
     QueryMsg,
 };
-use terraswap_lbp::pair::InstantiateMsg as PairInstantiateMsg;
+use astroport_lbp::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_pair_info;

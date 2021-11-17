@@ -8,7 +8,7 @@ use cw20_base::msg::{ExecuteMsg, QueryMsg};
 use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
 
 use cw20_base::ContractError;
-use terraswap_lbp::token::InstantiateMsg;
+use astroport_lbp::token::InstantiateMsg;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraswap-token";

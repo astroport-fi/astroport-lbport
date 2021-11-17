@@ -12,11 +12,11 @@ use cw2::set_contract_version;
 use cw20::Cw20ReceiveMsg;
 use std::collections::HashMap;
 use terra_cosmwasm::{SwapResponse, TerraMsgWrapper, TerraQuerier};
-use terraswap::asset::{Asset, AssetInfo};
-use terraswap::factory::FactoryPairInfo;
-use terraswap::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
-use terraswap::querier::query_factory_pair_info;
-use terraswap::router::{
+use astroport_lbp::asset::{Asset, AssetInfo};
+use astroport_lbp::factory::FactoryPairInfo;
+use astroport_lbp::pair::{QueryMsg as PairQueryMsg, SimulationResponse};
+use astroport_lbp::querier::query_factory_pair_info;
+use astroport_lbp::router::{
     ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
     SimulateSwapOperationsResponse, SwapOperation,
 };

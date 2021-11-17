@@ -29,6 +29,18 @@
     {
       "type": "object",
       "required": [
+        "migration"
+      ],
+      "properties": {
+        "migration": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "simulation"
       ],
       "properties": {

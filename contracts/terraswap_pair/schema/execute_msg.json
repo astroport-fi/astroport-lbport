@@ -100,6 +100,40 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Function to migrate Liquidity after the LBP is over",
+      "type": "object",
+      "required": [
+        "migrate_liquidity"
+      ],
+      "properties": {
+        "migrate_liquidity": {
+          "type": "object",
+          "required": [
+            "pool_address"
+          ],
+          "properties": {
+            "pool_address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Callbacks; only callable by the contract itself.",
+      "type": "object",
+      "required": [
+        "callback"
+      ],
+      "properties": {
+        "callback": {
+          "$ref": "#/definitions/CallbackMsg"
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -169,6 +203,22 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
       "type": "string"
+    },
+    "CallbackMsg": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "update_state_on_liquidity_addition_to_pool"
+          ],
+          "properties": {
+            "update_state_on_liquidity_addition_to_pool": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "Cw20ReceiveMsg": {
       "description": "Cw20ReceiveMsg should be de/serialized under `Receive()` variant in a ExecuteMsg",

@@ -9,7 +9,7 @@ use cosmwasm_std::{
     DepsMut, Env, MessageInfo, QueryRequest, Reply, ReplyOn, Response, StdError, StdResult, SubMsg,
     Uint128, WasmMsg, WasmQuery,
 };
-use terraswap_lbp::U256;
+use astroport_lbp::U256;
 
 use crate::error::ContractError;
 use cw2::set_contract_version;
@@ -19,13 +19,13 @@ use protobuf::Message;
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use std::vec;
-use terraswap_lbp::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
-use terraswap_lbp::pair::{
+use astroport_lbp::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
+use astroport_lbp::pair::{
     CallbackMsg, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, MigrationInfoResponse,
     PoolResponse, QueryMsg, ReverseSimulationResponse, SimulationResponse,
 };
-use terraswap_lbp::querier::{query_supply, query_token_balance};
-use terraswap_lbp::token::InstantiateMsg as TokenInstantiateMsg;
+use astroport_lbp::querier::{query_supply, query_token_balance};
+use astroport_lbp::token::InstantiateMsg as TokenInstantiateMsg;
 
 /// Commission rate == 0.15%
 pub const COMMISSION_RATE: &str = "0.0015";

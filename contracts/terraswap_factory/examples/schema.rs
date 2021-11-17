@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use terraswap::factory::{
+use astroport_lbp::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, PairsResponse, QueryMsg,
 };
 
