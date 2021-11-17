@@ -48,3 +48,12 @@ export LCD_CLIENT_URL="https://bombay-lcd.terra.dev"
 export CHAIN_ID="bombay-12"
 node --loader ts-node/esm deploy_script.ts
 ```
+
+## Liquidity Migration post LBP Completion :
+
+- The `owner` of the LBP Pair can migrate Liquidity from the LBP Pool to either Astroport / Terraswap / Loop DEX via the Pool's `MigrateLiquidity`function.
+- Pool address of Astroport / Terraswap / Loop DEX to which liquidity is to be migrated needs to be provided when calling the `MigrateLiquidity`function.
+- Liquidity Providers to the LBP Pool can claim the equivalent LP shares of the new pool via calling the `ClaimNewShares` CW20Hook Msg via the LP token's `Send` function.
+- When claiming the LP shares for the new pool, equivalent LP shares of the LBP pool are burnt.
+
+`MigrateLiquidity`function can only be called after the completion of the LBP.
