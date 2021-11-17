@@ -1,10 +1,8 @@
 import 'dotenv/config'
-import { strictEqual } from "assert"
 import {
     Client,
     newClient,
     instantiateContract,
-    queryContract,
     uploadContract, writeNetworkConfig, readNetworkConfig,
 } from './helpers.js'
 import {configDefault} from "./deploy_configs.js";
