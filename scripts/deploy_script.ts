@@ -36,7 +36,7 @@ async function main() {
   const network = readArtifact(terra.config.chainID)
   console.log('network:', network)
 
-  network.terraswap_pair_address = ""
+  network.terraswap_pair_address = "terra12ru4stk63zj3gd0up457rl5z023xp4wlzd2h9y"
   /*************************************** DEPLOYMENT :: TERRASWAP FACTORY CONTRACT  *****************************************/
 
 
@@ -66,7 +66,7 @@ async function main() {
     
 
 
-  /*************************************** CREATE PAIR :: TERRASWAP PAIR CONTRACT  *****************************************/
+  /*************************************** CREATE LBP POOL  *****************************************/
 
   // let create_pair = { "create_pair" : {
   //                           "owner": wallet.key.accAddress,
@@ -100,7 +100,7 @@ async function main() {
   //                       )
 
   /*************************************** CREATE PAIR (to which liquidity is to be migrated) ON DEX  *****************************************/
-  // await executeContract( terra, wallet, "terra18qpjm4zkvqnpjpw0zn0tdr8gdzvt8au35v45xf" ,   { "create_pair": {
+  // await executeContract( terra, wallet, "terra15g5gj857u7su26cnff787xkuhgej70r6qwmf8v" ,   { "create_pair": {
   //                                                                                               "asset_infos": [  {  "token": {"contract_addr":network.whale_token_address} } ,
   //                                                                                                                 {  "native_token": {"denom": "uusd"} } ,
   //                                                                                                             ],
@@ -110,15 +110,15 @@ async function main() {
 
 
   /*************************************** MIGRATE LIQUIDITY  *****************************************/
-  // await executeContract( terra, wallet, network.terraswap_pair_address ,   { "migrate_liquidity": { "pool_address" : "terra1ls9hrg5f370v4gjc52wzljunlyyj3tmq9jyghp" } } )
+  // await executeContract( terra, wallet, network.terraswap_pair_address ,   { "migrate_liquidity": { "pool_address" : "terra10afx5qwjzt4zpd8s8fa486ce4l4aqvcgf4dr28" } } )
 
   /*************************************** CLAIM NEW LP TOKENS  *****************************************/
 
-  // await executeContract( terra, wallet, "terra149m3hx4we4k9ddahwted83adp9knss3sq4n33z" ,   { "send" : { "contract": network.terraswap_pair_address,
-  //                                                                                                       "amount" : String(31622576601),        
-  //                                                                                                       "msg":  toEncodedBinary({ "claim_new_shares": {} })
-  //                                                                                                     } 
-  //                                                                                           } )
+  await executeContract( terra, wallet, "terra1wk29rk7p8lt9e5ac0zx27fgel3prxchh0gt44t" ,   { "send" : { "contract": network.terraswap_pair_address,
+                                                                                                        "amount" : String(31622776601),        
+                                                                                                        "msg":  toEncodedBinary({ "claim_new_shares": {} })
+                                                                                                      } 
+                                                                                            } )
 
 
   writeArtifact(network, terra.config.chainID)
