@@ -5,12 +5,12 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use protobuf::Message;
 
-use terraswap::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
-use terraswap::factory::{
+use terraswap_lbp::asset::{AssetInfo, PairInfo, WeightedAssetInfo};
+use terraswap_lbp::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
     QueryMsg,
 };
-use terraswap::pair::InstantiateMsg as PairInstantiateMsg;
+use terraswap_lbp::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::querier::query_pair_info;
@@ -57,6 +57,7 @@ pub fn execute(
             pair_code_id,
         } => try_update_config(deps, info, owner, token_code_id, pair_code_id),
         ExecuteMsg::CreatePair {
+            owner,
             asset_infos,
             start_time,
             end_time,
@@ -65,6 +66,7 @@ pub fn execute(
             deps,
             env,
             info,
+            owner,
             asset_infos,
             start_time,
             end_time,
@@ -107,6 +109,7 @@ pub fn try_create_pair(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
+    owner: String,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
     end_time: u64,
@@ -139,6 +142,7 @@ pub fn try_create_pair(
                 admin: Some(config.owner.to_string()),
                 code_id: config.pair_code_id,
                 msg: to_binary(&PairInstantiateMsg {
+                    owner: owner,
                     asset_infos: weighted_asset_infos,
                     token_code_id: config.token_code_id,
                     start_time,

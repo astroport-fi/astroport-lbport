@@ -1,0 +1,4 @@
+e0da90fcc6c252f695f354af9162a61c465c1eea61fb18b831fe2c604ede114d  target/wasm32-unknown-unknown/release/cw20_token.wasm
+fa15ba017ed310a72c36f9cfd61d021872fa3b3213a334d130ccbdab4bfd1278  target/wasm32-unknown-unknown/release/terraswap_factory.wasm
+1e936db5bec2df2b2c63e210e767db6f07bf63938028c9e944e9d9e52802759b  target/wasm32-unknown-unknown/release/terraswap_pair.wasm
+8cb75d2546f16a1151cd983ed197c0f9b5a42a18478be4104def32f4d3761967  target/wasm32-unknown-unknown/release/terraswap_token.wasm

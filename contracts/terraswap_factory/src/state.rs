@@ -5,8 +5,8 @@ use cosmwasm_std::{Addr, Deps, Order, StdError};
 
 use crate::error::ContractError;
 use cw_storage_plus::{Bound, Item, Map};
-use terraswap::asset::AssetInfo;
-use terraswap::factory::FactoryPairInfo;
+use terraswap_lbp::asset::AssetInfo;
+use terraswap_lbp::factory::FactoryPairInfo;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {

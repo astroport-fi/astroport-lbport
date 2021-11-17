@@ -4,20 +4,22 @@
   "main": "index.js",
   "license": "MIT",
   "type": "module",
-  "scripts": {
-    "start": "npm run build-app",
-    "build-app": "bash build_app.sh"
-  },
   "dependencies": {
-    "@terra-money/terra.js": "^2.0.16",
+    "@hoprnet/hopr-utils": "^1.76.0-next.30",
+    "@terra-money/terra.js": "^2.0.0-beta.16",
+    "@uniqys/types": "^0.3.6",
+    "bcrypto": "^4.1.0",
     "bignumber.js": "^9.0.1",
+    "chai": "^4.3.4",
     "dotenv": "^8.2.0",
-    "esm": "^3.2.25",
-    "package.json": "^2.0.1",
-    "ts-custom-error": "^3.2.0"
+    "keccak": "^3.0.2",
+    "keccak256": "^1.0.3",
+    "merkletreejs": "^0.2.20"
   },
   "devDependencies": {
-    "check-dependencies": "^1.1.0",
+    "@types/chai": "^4.2.21",
+    "@types/chalk": "^2.2.0",
+    "@types/yargs": "^17.0.2",
     "eslint": "^7.24.0",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"

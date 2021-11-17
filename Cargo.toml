@@ -1,5 +1,10 @@
 [workspace]
-members = ["packages/*", "contracts/*"]
+members = ["packages/*", 
+"contracts/terraswap_factory",
+"contracts/terraswap_pair",
+"contracts/terraswap_token",
+"contracts/mocks/cw20-token"
+]
 
 [profile.release.package.terraswap]
 opt-level = 3

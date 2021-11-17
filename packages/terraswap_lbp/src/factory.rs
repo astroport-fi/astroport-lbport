@@ -23,6 +23,8 @@ pub enum ExecuteMsg {
     },
     /// CreatePair instantiates pair contract
     CreatePair {
+        /// Owner (address which can migrate liquidity)
+        owner: String,
         /// Asset infos
         asset_infos: [WeightedAssetInfo; 2],
         /// LBP start time

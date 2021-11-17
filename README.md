@@ -7,7 +7,7 @@ Uniswap-inspired automated market-maker (AMM) protocol powered by Smart Contract
 | Name                                               | Description                                  |
 | -------------------------------------------------- | -------------------------------------------- |
 | [`terraswap_factory`](contracts/terraswap_factory) | Pool creation factory                        |
-| [`terraswap_pair`](contracts/terraswap_pair)       | Pair with x*y=k curve                        |
+| [`terraswap_pair`](contracts/terraswap_pair)       | Pair with x\*y=k curve                       |
 | [`terraswap_router`](contracts/terraswap_router)   | Multi-hop trade router                       |
 | [`terraswap_token`](contracts/terraswap_token)     | CW20 (ERC20 equivalent) token implementation |
 
@@ -41,3 +41,10 @@ docker run --rm -v "$(pwd)":/code \
 ```
 
 The optimized contracts are generated in the artifacts/ directory.
+
+```
+export WALLET="<mnemonic seed>"
+export LCD_CLIENT_URL="https://bombay-lcd.terra.dev"
+export CHAIN_ID="bombay-12"
+node --loader ts-node/esm deploy_script.ts
+```

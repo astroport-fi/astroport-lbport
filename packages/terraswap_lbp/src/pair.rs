@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::{Asset, WeightedAsset, WeightedAssetInfo};
 
-use cosmwasm_std::{Addr, Decimal, Uint128};
+use cosmwasm_std::{to_binary, Addr, CosmosMsg, Decimal, Env, StdResult, Uint128, WasmMsg};
 use cw20::Cw20ReceiveMsg;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
+    /// Owner (address which can migrate liquidity)
+    pub owner: String,
     /// Asset infos
     pub asset_infos: [WeightedAssetInfo; 2],
     /// Token contract code id for initialization
@@ -36,6 +38,12 @@ pub enum ExecuteMsg {
         max_spread: Option<Decimal>,
         to: Option<Addr>,
     },
+    /// Function to migrate Liquidity after the LBP is over
+    MigrateLiquidity {
+        pool_address: String,
+    },
+    /// Callbacks; only callable by the contract itself.
+    Callback(CallbackMsg),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -48,6 +56,25 @@ pub enum Cw20HookMsg {
         to: Option<Addr>,
     },
     WithdrawLiquidity {},
+    ClaimNewShares {},
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CallbackMsg {
+    UpdateStateOnLiquidityAdditionToPool {},
+}
+
+// Modified from
+// https://github.com/CosmWasm/cosmwasm-plus/blob/v0.2.3/packages/cw20/src/receiver.rs#L15
+impl CallbackMsg {
+    pub fn to_cosmos_msg(self, env: &Env) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address.to_string(),
+            msg: to_binary(&ExecuteMsg::Callback(self))?,
+            funds: vec![],
+        }))
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -55,6 +82,7 @@ pub enum Cw20HookMsg {
 pub enum QueryMsg {
     Pair {},
     Pool {},
+    Migration {},
     Simulation { offer_asset: Asset, block_time: u64 },
     ReverseSimulation { ask_asset: Asset, block_time: u64 },
 }
@@ -64,6 +92,16 @@ pub enum QueryMsg {
 pub struct PoolResponse {
     pub assets: [WeightedAsset; 2],
     pub total_share: Uint128,
+}
+
+/// SimulationResponse returns swap simulation response
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MigrationInfoResponse {
+    pub owner: Addr,
+    pub pool_address: Option<Addr>,
+    pub lp_token_address: Option<Addr>,
+    pub prev_lp_tokens_total: Uint128,
+    pub new_lp_tokens_minted: Uint128,
 }
 
 /// SimulationResponse returns swap simulation response

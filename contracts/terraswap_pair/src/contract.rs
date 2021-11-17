@@ -1,15 +1,15 @@
 use crate::math::{calc_in_given_out, calc_out_given_in, uint2dec};
 use crate::response::MsgInstantiateContractResponse;
 
-use crate::state::PAIR_INFO;
+use crate::state::{MigrationInfo, MIGRATION_INFO, PAIR_INFO};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, entry_point, from_binary, to_binary, Addr, Binary, Coin, CosmosMsg, Decimal, Deps,
-    DepsMut, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128,
-    WasmMsg,
+    DepsMut, Env, MessageInfo, QueryRequest, Reply, ReplyOn, Response, StdError, StdResult, SubMsg,
+    Uint128, WasmMsg, WasmQuery,
 };
-use terraswap::U256;
+use terraswap_lbp::U256;
 
 use crate::error::ContractError;
 use cw2::set_contract_version;
@@ -18,13 +18,14 @@ use protobuf::Message;
 
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
-use terraswap::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
-use terraswap::pair::{
-    Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
-    ReverseSimulationResponse, SimulationResponse,
+use std::vec;
+use terraswap_lbp::asset::{Asset, AssetInfo, PairInfo, WeightedAsset};
+use terraswap_lbp::pair::{
+    CallbackMsg, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, MigrationInfoResponse,
+    PoolResponse, QueryMsg, ReverseSimulationResponse, SimulationResponse,
 };
-use terraswap::querier::query_supply;
-use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
+use terraswap_lbp::querier::{query_supply, query_token_balance};
+use terraswap_lbp::token::InstantiateMsg as TokenInstantiateMsg;
 
 /// Commission rate == 0.15%
 pub const COMMISSION_RATE: &str = "0.0015";
@@ -34,6 +35,10 @@ const CONTRACT_NAME: &str = "terraswap-pair";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INSTANTIATE_REPLY_ID: u64 = 1;
+
+//----------------------------------------------------------------------------------------
+// Entry Points
+//----------------------------------------------------------------------------------------
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -79,7 +84,16 @@ pub fn instantiate(
         description: msg.description,
     };
 
+    let migration_info: &MigrationInfo = &MigrationInfo {
+        owner: deps.api.addr_validate(&msg.owner)?,
+        pool_address: None,
+        lp_token_address: None,
+        new_lp_tokens_minted: Uint128::zero(),
+        prev_lp_tokens_total: Uint128::zero(),
+    };
+
     PAIR_INFO.save(deps.storage, pair_info)?;
+    MIGRATION_INFO.save(deps.storage, migration_info)?;
 
     Ok(Response::new().add_submessage(SubMsg {
         // Create LP token
@@ -156,6 +170,10 @@ pub fn execute(
                 to,
             )
         }
+        ExecuteMsg::MigrateLiquidity { pool_address } => {
+            try_migrate_liquidity(deps, env, info, pool_address)
+        }
+        ExecuteMsg::Callback(msg) => handle_callback(deps, env, info, msg),
     }
 }
 
@@ -210,9 +228,40 @@ pub fn receive_cw20(
             Addr::unchecked(cw20_msg.sender),
             cw20_msg.amount,
         ),
+        Ok(Cw20HookMsg::ClaimNewShares {}) => try_claim_new_lp_shares(
+            deps,
+            env,
+            info,
+            Addr::unchecked(cw20_msg.sender),
+            cw20_msg.amount,
+        ),
+
         Err(err) => Err(ContractError::Std(err)),
     }
 }
+
+fn handle_callback(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: CallbackMsg,
+) -> Result<Response, ContractError> {
+    // Callback functions can only be called this contract itself
+    if info.sender != env.contract.address {
+        return Err(ContractError::Std(StdError::generic_err(
+            "callbacks cannot be invoked externally",
+        )));
+    }
+    match msg {
+        CallbackMsg::UpdateStateOnLiquidityAdditionToPool {} => {
+            callback_update_state_after_liquidity_migration(deps, env)
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// Handle Functions
+//----------------------------------------------------------------------------------------
 
 /// CONTRACT - should approve contract to use the amount of token
 pub fn try_provide_liquidity(
@@ -361,6 +410,225 @@ pub fn try_withdraw_liquidity(
     ]))
 }
 
+pub fn try_claim_new_lp_shares(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    sender: Addr,
+    prev_lp_amount: Uint128,
+) -> Result<Response, ContractError> {
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
+    let migrate_info: MigrationInfo = MIGRATION_INFO.load(deps.storage)?;
+
+    if info.sender != pair_info.liquidity_token {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    if migrate_info.new_lp_tokens_minted == Uint128::zero() {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Liquidity has not been migrated yet",
+        )));
+    }
+
+    let lp_shares_percent = Decimal::from_ratio(prev_lp_amount, migrate_info.prev_lp_tokens_total);
+    let equivalent_lp_shares = lp_shares_percent.mul(migrate_info.new_lp_tokens_minted);
+
+    let burn_lp_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: pair_info.liquidity_token.to_string(),
+        funds: vec![],
+        msg: to_binary(&Cw20ExecuteMsg::Burn {
+            amount: prev_lp_amount,
+        })?,
+    });
+
+    let transfer_new_lp_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: migrate_info
+            .lp_token_address
+            .expect("LP Token not set")
+            .to_string(),
+        funds: vec![],
+        msg: to_binary(&Cw20ExecuteMsg::Transfer {
+            recipient: sender.to_string(),
+            amount: equivalent_lp_shares,
+        })?,
+    });
+
+    Ok(Response::new()
+        .add_message(burn_lp_msg)
+        .add_message(transfer_new_lp_msg)
+        .add_attributes(vec![
+            attr("action", "claim_new_lp_shares"),
+            attr("prev_lp_amount", &prev_lp_amount.to_string()),
+            attr("equivalent_lp_shares", &equivalent_lp_shares.to_string()),
+        ]))
+}
+
+/// @dev Admin function to migrate Liquidity to an Astroport / Terraswap / Loop pool post the completion of the LBP
+/// Functional overview ::::
+/// 1. Migrates liquidity to that Pair
+/// 2. In the next Callback function, updates state to store the minted LP tokens balance (distributed pro-rata among the LPs which can be claimed)
+pub fn try_migrate_liquidity(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    pool_address: String,
+) -> Result<Response, ContractError> {
+    let mut migrate_info: MigrationInfo = MIGRATION_INFO.load(deps.storage)?;
+
+    // Check :: Only Admin can migrate liquidity
+    if info.sender != migrate_info.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
+    // Check :: LBP should be over
+    if env.block.time.seconds() <= pair_info.end_time {
+        return Err(ContractError::Std(StdError::generic_err("LBP in progress")));
+    }
+
+    let pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
+    let pools: [WeightedAsset; 2] = pair_info.query_pools(deps.as_ref(), &env.contract.address)?;
+
+    let mut funds_ = vec![];
+    let mut assets_: Vec<terraswap::asset::Asset> = vec![];
+    for pool in pools.iter() {
+        match pool.info.clone() {
+            AssetInfo::Token { contract_addr } => {
+                assets_.push(terraswap::asset::Asset {
+                    info: terraswap::asset::AssetInfo::Token {
+                        contract_addr: contract_addr.clone().to_string(),
+                    },
+                    amount: pool.amount,
+                });
+            }
+            AssetInfo::NativeToken { denom } => {
+                // For deducting tax
+                let native_asset = Asset {
+                    info: pool.info.clone(),
+                    amount: pool.amount,
+                };
+                assets_.push(terraswap::asset::Asset {
+                    info: terraswap::asset::AssetInfo::NativeToken {
+                        denom: denom.clone(),
+                    },
+                    amount: pool
+                        .amount
+                        .checked_sub(native_asset.compute_tax(deps.as_ref())?)
+                        .unwrap(),
+                });
+                funds_.push(Coin {
+                    denom: denom.clone(),
+                    amount: pool
+                        .amount
+                        .checked_sub(native_asset.compute_tax(deps.as_ref())?)
+                        .unwrap(),
+                });
+            }
+        }
+    }
+
+    migrate_info.pool_address = Some(deps.api.addr_validate(&pool_address.clone())?);
+
+    // Query LP Token from the Pair
+    let pair_res: terraswap::asset::PairInfo =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: pool_address.clone(),
+            msg: to_binary(&terraswap::pair::QueryMsg::Pair {})?,
+        }))?;
+
+    migrate_info.lp_token_address =
+        Some(deps.api.addr_validate(&pair_res.liquidity_token.clone())?);
+    migrate_info.prev_lp_tokens_total =
+        query_supply(deps.as_ref(), &pair_info.liquidity_token.clone())?;
+    MIGRATION_INFO.save(deps.storage, &migrate_info)?;
+
+    let asset_array = [assets_[0].clone(), assets_[1].clone()];
+
+    let mut cosmos_msgs: Vec<CosmosMsg> = vec![];
+
+    for asset_ in asset_array.iter() {
+        match asset_.info.clone() {
+            terraswap::asset::AssetInfo::Token { contract_addr } => {
+                cosmos_msgs.push(
+                    WasmMsg::Execute {
+                        contract_addr: contract_addr.to_string(),
+                        funds: vec![],
+                        msg: to_binary(&Cw20ExecuteMsg::IncreaseAllowance {
+                            spender: migrate_info
+                                .pool_address
+                                .clone()
+                                .expect("Pool address not set")
+                                .to_string(),
+                            expires: None,
+                            amount: asset_.amount.clone(),
+                        })?,
+                    }
+                    .into(),
+                );
+            }
+            terraswap::asset::AssetInfo::NativeToken { denom: _ } => {}
+        }
+    }
+
+    // Provide Liquidity to the Pool
+    let provide_liquidity_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: migrate_info
+            .pool_address
+            .expect("Pool address not set")
+            .to_string(),
+        funds: funds_,
+        msg: to_binary(&terraswap::pair::ExecuteMsg::ProvideLiquidity {
+            assets: asset_array,
+            slippage_tolerance: None,
+            receiver: None,
+        })?,
+    });
+    cosmos_msgs.push(provide_liquidity_msg);
+
+    let callback_msg = CallbackMsg::UpdateStateOnLiquidityAdditionToPool {}.to_cosmos_msg(&env)?;
+    cosmos_msgs.push(callback_msg);
+
+    Ok(Response::new()
+        .add_messages(cosmos_msgs)
+        .add_attributes(vec![
+            attr("action", "migrate_liquidity"),
+            attr(
+                "lbp_lp_tokens_total",
+                migrate_info.prev_lp_tokens_total.to_string(),
+            ),
+        ]))
+}
+
+//----------------------------------------------------------------------------------------
+// Handle Callback Functions
+//----------------------------------------------------------------------------------------
+
+/// @dev Callback function. Called after new Pool is initialized. Migrates Liquidity to that pool
+pub fn callback_update_state_after_liquidity_migration(
+    deps: DepsMut,
+    env: Env,
+) -> Result<Response, ContractError> {
+    let mut migrate_info: MigrationInfo = MIGRATION_INFO.load(deps.storage)?;
+
+    migrate_info.new_lp_tokens_minted = query_token_balance(
+        deps.as_ref(),
+        &migrate_info
+            .lp_token_address
+            .clone()
+            .expect("New LP token address not set"),
+        &env.contract.address,
+    )?;
+    MIGRATION_INFO.save(deps.storage, &migrate_info)?;
+
+    Ok(Response::new().add_attributes(vec![
+        attr("action::Callback", "update_state_after_liquidity_migration"),
+        attr(
+            "new_lp_tokens_minted",
+            migrate_info.new_lp_tokens_minted.to_string(),
+        ),
+    ]))
+}
+
 // CONTRACT - a user must do token approval
 #[allow(clippy::too_many_arguments)]
 pub fn try_swap(
@@ -472,6 +740,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Pair {} => to_binary(&query_pair_info(deps)?),
         QueryMsg::Pool {} => to_binary(&query_pool(deps, env)?),
+        QueryMsg::Migration {} => to_binary(&query_migration_info(deps, env)?),
         QueryMsg::Simulation {
             offer_asset,
             block_time,
@@ -495,6 +764,20 @@ pub fn query_pool(deps: Deps, env: Env) -> StdResult<PoolResponse> {
     let resp = PoolResponse {
         assets,
         total_share,
+    };
+
+    Ok(resp)
+}
+
+pub fn query_migration_info(deps: Deps, _env: Env) -> StdResult<MigrationInfoResponse> {
+    let migration_info: MigrationInfo = MIGRATION_INFO.load(deps.storage)?;
+
+    let resp = MigrationInfoResponse {
+        owner: migration_info.owner,
+        pool_address: migration_info.pool_address,
+        lp_token_address: migration_info.lp_token_address,
+        prev_lp_tokens_total: migration_info.prev_lp_tokens_total,
+        new_lp_tokens_minted: migration_info.new_lp_tokens_minted,
     };
 
     Ok(resp)
