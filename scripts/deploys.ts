@@ -43,7 +43,7 @@ async function uploadContractByName(cl: Client, file_name: string) {
 async function setupToken(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.terraswap_token.Addr) {
+    if (!networkConfig.astroport_lbp_token.Addr) {
         if (!cfg.tokenConfig.configInitMsg.initial_balances[0].address) {
             cfg.tokenConfig.configInitMsg.initial_balances[0].address = cl.wallet.key.accAddress
         }
@@ -52,25 +52,25 @@ async function setupToken(cl: Client, cfg: Config) {
             cfg.tokenConfig.configInitMsg.mint.minter = cl.wallet.key.accAddress
         }
 
-        networkConfig.terraswap_token.Addr = await instantiateContract(
+        networkConfig.astroport_lbp_token.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.terraswap_token.ID,
+            networkConfig.astroport_lbp_token.ID,
             cfg.tokenConfig.configInitMsg
         );
 
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup token ---> FINISH')
     } else {
-        console.log('Token is already exists.\nAddr: ', networkConfig.terraswap_token.Addr);
+        console.log('Token is already exists.\nAddr: ', networkConfig.astroport_lbp_token.Addr);
     }
 }
 
-async function setupTerraSwapPair(cl: Client, cfg: Config) {
+async function setupAstroportPair(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.terraswap_pair.Addr) {
-        cfg.terraswapPairConfig.configInitMsg.asset_infos = [
+    if (!networkConfig.astroport_lbp_pair.Addr) {
+        cfg.astroportPairConfig.configInitMsg.asset_infos = [
             {
                 info:{
                     native_token: {
@@ -93,60 +93,60 @@ async function setupTerraSwapPair(cl: Client, cfg: Config) {
 
         let currTime = new Date().getTime() / 1000;
 
-        cfg.terraswapPairConfig.configInitMsg.end_time = Math.round(currTime) + 1000;
-        cfg.terraswapPairConfig.configInitMsg.start_time = Math.round(currTime);
-        cfg.terraswapPairConfig.configInitMsg.token_code_id = networkConfig.terraswap_token.ID;
+        cfg.astroportPairConfig.configInitMsg.end_time = Math.round(currTime) + 1000;
+        cfg.astroportPairConfig.configInitMsg.start_time = Math.round(currTime);
+        cfg.astroportPairConfig.configInitMsg.token_code_id = networkConfig.astroport_lbp_token.ID;
 
-        networkConfig.terraswap_pair.Addr = await instantiateContract(
+        networkConfig.astroport_lbp_pair.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.terraswap_pair.ID,
-            cfg.terraswapPairConfig.configInitMsg
+            networkConfig.astroport_lbp_pair.ID,
+            cfg.astroportPairConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup pair ---> FINISH')
     } else {
-        console.log('Pair is already exists.\nAddr: ', networkConfig.terraswap_pair.Addr);
+        console.log('Pair is already exists.\nAddr: ', networkConfig.astroport_lbp_pair.Addr);
     }
 }
 
-async function setupTerraSwapFactory(cl: Client, cfg: Config) {
+async function setupAstroportFactory(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.terraswap_factory.Addr) {
-        cfg.terraswapFactoryConfig.configInitMsg.owner = process.env.FACTORY_OWNER! || cl.wallet.key.accAddress;
-        cfg.terraswapFactoryConfig.configInitMsg.token_code_id = networkConfig.terraswap_token.ID;
-        cfg.terraswapFactoryConfig.configInitMsg.pair_code_id = networkConfig.terraswap_pair.ID;
+    if (!networkConfig.astroport_lbp_factory.Addr) {
+        cfg.astroportFactoryConfig.configInitMsg.owner = process.env.FACTORY_OWNER! || cl.wallet.key.accAddress;
+        cfg.astroportFactoryConfig.configInitMsg.token_code_id = networkConfig.astroport_lbp_token.ID;
+        cfg.astroportFactoryConfig.configInitMsg.pair_code_id = networkConfig.astroport_lbp_pair.ID;
 
-        networkConfig.terraswap_factory.Addr = await instantiateContract(
+        networkConfig.astroport_lbp_factory.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.terraswap_factory.ID,
-            cfg.terraswapFactoryConfig.configInitMsg
+            networkConfig.astroport_lbp_factory.ID,
+            cfg.astroportFactoryConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup factory ---> FINISH')
     } else {
-        console.log('Factory is already exists.\nAddr: ', networkConfig.terraswap_factory.Addr);
+        console.log('Factory is already exists.\nAddr: ', networkConfig.astroport_lbp_factory.Addr);
     }
 }
 
-async function setupTerraSwapRouter(cl: Client, cfg: Config) {
+async function setupAstroportRouter(cl: Client, cfg: Config) {
     const networkConfig = readNetworkConfig(cl.terra.config.chainID);
 
-    if (!networkConfig.terraswap_router.Addr) {
-        cfg.terraswapRouterConfig.configInitMsg.terraswap_factory = networkConfig.terraswap_factory.Addr;
+    if (!networkConfig.astroport_lbp_router.Addr) {
+        cfg.astroportRouterConfig.configInitMsg.astroport_lbp_factory = networkConfig.astroport_lbp_factory.Addr;
 
-        networkConfig.terraswap_router.Addr = await instantiateContract(
+        networkConfig.astroport_lbp_router.Addr = await instantiateContract(
             cl.terra,
             cl.wallet,
-            networkConfig.terraswap_router.ID,
-            cfg.terraswapRouterConfig.configInitMsg
+            networkConfig.astroport_lbp_router.ID,
+            cfg.astroportRouterConfig.configInitMsg
         );
         writeNetworkConfig(networkConfig, cl.terra.config.chainID)
         console.log('setup router ---> FINISH')
     } else {
-        console.log('Router is already exists.\nAddr: ', networkConfig.terraswap_router.Addr);
+        console.log('Router is already exists.\nAddr: ', networkConfig.astroport_lbp_router.Addr);
     }
 }
 
@@ -155,9 +155,9 @@ async function main() {
     let config: Config = configDefault;
 
     await uploadContracts(client);
-    await setupTerraSwapFactory(client, config);
-    await setupTerraSwapRouter(client, config);
-    await setupTerraSwapPair(client, config);
+    await setupAstroportFactory(client, config);
+    await setupAstroportRouter(client, config);
+    await setupAstroportPair(client, config);
     await setupToken(client, config);
 }
 main().catch(console.log)

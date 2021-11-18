@@ -30,6 +30,96 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
 
 [[package]]
+name = "astroport-lbp"
+version = "1.2.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 0.8.1",
+ "cw20",
+ "schemars",
+ "serde",
+ "terra-cosmwasm",
+ "uint",
+]
+
+[[package]]
+name = "astroport-lbp-factory"
+version = "1.2.0"
+dependencies = [
+ "astroport-lbp",
+ "astroport-lbp-pair",
+ "astroport-lbp-token",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-vm",
+ "cw-storage-plus 0.8.1",
+ "cw2",
+ "protobuf",
+ "schemars",
+ "serde",
+ "terra-multi-test",
+ "thiserror",
+]
+
+[[package]]
+name = "astroport-lbp-pair"
+version = "1.2.0"
+dependencies = [
+ "astroport-lbp",
+ "astroport-lbp-token",
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-vm",
+ "cw-multi-test",
+ "cw-storage-plus 0.8.1",
+ "cw2",
+ "cw20",
+ "integer-sqrt",
+ "proptest",
+ "protobuf",
+ "schemars",
+ "serde",
+ "substrate-fixed",
+ "terra-cosmwasm",
+ "terra-multi-test",
+ "thiserror",
+]
+
+[[package]]
+name = "astroport-lbp-router"
+version = "1.2.0"
+dependencies = [
+ "astroport-lbp",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 0.8.1",
+ "cw2",
+ "cw20",
+ "integer-sqrt",
+ "schemars",
+ "serde",
+ "terra-cosmwasm",
+ "thiserror",
+]
+
+[[package]]
+name = "astroport-lbp-token"
+version = "1.2.0"
+dependencies = [
+ "astroport-lbp",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw2",
+ "cw20",
+ "cw20-base",
+ "schemars",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1648,96 +1738,6 @@ dependencies = [
  "serde",
  "terra-mocks",
  "thiserror",
-]
-
-[[package]]
-name = "terraswap"
-version = "1.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 0.8.1",
- "cw20",
- "schemars",
- "serde",
- "terra-cosmwasm",
- "uint",
-]
-
-[[package]]
-name = "terraswap-factory"
-version = "1.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-vm",
- "cw-storage-plus 0.8.1",
- "cw2",
- "protobuf",
- "schemars",
- "serde",
- "terra-multi-test",
- "terraswap",
- "terraswap-pair",
- "terraswap-token",
- "thiserror",
-]
-
-[[package]]
-name = "terraswap-pair"
-version = "1.2.0"
-dependencies = [
- "cosmwasm-bignumber",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-vm",
- "cw-multi-test",
- "cw-storage-plus 0.8.1",
- "cw2",
- "cw20",
- "integer-sqrt",
- "proptest",
- "protobuf",
- "schemars",
- "serde",
- "substrate-fixed",
- "terra-cosmwasm",
- "terra-multi-test",
- "terraswap",
- "terraswap-token",
- "thiserror",
-]
-
-[[package]]
-name = "terraswap-router"
-version = "1.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 0.8.1",
- "cw2",
- "cw20",
- "integer-sqrt",
- "schemars",
- "serde",
- "terra-cosmwasm",
- "terraswap",
- "thiserror",
-]
-
-[[package]]
-name = "terraswap-token"
-version = "1.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw2",
- "cw20",
- "cw20-base",
- "schemars",
- "serde",
- "snafu",
- "terraswap",
 ]
 
 [[package]]

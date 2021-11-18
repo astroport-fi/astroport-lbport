@@ -1,4 +1,4 @@
-interface TerraSwapFactoryConfig {
+interface AstroportFactoryConfig {
     configInitMsg: {
         owner: string,
         pair_code_id: number,
@@ -6,13 +6,13 @@ interface TerraSwapFactoryConfig {
     }
 }
 
-interface TerraSwapRouterConfig {
+interface AstroportRouterConfig {
     configInitMsg: {
-        terraswap_factory: string
+        astroport_lbp_factory: string
     }
 }
 
-interface TerraSwapPairConfig {
+interface AstroportPairConfig {
     configInitMsg: {
         asset_infos: [
             {
@@ -61,7 +61,7 @@ interface TokenConfig {
 
 interface Config {
     tokenConfig: TokenConfig,
-    terraswapFactoryConfig: TerraSwapFactoryConfig,
-    terraswapRouterConfig: TerraSwapRouterConfig,
-    terraswapPairConfig: TerraSwapPairConfig,
+    astroportFactoryConfig: AstroportFactoryConfig,
+    astroportRouterConfig: AstroportRouterConfig,
+    astroportPairConfig: AstroportPairConfig,
 }
