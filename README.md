@@ -4,12 +4,12 @@ Uniswap-inspired automated market-maker (AMM) protocol powered by Smart Contract
 
 ## Contracts
 
-| Name                                               | Description                                  |
-| -------------------------------------------------- | -------------------------------------------- |
-| [`astroport_lbp_factory`](contracts/factory) | Pool creation factory                        |
-| [`astroport_lbp_pair`](contracts/pair)       | Pair with x*y=k curve                        |
-| [`astroport_lbp_router`](contracts/router)   | Multi-hop trade router                       |
-| [`astroport_lbp_token`](contracts/token)     | CW20 (ERC20 equivalent) token implementation |
+| Name                           | Description                                  |
+| -------------------------------| -------------------------------------------- |
+| [`factory`](contracts/factory) | Pool creation factory                        |
+| [`pair`](contracts/pair)       | Pair with x*y=k curve                        |
+| [`router`](contracts/router)   | Multi-hop trade router                       |
+| [`token`](contracts/token)     | CW20 (ERC20 equivalent) token implementation |
 
 ## Running this contract
 
