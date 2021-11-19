@@ -1,15 +1,15 @@
-# TerraSwap LBP
+# Astroport LBP
 
 Uniswap-inspired automated market-maker (AMM) protocol powered by Smart Contracts on the [Terra](https://terra.money) blockchain with LBP support.
 
 ## Contracts
 
-| Name                                               | Description                                  |
-| -------------------------------------------------- | -------------------------------------------- |
-| [`terraswap_factory`](contracts/terraswap_factory) | Pool creation factory                        |
-| [`terraswap_pair`](contracts/terraswap_pair)       | Pair with x*y=k curve                        |
-| [`terraswap_router`](contracts/terraswap_router)   | Multi-hop trade router                       |
-| [`terraswap_token`](contracts/terraswap_token)     | CW20 (ERC20 equivalent) token implementation |
+| Name                           | Description                                  |
+| -------------------------------| -------------------------------------------- |
+| [`factory`](contracts/factory) | Pool creation factory                        |
+| [`pair`](contracts/pair)       | Pair with x*y=k curve                        |
+| [`router`](contracts/router)   | Multi-hop trade router                       |
+| [`token`](contracts/token)     | CW20 (ERC20 equivalent) token implementation |
 
 ## Running this contract
 

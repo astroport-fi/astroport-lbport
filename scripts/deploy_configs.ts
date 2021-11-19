@@ -1,5 +1,5 @@
 export const configDefault: Config = {
-    terraswapFactoryConfig: {
+    astroportFactoryConfig: {
         configInitMsg: {
             owner: '',
             pair_code_id: 0,
@@ -23,12 +23,12 @@ export const configDefault: Config = {
             }
         }
     },
-    terraswapRouterConfig: {
+    astroportRouterConfig: {
         configInitMsg: {
-            terraswap_factory: ''
+            astroport_lbp_factory: ''
         }
     },
-    terraswapPairConfig: {
+    astroportPairConfig: {
         configInitMsg: {
             asset_infos: [
                 {
