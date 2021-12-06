@@ -15,7 +15,7 @@ pub struct InstantiateMsg {
     /// LBP start time
     pub start_time: u64,
     /// LBP end time
-    pub end_time: u64,
+    pub end_time: Option<u64>,
     /// Pair description
     pub description: Option<String>,
     // Commission Rate for a pair

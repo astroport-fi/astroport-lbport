@@ -27,10 +27,10 @@ pub enum ExecuteMsg {
     CreatePair {
         /// Asset infos
         asset_infos: [WeightedAssetInfo; 2],
-        /// LBP start time
+        /// LBP/AMM start time
         start_time: u64,
-        /// LBP end time
-        end_time: u64,
+        /// LBP/AMM end time
+        end_time: Option<u64>,
         /// Pair description
         description: Option<String>,
     },

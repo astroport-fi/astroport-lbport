@@ -122,7 +122,7 @@ pub fn try_create_pair(
     info: MessageInfo,
     weighted_asset_infos: [WeightedAssetInfo; 2],
     start_time: u64,
-    end_time: u64,
+    end_time: Option<u64>,
     description: Option<String>,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;

@@ -45,13 +45,19 @@ pub fn instantiate(
         return Err(ContractError::Std(StdError::generic_err(
             "start_time is less then current time",
         )));
-    }
+    };
 
-    if msg.end_time <= msg.start_time {
-        return Err(ContractError::Std(StdError::generic_err(
-            "end_time is less then or same as start_time",
-        )));
-    }
+    let end_time = match msg.end_time {
+        Some(time) => {
+            if time <= msg.start_time {
+                return Err(ContractError::Std(StdError::generic_err(
+                    "end_time is less then or same as start_time",
+                )));
+            }
+            Some(time)
+        }
+        None => None,
+    };
 
     for asset in msg.asset_infos.iter() {
         if asset.start_weight.is_zero() {
@@ -65,6 +71,12 @@ pub fn instantiate(
                 "end_weight can not be 0",
             )));
         }
+
+        if end_time == None && asset.end_weight != asset.start_weight {
+            return Err(ContractError::Std(StdError::generic_err(
+                "pair without end_date must have equal start_weight and end_weight",
+            )));
+        }
     }
 
     let pair_info: &PairInfo = &PairInfo {
@@ -72,7 +84,7 @@ pub fn instantiate(
         liquidity_token: Addr::unchecked(""),
         asset_infos: [msg.asset_infos[0].clone(), msg.asset_infos[1].clone()],
         start_time: msg.start_time,
-        end_time: msg.end_time,
+        end_time: end_time,
         description: msg.description,
         commission_rate: msg.commission_rate,
     };
@@ -775,19 +787,26 @@ fn get_current_weight(
     start_weight: Uint128,
     end_weight: Uint128,
     start_time: u64,
-    end_time: u64,
+    end_time: Option<u64>,
     block_time: u64,
 ) -> StdResult<Decimal256> {
     if block_time < start_time {
         return Err(StdError::generic_err("Sale has not started yet"));
     }
 
-    if block_time > end_time {
+    if block_time > end_time.unwrap() {
         return Err(StdError::generic_err("Sale has already finished"));
     }
 
     let start_weight_fixed = uint2dec(start_weight);
-    let time_diff = uint2dec(Uint128::from(end_time - start_time));
+
+    // AMM pair will not have an end time & must have equal start/end weights
+    if end_time == None {
+        let ratio = uint2dec(Uint128::zero());
+        return Ok(start_weight_fixed.sub(ratio));
+    }
+
+    let time_diff = uint2dec(Uint128::from(end_time.unwrap() - start_time));
 
     if end_weight > start_weight {
         let ratio = uint2dec(Uint128::from(
