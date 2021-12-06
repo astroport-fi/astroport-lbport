@@ -26,11 +26,8 @@ use astroport_lbp::token::InstantiateMsg as TokenInstantiateMsg;
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 
-/// Commission rate == 0.15%
-pub const COMMISSION_RATE: &str = "0.0015";
-
 // version info for migration info
-const CONTRACT_NAME: &str = "astroport-lbp-pair";
+const CONTRACT_NAME: &str = "angelprotocol-lbp-amm-pair";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INSTANTIATE_REPLY_ID: u64 = 1;
@@ -77,6 +74,7 @@ pub fn instantiate(
         start_time: msg.start_time,
         end_time: msg.end_time,
         description: msg.description,
+        commission_rate: msg.commission_rate,
     };
 
     PAIR_INFO.save(deps.storage, pair_info)?;
@@ -428,6 +426,7 @@ pub fn try_swap(
         ask_pool.amount,
         ask_weight,
         offer_amount,
+        pair_info.commission_rate,
     )?;
 
     // check max spread limit if exist
@@ -546,6 +545,7 @@ pub fn query_simulation(
         ask_pool.amount,
         ask_weight,
         offer_asset.amount,
+        pair_info.commission_rate,
     )?;
 
     Ok(SimulationResponse {
@@ -602,6 +602,7 @@ pub fn query_reverse_simulation(
         ask_pool.amount,
         ask_weight,
         ask_asset.amount,
+        pair_info.commission_rate,
     )?;
 
     Ok(ReverseSimulationResponse {
@@ -647,6 +648,7 @@ pub fn compute_swap(
     ask_pool: Uint128,
     ask_weight: Decimal256,
     offer_amount: Uint128,
+    commission_rate: String,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // offer => ask
     let return_amount =
@@ -660,7 +662,7 @@ pub fn compute_swap(
         .checked_sub(return_amount)
         .unwrap_or_else(|_| Uint128::zero());
 
-    let commission_amount: Uint128 = return_amount * Decimal::from_str(COMMISSION_RATE).unwrap();
+    let commission_amount: Uint128 = return_amount * Decimal::from_str(&commission_rate).unwrap();
 
     // commission will be absorbed to pool
     let return_amount: Uint128 = return_amount.checked_sub(commission_amount).unwrap();
@@ -674,10 +676,11 @@ fn compute_offer_amount(
     ask_pool: Uint128,
     ask_weight: Decimal256,
     ask_amount: Uint128,
+    commission_rate: String,
 ) -> StdResult<(Uint128, Uint128, Uint128)> {
     // ask => offer
 
-    let one_minus_commission = Decimal256::one() - Decimal256::from_str(COMMISSION_RATE).unwrap();
+    let one_minus_commission = Decimal256::one() - Decimal256::from_str(&commission_rate).unwrap();
 
     let before_commission_deduction =
         ask_amount * (Decimal256::one() / one_minus_commission).into();
@@ -698,7 +701,7 @@ fn compute_offer_amount(
         .unwrap_or_else(|_| Uint128::zero());
 
     let commission_amount =
-        before_commission_deduction * Decimal::from_str(COMMISSION_RATE).unwrap();
+        before_commission_deduction * Decimal::from_str(&commission_rate).unwrap();
 
     Ok((offer_amount, spread_amount, commission_amount))
 }

@@ -197,6 +197,7 @@ pub struct PairInfo {
     pub start_time: u64,
     pub end_time: u64,
     pub description: Option<String>,
+    pub commission_rate: String,
 }
 
 impl PairInfo {

@@ -18,6 +18,8 @@ pub struct InstantiateMsg {
     pub end_time: u64,
     /// Pair description
     pub description: Option<String>,
+    // Commission Rate for a pair
+    pub commission_rate: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
