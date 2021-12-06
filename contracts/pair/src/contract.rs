@@ -27,7 +27,7 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 
 // version info for migration info
-const CONTRACT_NAME: &str = "angelprotocol-lbp-amm-pair";
+const CONTRACT_NAME: &str = "astroport-lbp-pair";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const INSTANTIATE_REPLY_ID: u64 = 1;
