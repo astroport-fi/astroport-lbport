@@ -36,7 +36,7 @@ const INSTANTIATE_REPLY_ID: u64 = 1;
 pub fn instantiate(
     deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -170,7 +170,7 @@ pub fn execute(
         ExecuteMsg::UpdatePairConfigs {
             end_time,
             commission_rate,
-        } => try_update_configs(deps, env, info, end_time, commission_rate),
+        } => try_update_configs(deps, info, end_time, commission_rate),
     }
 }
 
@@ -487,14 +487,14 @@ pub fn try_update_configs(
     deps: DepsMut,
     info: MessageInfo,
     end_time: Option<Option<u64>>,
-    commission_rate: Option<String>,
+    commission_rate: String,
 ) -> Result<Response, ContractError> {
     let mut pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     if info.sender != pair_info.owner {
-        return Err(StdError::generic_err("Unauthorized"));
+        return Err(ContractError::Unauthorized {});
     }
     pair_info.end_time = end_time.unwrap_or(pair_info.end_time);
-    pair_info.commission_rate = commission_rate.unwrap_or(pair_info.commission_rate);
+    pair_info.commission_rate = commission_rate;
     PAIR_INFO.save(deps.storage, &pair_info)?;
     Ok(Response::default())
 }

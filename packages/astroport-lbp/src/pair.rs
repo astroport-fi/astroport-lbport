@@ -41,7 +41,7 @@ pub enum ExecuteMsg {
     /// Update Pair parameters like: end_date & commissison_fee
     UpdatePairConfigs {
         end_time: Option<Option<u64>>,
-        commission_rate: Option<String>,
+        commission_rate: String,
     },
 }
 

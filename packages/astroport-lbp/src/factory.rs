@@ -37,6 +37,10 @@ pub enum ExecuteMsg {
     Unregister {
         asset_infos: [AssetInfo; 2],
     },
+    UpdatePair {
+        pair: String,
+        end_time: Option<Option<u64>>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

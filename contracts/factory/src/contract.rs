@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, ReplyOn,
-    Response, StdError, StdResult, SubMsg, WasmMsg,
+    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
+    ReplyOn, Response, StdError, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 use protobuf::Message;
@@ -10,6 +10,7 @@ use astroport_lbp::factory::{
     ConfigResponse, ExecuteMsg, FactoryPairInfo, InstantiateMsg, MigrateMsg, PairsResponse,
     QueryMsg,
 };
+use astroport_lbp::pair::ExecuteMsg::UpdatePairConfigs;
 use astroport_lbp::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
@@ -80,6 +81,7 @@ pub fn execute(
             description,
         ),
         ExecuteMsg::Unregister { asset_infos } => try_unregister(deps, env, info, asset_infos),
+        ExecuteMsg::UpdatePair { pair, end_time } => try_update_pair(deps, info, pair, end_time),
     }
 }
 
@@ -115,7 +117,7 @@ pub fn try_update_config(
 }
 
 #[allow(clippy::too_many_arguments)]
-// Anyone can execute it to create swap pair
+// Only the owner can execute it to create swap pair
 pub fn try_create_pair(
     deps: DepsMut,
     _env: Env,
@@ -201,6 +203,33 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
     )?;
 
     Ok(Response::new().add_attributes(vec![("pair_contract_addr", pair_contract)]))
+}
+
+// Only owner can execute it
+pub fn try_update_pair(
+    deps: DepsMut,
+    info: MessageInfo,
+    pair: String,
+    end_time: Option<Option<u64>>,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    let pair_addr = deps.api.addr_validate(&pair)?;
+
+    // Permission check
+    if config.owner != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+    Ok(Response::new()
+        .add_submessage(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: pair_addr.to_string(),
+            msg: to_binary(&UpdatePairConfigs {
+                end_time: end_time,
+                commission_rate: config.commission_rate,
+            })
+            .unwrap(),
+            funds: vec![],
+        })))
+        .add_attribute("action", "update_pair"))
 }
 
 /// remove from list of pairs
