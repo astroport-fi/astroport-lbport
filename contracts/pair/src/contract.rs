@@ -819,16 +819,16 @@ fn get_current_weight(
         return Err(StdError::generic_err("Sale has not started yet"));
     }
 
-    if block_time > end_time.unwrap() {
-        return Err(StdError::generic_err("Sale has already finished"));
-    }
-
     let start_weight_fixed = uint2dec(start_weight);
 
-    // AMM pair will not have an end time & must have equal start/end weights
+    // AMM pair will not have an end time & always returns the start weights
     if end_time == None {
         let ratio = uint2dec(Uint128::zero());
         return Ok(start_weight_fixed.sub(ratio));
+    }
+
+    if block_time > end_time.unwrap() {
+        return Err(StdError::generic_err("Sale has already finished"));
     }
 
     let time_diff = uint2dec(Uint128::from(end_time.unwrap() - start_time));
