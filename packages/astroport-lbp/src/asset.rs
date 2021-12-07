@@ -191,6 +191,7 @@ impl AssetInfo {
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PairInfo {
+    pub owner: Addr,
     pub asset_infos: [WeightedAssetInfo; 2],
     pub contract_addr: Addr,
     pub liquidity_token: Addr,

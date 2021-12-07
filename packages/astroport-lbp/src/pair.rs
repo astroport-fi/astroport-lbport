@@ -38,6 +38,11 @@ pub enum ExecuteMsg {
         max_spread: Option<Decimal>,
         to: Option<Addr>,
     },
+    /// Update Pair parameters like: end_date & commissison_fee
+    UpdatePairConfigs {
+        end_time: Option<Option<u64>>,
+        commission_rate: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

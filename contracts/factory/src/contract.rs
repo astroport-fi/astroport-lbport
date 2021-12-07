@@ -127,6 +127,10 @@ pub fn try_create_pair(
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
 
+    if config.owner != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+
     let asset_infos = [
         weighted_asset_infos[0].info.clone(),
         weighted_asset_infos[1].info.clone(),

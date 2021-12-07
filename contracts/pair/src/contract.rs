@@ -80,6 +80,7 @@ pub fn instantiate(
     }
 
     let pair_info: &PairInfo = &PairInfo {
+        owner: info.sender,
         contract_addr: env.contract.address.clone(),
         liquidity_token: Addr::unchecked(""),
         asset_infos: [msg.asset_infos[0].clone(), msg.asset_infos[1].clone()],
@@ -166,6 +167,10 @@ pub fn execute(
                 to,
             )
         }
+        ExecuteMsg::UpdatePairConfigs {
+            end_time,
+            commission_rate,
+        } => try_update_configs(deps, env, info, end_time, commission_rate),
     }
 }
 
@@ -476,6 +481,22 @@ pub fn try_swap(
             attr("spread_amount", spread_amount.to_string()),
             attr("commission_amount", commission_amount.to_string()),
         ]))
+}
+
+pub fn try_update_configs(
+    deps: DepsMut,
+    info: MessageInfo,
+    end_time: Option<Option<u64>>,
+    commission_rate: Option<String>,
+) -> Result<Response, ContractError> {
+    let mut pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
+    if info.sender != pair_info.owner {
+        return Err(StdError::generic_err("Unauthorized"));
+    }
+    pair_info.end_time = end_time.unwrap_or(pair_info.end_time);
+    pair_info.commission_rate = commission_rate.unwrap_or(pair_info.commission_rate);
+    PAIR_INFO.save(deps.storage, &pair_info)?;
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
