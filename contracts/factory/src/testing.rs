@@ -26,6 +26,8 @@ fn proper_initialization() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
     };
 
     let env = mock_env();
@@ -48,7 +50,9 @@ fn update_config() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
-        owner: "owner0000".to_string(),
+        owner: "addr0000".to_string(),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
     };
 
     let env = mock_env();
@@ -59,11 +63,13 @@ fn update_config() {
 
     // update owner
     let env = mock_env();
-    let info = mock_info("owner0000", &[]);
+    let info = mock_info("addr0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner: Some(Addr::unchecked("addr0001")),
         pair_code_id: None,
         token_code_id: None,
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
@@ -83,6 +89,8 @@ fn update_config() {
         owner: None,
         pair_code_id: Some(100u64),
         token_code_id: Some(200u64),
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
@@ -97,11 +105,13 @@ fn update_config() {
 
     // Unauthorzied err
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("fakeowner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner: None,
         pair_code_id: None,
         token_code_id: None,
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     let res = execute(deps.as_mut(), env, info, msg);
@@ -124,7 +134,9 @@ fn create_pair() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
-        owner: "owner0000".to_string(),
+        owner: "addr0000".to_string(),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
     };
 
     let env = mock_env();
@@ -153,7 +165,7 @@ fn create_pair() {
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos.clone(),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
     };
 
@@ -177,8 +189,10 @@ fn create_pair() {
                     asset_infos: asset_infos.clone(),
                     token_code_id: 123u64,
                     start_time,
-                    end_time,
+                    end_time: Some(end_time),
                     description: Some(String::from("description")),
+                    collector_addr: None,
+                    commission_rate: "0.0015".to_string(),
                 })
                 .unwrap(),
                 code_id: 321u64,
@@ -209,10 +223,12 @@ fn register() {
         pair_code_id: 321u64,
         token_code_id: 123u64,
         owner: "owner0000".to_string(),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
     };
 
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let _res = instantiate(deps.as_mut(), env, info, msg).unwrap();
 
     let asset_infos = [
@@ -235,12 +251,12 @@ fn register() {
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos.clone(),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
     };
 
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     let pair0_addr = Addr::unchecked("pair0000");
@@ -249,8 +265,11 @@ fn register() {
         contract_addr: Addr::unchecked("pair0000"),
         liquidity_token: Addr::unchecked("liquidity0000"),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
+        owner: Addr::unchecked("addr0000"),
     };
 
     let mut deployed_pairs = vec![(&pair0_addr, &pair0_info)];
@@ -294,8 +313,11 @@ fn register() {
             contract_addr: Addr::unchecked("pair0000"),
             asset_infos: asset_infos.clone(),
             start_time,
-            end_time,
+            end_time: Some(end_time),
             description: Some(String::from("description")),
+            collector_addr: None,
+            commission_rate: "0.0015".to_string(),
+            owner: Addr::unchecked("addr0000"),
         }
     );
 
@@ -323,12 +345,12 @@ fn register() {
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos_2.clone(),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
     };
 
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     // register astroport-lbp pair querier
@@ -338,8 +360,11 @@ fn register() {
         contract_addr: Addr::unchecked("pair0001"),
         liquidity_token: Addr::unchecked("liquidity0001"),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
+        owner: Addr::unchecked("addr0000"),
     };
 
     deployed_pairs.push((&pair1_addr, &pair1_info));
@@ -418,7 +443,7 @@ fn register() {
     }
 
     let env = mock_env();
-    let info = mock_info("addr0000", &[]);
+    let info = mock_info("owner0000", &[]);
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     assert_eq!(

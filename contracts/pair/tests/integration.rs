@@ -93,8 +93,10 @@ fn instantiate_pair(app: &mut App) -> Addr {
         ],
         token_code_id,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: None,
+        collector_addr: None,
+        commission_rate: "0.01".to_string(),
     };
 
     app.instantiate_contract(
@@ -174,7 +176,7 @@ fn provide_and_withdraw_liquidity() {
     assert_eq!(res.events[3].attributes[3], attr("amount", 100.to_string()));
 
     // Check withdraw
-    for n in vec![0, pair_info.end_time * 2] {
+    for n in vec![0, pair_info.end_time.unwrap() * 2] {
         app.update_block(|b| b.time = b.time.plus_seconds(n));
 
         // Withdraw liquidity

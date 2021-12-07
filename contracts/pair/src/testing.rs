@@ -1,6 +1,6 @@
 use crate::contract::{
     assert_max_spread, compute_swap, execute, instantiate, query_pair_info, query_pool,
-    query_reverse_simulation, query_simulation, reply, COMMISSION_RATE,
+    query_reverse_simulation, query_simulation, reply,
 };
 use crate::mock_querier::mock_dependencies;
 use proptest::prelude::*;
@@ -85,9 +85,10 @@ fn proper_initialization() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -186,9 +187,10 @@ fn provide_liquidity() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -632,9 +634,10 @@ fn withdraw_liquidity() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -775,9 +778,10 @@ fn try_native_to_token() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -982,9 +986,10 @@ fn try_token_to_native() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -1264,9 +1269,10 @@ fn test_spread() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -1337,7 +1343,7 @@ fn test_spread() {
     // return_amount: ask_pool * (1 - (offer_pool / (offer_pool + offer_amount)) ^ (offer_weight / ask_weight))
     // 50000000000000000 * (1 - (250000000000000 / 250010000000000)) = 1999920003199
     let return_amount = Uint128::new(1999920003199);
-    let commission_amount: Uint128 = return_amount * Decimal::from_str(COMMISSION_RATE).unwrap();
+    let commission_amount: Uint128 = return_amount * Decimal::from_str("0.0015").unwrap();
     let return_amount_without_commission = return_amount - commission_amount;
 
     assert_eq!(
@@ -1422,9 +1428,10 @@ fn test_query_pool() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -1513,9 +1520,10 @@ fn test_weight_calculations() {
         ],
         token_code_id: 10u64,
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
-        commission_rate: Demical::from("0.0015"),
+        commission_rate: "0.0015".to_string(),
+        collector_addr: None,
     };
 
     let env = mock_env();
@@ -1609,13 +1617,21 @@ fn compute_swap_rounding() {
     let ask_pool = Uint128::from(1_000_000_000_000_u128);
     let ask_weight = Decimal256::one();
     let offer_amount = Uint128::from(1_u128);
+    let commission_rate = "0.0015";
 
     let return_amount = Uint128::from(0_u128);
     let spread_amount = Uint128::from(0_u128);
     let commission_amount = Uint128::from(0_u128);
 
     assert_eq!(
-        compute_swap(offer_pool, offer_weight, ask_pool, ask_weight, offer_amount),
+        compute_swap(
+            offer_pool,
+            offer_weight,
+            ask_pool,
+            ask_weight,
+            offer_amount,
+            commission_rate.to_string()
+        ),
         Ok((return_amount, spread_amount, commission_amount))
     );
 }
@@ -1627,7 +1643,7 @@ proptest! {
         ask_pool in 1_000_000..9_000_000_000_000_000_000u128,
         offer_weight in 1..50u128,
         ask_weight in 1..50u128,
-        offer_amount in 1..100_000_000000u128,
+        offer_amount in 1..100_000_000000u128
     ) {
 
         let offer_pool = Uint128::from(offer_pool);
@@ -1635,7 +1651,7 @@ proptest! {
         let offer_weight = uint2dec(Uint128::from(offer_weight));
         let ask_weight = uint2dec(Uint128::from(ask_weight));
         let offer_amount = Uint128::from(offer_amount);
-
+        let commission_rate = "0.0015".to_string();
 
         // Make sure there are no overflows
         compute_swap(
@@ -1644,6 +1660,7 @@ proptest! {
             ask_pool,
             ask_weight,
             offer_amount,
+            commission_rate,
         ).unwrap();
     }
 }

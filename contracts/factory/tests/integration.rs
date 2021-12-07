@@ -75,6 +75,8 @@ fn create_and_register_pair_with_reply() {
         pair_code_id,
         token_code_id,
         owner: owner.to_string(),
+        collector_addr: None,
+        commission_rate: "0.0015".to_string(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -109,12 +111,12 @@ fn create_and_register_pair_with_reply() {
     let msg = ExecuteMsg::CreatePair {
         asset_infos: asset_infos.clone(),
         start_time,
-        end_time,
+        end_time: Some(end_time),
         description: Some(String::from("description")),
     };
 
     app.execute_contract(
-        Addr::unchecked("addr0000"),
+        Addr::unchecked("owner0000"),
         factory_instance.clone(),
         &msg,
         &[],
@@ -135,7 +137,7 @@ fn create_and_register_pair_with_reply() {
     assert_eq!("Contract #1", res.contract_addr.to_string());
     assert_eq!("Contract #2", res.liquidity_token.to_string());
     assert_eq!(start_time, res.start_time);
-    assert_eq!(end_time, res.end_time);
+    assert_eq!(end_time, res.end_time.unwrap());
     assert_eq!(asset_infos, res.asset_infos);
 }
 
@@ -154,6 +156,8 @@ fn update_config() {
         pair_code_id,
         token_code_id,
         owner: owner.to_string(),
+        commission_rate: "0.01".to_string(),
+        collector_addr: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -173,6 +177,8 @@ fn update_config() {
         owner: Some(new_owner.clone()),
         token_code_id: None,
         pair_code_id: None,
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     app.execute_contract(owner.clone(), factory_instance.clone(), &msg, &[])
@@ -192,6 +198,8 @@ fn update_config() {
         owner: None,
         token_code_id: Some(200u64),
         pair_code_id: Some(300u64),
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     app.execute_contract(new_owner, factory_instance.clone(), &msg, &[])
@@ -210,6 +218,8 @@ fn update_config() {
         owner: None,
         token_code_id: None,
         pair_code_id: None,
+        collector_addr: None,
+        commission_rate: Some("0.0015".to_string()),
     };
 
     let res = app

@@ -204,7 +204,7 @@ impl WasmMockQuerier {
             QueryMsg::Pair { asset_infos } => {
                 let key = asset_infos[0].to_string() + asset_infos[1].to_string().as_str();
                 match self.astroport_lbp_factory_querier.pairs.get(&key) {
-                    Some(v) => SystemResult::Ok(
+                    Some(_v) => SystemResult::Ok(
                         to_binary(&FactoryPairInfo {
                             owner: Addr::unchecked("owner0000"),
                             contract_addr: Addr::unchecked("pair"),
