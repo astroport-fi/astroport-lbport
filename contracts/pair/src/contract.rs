@@ -88,6 +88,7 @@ pub fn instantiate(
         end_time: end_time,
         description: msg.description,
         commission_rate: msg.commission_rate,
+        collector_addr: msg.collector_addr,
     };
 
     PAIR_INFO.save(deps.storage, pair_info)?;
@@ -170,7 +171,8 @@ pub fn execute(
         ExecuteMsg::UpdatePairConfigs {
             end_time,
             commission_rate,
-        } => try_update_configs(deps, info, end_time, commission_rate),
+            collector_addr,
+        } => try_update_configs(deps, info, end_time, commission_rate, collector_addr),
     }
 }
 
@@ -488,6 +490,7 @@ pub fn try_update_configs(
     info: MessageInfo,
     end_time: Option<Option<u64>>,
     commission_rate: String,
+    collector_addr: Option<Addr>,
 ) -> Result<Response, ContractError> {
     let mut pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     if info.sender != pair_info.owner {
@@ -495,6 +498,7 @@ pub fn try_update_configs(
     }
     pair_info.end_time = end_time.unwrap_or(pair_info.end_time);
     pair_info.commission_rate = commission_rate;
+    pair_info.collector_addr = collector_addr;
     PAIR_INFO.save(deps.storage, &pair_info)?;
     Ok(Response::default())
 }

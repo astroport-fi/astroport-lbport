@@ -39,6 +39,10 @@ pub fn instantiate(
         token_code_id: msg.token_code_id,
         pair_code_id: msg.pair_code_id,
         commission_rate: msg.commission_rate,
+        collector_addr: match msg.collector_addr {
+            Some(addr) => Some(deps.api.addr_validate(&addr)?),
+            None => None,
+        },
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -58,6 +62,7 @@ pub fn execute(
             token_code_id,
             pair_code_id,
             commission_rate,
+            collector_addr,
         } => try_update_config(
             deps,
             info,
@@ -65,6 +70,7 @@ pub fn execute(
             token_code_id,
             pair_code_id,
             commission_rate,
+            collector_addr,
         ),
         ExecuteMsg::CreatePair {
             asset_infos,
@@ -93,6 +99,7 @@ pub fn try_update_config(
     token_code_id: Option<u64>,
     pair_code_id: Option<u64>,
     commission_rate: Option<String>,
+    collector_addr: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut config: Config = CONFIG.load(deps.storage)?;
 
@@ -100,6 +107,7 @@ pub fn try_update_config(
     if info.sender != config.owner {
         return Err(ContractError::Unauthorized {});
     }
+
     if let Some(owner) = owner {
         config.owner = owner;
     }
@@ -112,6 +120,11 @@ pub fn try_update_config(
     if let Some(commission_rate) = commission_rate {
         config.commission_rate = commission_rate;
     }
+    config.collector_addr = match collector_addr {
+        Some(addr) => Some(deps.api.addr_validate(&addr)?),
+        None => None,
+    };
+
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::new().add_attribute("action", "update_config"))
 }
@@ -164,6 +177,7 @@ pub fn try_create_pair(
                     end_time,
                     description,
                     commission_rate: config.commission_rate,
+                    collector_addr: config.collector_addr,
                 })?,
                 funds: vec![],
                 label: "Astroport pair".to_string(),
@@ -225,6 +239,7 @@ pub fn try_update_pair(
             msg: to_binary(&UpdatePairConfigs {
                 end_time: end_time,
                 commission_rate: config.commission_rate,
+                collector_addr: config.collector_addr,
             })
             .unwrap(),
             funds: vec![],
@@ -266,12 +281,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
-    let state: Config = CONFIG.load(deps.storage)?;
+    let config: Config = CONFIG.load(deps.storage)?;
     let resp = ConfigResponse {
-        owner: state.owner.clone(),
-        token_code_id: state.token_code_id,
-        pair_code_id: state.pair_code_id,
-        commission_rate: state.commission_rate,
+        owner: config.owner.clone(),
+        token_code_id: config.token_code_id,
+        pair_code_id: config.pair_code_id,
+        commission_rate: config.commission_rate,
+        collector_addr: config.collector_addr,
     };
 
     Ok(resp)
