@@ -200,6 +200,7 @@ pub struct PairInfo {
     pub description: Option<String>,
     pub commission_rate: String,
     pub collector_addr: Option<Addr>,
+    pub spilt_to_collector: Option<String>,
 }
 
 impl PairInfo {

@@ -89,6 +89,7 @@ fn proper_initialization() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -191,6 +192,7 @@ fn provide_liquidity() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -638,6 +640,7 @@ fn withdraw_liquidity() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -782,6 +785,7 @@ fn try_native_to_token() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -990,6 +994,7 @@ fn try_token_to_native() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -1273,6 +1278,7 @@ fn test_spread() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -1432,6 +1438,7 @@ fn test_query_pool() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();
@@ -1524,6 +1531,7 @@ fn test_weight_calculations() {
         description: Some(String::from("description")),
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
+        spilt_to_collector: None,
     };
 
     let env = mock_env();

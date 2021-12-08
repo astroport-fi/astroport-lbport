@@ -22,6 +22,8 @@ pub struct InstantiateMsg {
     pub commission_rate: String,
     // Collector contract Address for sending commission fees to
     pub collector_addr: Option<Addr>,
+    // Split commission fee to the collector address
+    pub spilt_to_collector: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -45,6 +47,7 @@ pub enum ExecuteMsg {
         end_time: Option<Option<u64>>,
         commission_rate: String,
         collector_addr: Option<Addr>,
+        spilt_to_collector: Option<String>,
     },
 }
 

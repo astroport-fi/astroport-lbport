@@ -43,6 +43,7 @@ pub fn instantiate(
             Some(addr) => Some(deps.api.addr_validate(&addr)?),
             None => None,
         },
+        spilt_to_collector: msg.spilt_to_collector
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -63,6 +64,7 @@ pub fn execute(
             pair_code_id,
             commission_rate,
             collector_addr,
+            spilt_to_collector,
         } => try_update_config(
             deps,
             info,
@@ -71,6 +73,7 @@ pub fn execute(
             pair_code_id,
             commission_rate,
             collector_addr,
+            spilt_to_collector,
         ),
         ExecuteMsg::CreatePair {
             asset_infos,
@@ -100,6 +103,7 @@ pub fn try_update_config(
     pair_code_id: Option<u64>,
     commission_rate: Option<String>,
     collector_addr: Option<String>,
+    spilt_to_collector: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut config: Config = CONFIG.load(deps.storage)?;
 
@@ -122,6 +126,9 @@ pub fn try_update_config(
     }
     if let Some(collector_addr) = collector_addr {
         config.collector_addr = Some(deps.api.addr_validate(&collector_addr)?);
+    }
+    if let Some(spilt_to_collector) = spilt_to_collector {
+        config.spilt_to_collector = Some(spilt_to_collector);
     }
 
     CONFIG.save(deps.storage, &config)?;
@@ -177,6 +184,7 @@ pub fn try_create_pair(
                     description,
                     commission_rate: config.commission_rate,
                     collector_addr: config.collector_addr,
+                    spilt_to_collector: config.spilt_to_collector,
                 })?,
                 funds: vec![],
                 label: "Astroport pair".to_string(),
@@ -239,6 +247,7 @@ pub fn try_update_pair(
                 end_time: end_time,
                 commission_rate: config.commission_rate,
                 collector_addr: config.collector_addr,
+                spilt_to_collector: config.spilt_to_collector,
             })
             .unwrap(),
             funds: vec![],
@@ -287,6 +296,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         pair_code_id: config.pair_code_id,
         commission_rate: config.commission_rate,
         collector_addr: config.collector_addr,
+        spilt_to_collector: config.spilt_to_collector,
     };
 
     Ok(resp)
