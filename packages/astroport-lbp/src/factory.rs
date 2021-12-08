@@ -43,7 +43,7 @@ pub enum ExecuteMsg {
     },
     UpdatePair {
         pair: String,
-        end_time: Option<Option<u64>>,
+        end_time: Option<u64>,
     },
 }
 

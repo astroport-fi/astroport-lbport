@@ -231,7 +231,7 @@ pub fn try_update_pair(
     deps: DepsMut,
     info: MessageInfo,
     pair: String,
-    end_time: Option<Option<u64>>,
+    end_time: Option<u64>,
 ) -> Result<Response, ContractError> {
     let config: Config = CONFIG.load(deps.storage)?;
     let pair_addr = deps.api.addr_validate(&pair)?;

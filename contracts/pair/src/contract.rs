@@ -490,7 +490,7 @@ pub fn try_swap(
 pub fn try_update_configs(
     deps: DepsMut,
     info: MessageInfo,
-    end_time: Option<Option<u64>>,
+    end_time: Option<u64>,
     commission_rate: String,
     collector_addr: Option<Addr>,
     spilt_to_collector: Option<String>,
@@ -499,7 +499,7 @@ pub fn try_update_configs(
     if info.sender != pair_info.owner {
         return Err(ContractError::Unauthorized {});
     }
-    pair_info.end_time = end_time.unwrap_or(pair_info.end_time);
+    pair_info.end_time = end_time;
     pair_info.commission_rate = commission_rate;
     pair_info.collector_addr = collector_addr;
     pair_info.spilt_to_collector = spilt_to_collector;
