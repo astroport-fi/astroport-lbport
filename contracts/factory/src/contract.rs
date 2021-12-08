@@ -120,10 +120,9 @@ pub fn try_update_config(
     if let Some(commission_rate) = commission_rate {
         config.commission_rate = commission_rate;
     }
-    config.collector_addr = match collector_addr {
-        Some(addr) => Some(deps.api.addr_validate(&addr)?),
-        None => None,
-    };
+    if let Some(collector_addr) = collector_addr {
+        config.collector_addr = Some(deps.api.addr_validate(&collector_addr)?);
+    }
 
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::new().add_attribute("action", "update_config"))
