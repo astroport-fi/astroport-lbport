@@ -77,7 +77,7 @@ fn create_and_register_pair_with_reply() {
         owner: owner.to_string(),
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -159,7 +159,7 @@ fn update_config() {
         owner: owner.to_string(),
         commission_rate: "0.01".to_string(),
         collector_addr: None,
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -181,7 +181,7 @@ fn update_config() {
         pair_code_id: None,
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     app.execute_contract(owner.clone(), factory_instance.clone(), &msg, &[])
@@ -203,7 +203,7 @@ fn update_config() {
         pair_code_id: Some(300u64),
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     app.execute_contract(new_owner, factory_instance.clone(), &msg, &[])
@@ -224,7 +224,7 @@ fn update_config() {
         pair_code_id: None,
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let res = app

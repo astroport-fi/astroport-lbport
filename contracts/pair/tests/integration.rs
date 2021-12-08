@@ -97,7 +97,7 @@ fn instantiate_pair(app: &mut App) -> Addr {
         description: None,
         collector_addr: None,
         commission_rate: "0.01".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     app.instantiate_contract(

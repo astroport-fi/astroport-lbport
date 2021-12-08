@@ -89,7 +89,7 @@ pub fn instantiate(
         description: msg.description,
         commission_rate: msg.commission_rate,
         collector_addr: msg.collector_addr,
-        spilt_to_collector: msg.spilt_to_collector,
+        split_to_collector: msg.split_to_collector,
     };
 
     PAIR_INFO.save(deps.storage, pair_info)?;
@@ -173,8 +173,15 @@ pub fn execute(
             end_time,
             commission_rate,
             collector_addr,
-            spilt_to_collector,
-        } => try_update_configs(deps, info, end_time, commission_rate, collector_addr, spilt_to_collector),
+            split_to_collector,
+        } => try_update_configs(
+            deps,
+            info,
+            end_time,
+            commission_rate,
+            collector_addr,
+            split_to_collector,
+        ),
     }
 }
 
@@ -466,25 +473,55 @@ pub fn try_swap(
     };
 
     let tax_amount = return_asset.compute_tax(deps.as_ref())?;
+    let receiver = to.unwrap_or_else(|| sender.clone());
+
+    let mut messages: Vec<CosmosMsg> = vec![];
+    if !return_amount.is_zero() {
+        messages.push(return_asset.into_msg(
+            deps.as_ref(),
+            env.contract.address.clone(),
+            receiver,
+        )?);
+    }
+
+    // Send split commission fees to collector
+    match pair_info.collector_addr {
+        Some(collector_addr) => {
+            match pair_info.split_to_collector {
+                Some(split_to_collector) => {
+                    let split_commission_amount =
+                        commission_amount * Decimal::from_str(&split_to_collector).unwrap();
+                    let split_commission_asset = Asset {
+                        info: ask_pool.info.clone(),
+                        amount: split_commission_amount,
+                    };
+
+                    if !split_commission_amount.is_zero() {
+                        messages.push(split_commission_asset.into_msg(
+                            deps.as_ref(),
+                            env.contract.address,
+                            collector_addr,
+                        )?);
+                    }
+                }
+                None => {}
+            };
+        }
+        None => {}
+    };
 
     // 1. send collateral token from the contract to a user
     // 2. send inactive commission to collector
-    Ok(Response::new()
-        .add_message(return_asset.into_msg(
-            deps.as_ref(),
-            env.contract.address,
-            to.unwrap_or(sender),
-        )?)
-        .add_attributes(vec![
-            attr("action", "swap"),
-            attr("offer_asset", offer_asset.info.to_string()),
-            attr("ask_asset", ask_pool.info.to_string()),
-            attr("offer_amount", offer_amount.to_string()),
-            attr("return_amount", return_amount.to_string()),
-            attr("tax_amount", tax_amount.to_string()),
-            attr("spread_amount", spread_amount.to_string()),
-            attr("commission_amount", commission_amount.to_string()),
-        ]))
+    Ok(Response::new().add_messages(messages).add_attributes(vec![
+        attr("action", "swap"),
+        attr("offer_asset", offer_asset.info.to_string()),
+        attr("ask_asset", ask_pool.info.to_string()),
+        attr("offer_amount", offer_amount.to_string()),
+        attr("return_amount", return_amount.to_string()),
+        attr("tax_amount", tax_amount.to_string()),
+        attr("spread_amount", spread_amount.to_string()),
+        attr("commission_amount", commission_amount.to_string()),
+    ]))
 }
 
 pub fn try_update_configs(
@@ -493,7 +530,7 @@ pub fn try_update_configs(
     end_time: Option<u64>,
     commission_rate: String,
     collector_addr: Option<Addr>,
-    spilt_to_collector: Option<String>,
+    split_to_collector: Option<String>,
 ) -> Result<Response, ContractError> {
     let mut pair_info: PairInfo = PAIR_INFO.load(deps.storage)?;
     if info.sender != pair_info.owner {
@@ -502,7 +539,7 @@ pub fn try_update_configs(
     pair_info.end_time = end_time;
     pair_info.commission_rate = commission_rate;
     pair_info.collector_addr = collector_addr;
-    pair_info.spilt_to_collector = spilt_to_collector;
+    pair_info.split_to_collector = split_to_collector;
     PAIR_INFO.save(deps.storage, &pair_info)?;
     Ok(Response::default())
 }

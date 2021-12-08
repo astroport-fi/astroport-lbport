@@ -28,7 +28,7 @@ fn proper_initialization() {
         owner: "owner0000".to_string(),
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let env = mock_env();
@@ -54,7 +54,7 @@ fn update_config() {
         owner: "addr0000".to_string(),
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let env = mock_env();
@@ -72,7 +72,7 @@ fn update_config() {
         token_code_id: None,
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
@@ -94,7 +94,7 @@ fn update_config() {
         token_code_id: Some(200u64),
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
@@ -116,7 +116,7 @@ fn update_config() {
         token_code_id: None,
         collector_addr: None,
         commission_rate: Some("0.0015".to_string()),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let res = execute(deps.as_mut(), env, info, msg);
@@ -142,7 +142,7 @@ fn create_pair() {
         owner: "addr0000".to_string(),
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let env = mock_env();
@@ -199,7 +199,7 @@ fn create_pair() {
                     description: Some(String::from("description")),
                     collector_addr: None,
                     commission_rate: "0.0015".to_string(),
-                    spilt_to_collector: None,
+                    split_to_collector: None,
                 })
                 .unwrap(),
                 code_id: 321u64,
@@ -232,7 +232,7 @@ fn register() {
         owner: "owner0000".to_string(),
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let env = mock_env();
@@ -278,7 +278,7 @@ fn register() {
         collector_addr: None,
         commission_rate: "0.0015".to_string(),
         owner: Addr::unchecked("addr0000"),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     let mut deployed_pairs = vec![(&pair0_addr, &pair0_info)];
@@ -327,7 +327,7 @@ fn register() {
             collector_addr: None,
             commission_rate: "0.0015".to_string(),
             owner: Addr::unchecked("addr0000"),
-            spilt_to_collector: None,
+            split_to_collector: None,
         }
     );
 
@@ -375,7 +375,7 @@ fn register() {
         commission_rate: "0.0015".to_string(),
         collector_addr: None,
         owner: Addr::unchecked("addr0000"),
-        spilt_to_collector: None,
+        split_to_collector: None,
     };
 
     deployed_pairs.push((&pair1_addr, &pair1_info));
